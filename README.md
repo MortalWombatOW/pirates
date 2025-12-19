@@ -69,6 +69,7 @@ cargo build --timings
   ![Player Ship](assets/docs/player_ship.png)
 - **UI Style**: Diegetic design using scrolls, daggers, and parchment textures.
 - **Audio**: Scene-specific ambience (creaking hulls, tavern chatter) + orchestral/folk soundtrack.
+- **Asset Source**: Use `kenney_pirate-pack/PNG/Default size/` for ships, tiles, and effects. Copy needed assets to `assets/` folder.
 
 ---
 
@@ -788,7 +789,7 @@ pirates/
 │   │   ├── loot/
 │   │   └── ui/
 │   ├── tilemaps/
-│   │   └── world.tmx
+│   │   └── tileset.png          # Use this tileset for map rendering
 │   ├── audio/
 │   │   ├── music/
 │   │   ├── ambience/
@@ -796,6 +797,8 @@ pirates/
 │   ├── fonts/
 │   └── shaders/
 │       └── ink_parchment.wgsl
+├── kenney_pirate-pack/              # Asset source - use for additional sprites/tiles
+│   └── PNG/Default size/            # Ships, tiles, effects available here
 ├── src/
 │   ├── main.rs
 │   ├── lib.rs
