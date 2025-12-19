@@ -39,6 +39,9 @@ cargo build --timings
 > [!IMPORTANT]
 > **Commit and push after completing every task.** This ensures progress is persisted and visible to the team/other agents.
 
+> [!NOTE]
+> **Efficient Logging**: When appending to `WORK_LOG.md`, use `cat >> WORK_LOG.md <<EOF ... EOF` instead of file editing tools for efficiency.
+
 ---
 
 

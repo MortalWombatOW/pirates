@@ -110,3 +110,11 @@
 - **Verification**:
     - Verified `spawn_player_ship` uses the correct asset path.
     - Ran `cargo check` to ensure no regressions.
+
+### Visual Assets Integration & Ship Orientation Fix
+- **Assets**: Replaced placeholder sprites with Kenney Pirate Pack assets:
+  -  - Player ship sprite
+  -  - Enemy ship sprite (ready for Epic 2.8)
+  -  - Map tile (ready for Epic 3.1)
+- **Ship Orientation Fix**: Added 180-degree rotation to ship spawn Transform to align Kenney sprites (face down) with physics forward direction (Y+).
+- **Documentation**: Added visual references to README.md and WORK_PLAN.md. Added efficient logging guidance to README Quick Start.

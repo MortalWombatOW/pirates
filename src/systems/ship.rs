@@ -30,7 +30,8 @@ pub fn spawn_player_ship(
             color: Color::WHITE,
             ..default()
         },
-        Transform::from_xyz(0.0, 0.0, 1.0),
+        // Rotate 180 degrees: Kenney sprites face DOWN, but physics forward is Y+ (UP)
+        Transform::from_xyz(0.0, 0.0, 1.0).with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
     ))
     .insert((
         // Physics rigid body
