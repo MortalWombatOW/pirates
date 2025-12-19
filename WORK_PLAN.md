@@ -80,13 +80,13 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.2.1 | Define `Ship` marker component | P0 | 1.1.3 | Component exists in `src/components/ship.rs`. |
-| 2.2.2 | Define `Health` component (sails, rudder, hull) | P0 | 1.1.3 | Component with `sails`, `rudder`, `hull` fields and maxes. |
-| 2.2.3 | Define `Cargo` component | P1 | 1.1.3 | Component with `goods: HashMap<GoodType, u32>` and `capacity`. |
-| 2.2.4 | Define `Gold` component | P1 | 1.1.3 | Newtype component `Gold(u32)`. |
-| 2.2.5 | Create `spawn_player_ship` function | P0 | 2.2.1, 2.2.2, 2.1.1 | Spawns entity with `Ship`, `Player`, `Health`, `RigidBody`, `Sprite`. |
-| 2.2.6 | Create placeholder ship sprite | P0 | None | 64x64 PNG in `assets/sprites/ships/player.png`. |
-| 2.2.7 | Load and display ship sprite | P0 | 2.2.5, 2.2.6 | Player ship visible on screen. |
+| [x] 2.2.1 | Define `Ship` marker component | P0 | 1.1.3 | Component exists in `src/components/ship.rs`. |
+| [x] 2.2.2 | Define `Health` component (sails, rudder, hull) | P0 | 1.1.3 | Component with `sails`, `rudder`, `hull` fields and maxes. |
+| [x] 2.2.3 | Define `Cargo` component | P1 | 1.1.3 | Component with `goods: HashMap<GoodType, u32>` and `capacity`. |
+| [x] 2.2.4 | Define `Gold` component | P1 | 1.1.3 | Newtype component `Gold(u32)`. |
+| [x] 2.2.5 | Create `spawn_player_ship` function | P0 | 2.2.1, 2.2.2, 2.1.1 | Spawns entity with `Ship`, `Player`, `Health`, `RigidBody`, `Sprite`. |
+| [x] 2.2.6 | Create placeholder ship sprite | P0 | None | 64x64 PNG in `assets/sprites/ships/player.png`. |
+| [x] 2.2.7 | Load and display ship sprite | P0 | 2.2.5, 2.2.6 | Player ship visible on screen. |
 
 ### Epic 2.3: Ship Movement
 

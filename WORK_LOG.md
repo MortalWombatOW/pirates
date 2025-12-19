@@ -52,3 +52,16 @@
 - **Root Cause**: `MouseMove::default()` was mapped to `CameraMove` action, causing the camera to pan thousands of pixels away from origin on any mouse movement.
 - **Fix**: Removed `MouseMove` from `CameraMove` mapping. Arrow keys still work for camera pan.
 - **Lesson Learned**: `MouseMove::default()` reports raw mouse deltas *every frame* the mouse moves, not just when a button is held. For mouse-drag panning, use a modifier button and gate the action in the system.
+
+### Epic 2.2: Ship Entity [COMPLETED]
+- Defined `Ship` and `Player` marker components in `src/components/ship.rs`.
+- Defined `Health` component with sails, rudder, and hull HP fields plus helper methods in `src/components/health.rs`.
+- Defined `GoodType` enum, `GoodsTrait` enum, `Cargo` component, and `Gold` component in `src/components/cargo.rs`.
+- Created `spawn_player_ship` function in `src/systems/ship.rs` with all required components:
+    - Marker: `Ship`, `Player`
+    - Data: `Health::default()`, `Cargo::new(100)`, `Gold(100)`
+    - Visual: `Sprite` with texture from `assets/sprites/ships/player.png`
+    - Physics: `RigidBody::Dynamic`, `Collider::rectangle`, `LinearDamping`, `AngularDamping`
+- Created placeholder 64x64 ship sprite at `assets/sprites/ships/player.png`.
+- Integrated `spawn_player_ship` into `PhysicsPlugin` to run on `OnEnter(GameState::Combat)`.
+- Verified all changes compile with `cargo check`.
