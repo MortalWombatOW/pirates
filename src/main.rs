@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use pirates::plugins::core::CorePlugin;
+use pirates::plugins::input::InputPlugin;
 
 fn main() {
     App::new()
@@ -11,11 +12,6 @@ fn main() {
             ..default()
         }))
         .add_plugins(CorePlugin)
-        .add_systems(Startup, setup)
+        .add_plugins(InputPlugin)
         .run();
-}
-
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2d);
-    println!("Pirates game started!");
 }

@@ -15,11 +15,16 @@ pub struct CorePlugin;
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
+            .add_systems(Startup, spawn_camera)
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
             ));
     }
+}
+
+fn spawn_camera(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }
 
 fn debug_state_transitions(

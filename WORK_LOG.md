@@ -22,3 +22,9 @@
 - Implemented debug keybindings (1-5) for state switching.
 - Added console logging for state changes.
 - Verified compilation and baseline functionality.
+### Epic 1.3: Camera & Input [IN PROGRESS]
+- Moved 2D camera setup to `CorePlugin` and updated to Bevy 0.15 standards.
+- Integrated `leafwing-input-manager` (0.16).
+- Defined `PlayerAction` actions: `Thrust`, `TurnLeft`, `TurnRight`, `Fire`, `Anchor`, `CycleTarget`.
+- Created `InputPlugin` and default `InputMap` (WASD + Space + Shift + Tab).
+- Verified compilation and baseline app stability.
