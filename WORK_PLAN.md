@@ -36,10 +36,10 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 1.2.1 | Define `GameState` enum in `src/plugins/core.rs` | P0 | 1.1.4 | Enum with variants: `MainMenu`, `Port`, `HighSeas`, `Combat`, `GameOver`. |
-| 1.2.2 | Create `CorePlugin` and register `GameState` | P0 | 1.2.1 | Plugin added to app, state defaults to `MainMenu`. |
-| 1.2.3 | Implement state transition system (placeholder) | P0 | 1.2.2 | Pressing `1-5` keys switches between states (debug feature). |
-| 1.2.4 | Add logging for state transitions | P1 | 1.2.3 | Console logs state changes. |
+| [x] 1.2.1 | Define `GameState` enum in `src/plugins/core.rs` | P0 | 1.1.4 | Enum with variants: `MainMenu`, `Port`, `HighSeas`, `Combat`, `GameOver`. |
+| [x] 1.2.2 | Create `CorePlugin` and register `GameState` | P0 | 1.2.1 | Plugin added to app, state defaults to `MainMenu`. |
+| [x] 1.2.3 | Implement state transition system (placeholder) | P0 | 1.2.2 | Pressing `1-5` keys switches between states (debug feature). |
+| [x] 1.2.4 | Add logging for state transitions | P1 | 1.2.3 | Console logs state changes. |
 
 ### Epic 1.3: Camera & Input
 

@@ -16,3 +16,9 @@
 - Added best practices documentation to README (change detection, minimal commands).
 - Updated WORK_PLAN.md with new input and physics tasks.
 - Fixed deprecated `Camera2dBundle` to use `Camera2d` component.
+### Epic 1.2: State Management [COMPLETED]
+- Defined `GameState` enum for core game flow.
+- Created `CorePlugin` to manage state registration and transitions.
+- Implemented debug keybindings (1-5) for state switching.
+- Added console logging for state changes.
+- Verified compilation and baseline functionality.

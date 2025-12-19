@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use pirates::plugins::core::CorePlugin;
 
 fn main() {
     App::new()
@@ -9,6 +10,7 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(CorePlugin)
         .add_systems(Startup, setup)
         .run();
 }

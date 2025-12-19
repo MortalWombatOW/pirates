@@ -1,1 +1,1 @@
-// Placeholder for modules
+pub mod core;
