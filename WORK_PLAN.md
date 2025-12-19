@@ -105,15 +105,16 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| [/] 2.4.1 | Define `Projectile` component | P0 | 1.1.3 | Component with `damage`, `target_component`. |
-| [/] 2.4.2 | Define `TargetComponent` enum (Sails, Rudder, Hull) | P0 | 1.1.3 | Enum in `src/components/ship.rs`. |
-| [/] 2.4.3 | Create `CannonState` resource (cooldown timer) | P0 | 1.1.3 | Resource with `cooldown_remaining: f32`. |
-| 2.4.4 | Create `CannonSystem` | P0 | 2.4.1, 2.4.3, 1.3.5 | On Spacebar, if cooldown <= 0, spawn projectile. |
-| 2.4.5 | Create projectile sprite | P0 | None | 16x16 PNG in `assets/sprites/projectile.png`. |
-| 2.4.6 | Spawn projectile with velocity toward mouse | P0 | 2.4.4, 2.4.5 | Projectile moves in direction of mouse click. |
-| 2.4.7 | Create `ProjectileSystem` (movement) | P0 | 2.4.6 | Projectile moves each frame based on velocity. |
-| 2.4.8 | Despawn projectile after timeout or off-screen | P1 | 2.4.7 | Projectiles don't accumulate infinitely. |
-| 2.4.9 | Add target component cycling (Tab key) | P1 | 2.4.2, 1.3.5 | Tab cycles through Sails → Rudder → Hull. |
+| [x] 2.4.1 | Define `Projectile` component | P0 | 1.1.3 | Component with `damage`, `target`, `source`. |
+| [x] 2.4.2 | Define `TargetComponent` enum | P0 | 1.1.3 | Enum (Sails, Rudder, Hull) in `src/components/combat.rs`. |
+| [x] 2.4.3 | Create `CannonState` resource | P0 | 1.1.3 | Resource tracks cooldown. |
+| [x] 2.4.4 | Create `CannonFiringSystem` (Q/E Broadside) | P0 | 2.4.1, 2.4.3 | Q/E spawns spread of 3 projectiles from respective side. |
+| [x] 2.4.5 | Create projectile sprite | P0 | None | 16x16 PNG loaded. |
+| [x] 2.4.6 | Spawn projectile with velocity | P0 | 2.4.4, 2.4.5 | Projectiles spawn with ship velocity + ejection speed. |
+| [x] 2.4.7 | Create `ProjectileSystem` (timers) | P0 | 2.4.6 | Projectiles despawn after 5s. |
+| [x] 2.4.8 | Handle hit detection (Ships) | P0 | 2.4.7 | Collisions reduce `Health`. Self-hits prevented. |
+| [x] 2.4.9 | Implement "Sticky" Input Buffering | P1 | 2.4.4 | Ensure firing intent is conserved during cooldown. |
+| [x] 2.4.10| Add Visual Reference Grid | P2 | 2.4.4 | Draw background grid for movement cues. |
 
 ### Epic 2.5: Damage & Hit Detection
 
