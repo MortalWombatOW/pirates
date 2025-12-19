@@ -9,6 +9,11 @@ pub enum PlayerAction {
     Fire,
     Anchor,
     CycleTarget,
+    #[actionlike(DualAxis)]
+    CameraMove,
+    #[actionlike(Axis)]
+    CameraZoom,
+    CameraDrag,
 }
 
 pub struct InputPlugin;
@@ -22,7 +27,7 @@ impl Plugin for InputPlugin {
 pub fn get_default_input_map() -> InputMap<PlayerAction> {
     let mut input_map = InputMap::default();
     
-    // Movement
+    // Movement (Ship)
     input_map.insert(PlayerAction::Thrust, KeyCode::KeyW);
     input_map.insert(PlayerAction::TurnLeft, KeyCode::KeyA);
     input_map.insert(PlayerAction::TurnRight, KeyCode::KeyD);
@@ -31,6 +36,11 @@ pub fn get_default_input_map() -> InputMap<PlayerAction> {
     input_map.insert(PlayerAction::Fire, KeyCode::Space);
     input_map.insert(PlayerAction::Anchor, KeyCode::ShiftLeft);
     input_map.insert(PlayerAction::CycleTarget, KeyCode::Tab);
+    
+    // Camera
+    input_map.insert_dual_axis(PlayerAction::CameraMove, MouseMove::default());
+    input_map.insert_dual_axis(PlayerAction::CameraMove, VirtualDPad::arrow_keys());
+    input_map.insert_axis(PlayerAction::CameraZoom, MouseScrollAxis::Y);
     
     input_map
 }

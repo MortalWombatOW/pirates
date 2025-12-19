@@ -46,8 +46,8 @@
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
 | [x] 1.3.1 | Add 2D camera (`Camera2dBundle`) | P0 | 1.1.4 | Camera renders to window. |
-| 1.3.2 | Implement camera pan (drag or arrow keys) | P1 | 1.3.1 | Camera position moves with input. |
-| 1.3.3 | Implement camera zoom (scroll wheel) | P1 | 1.3.1 | Camera scale changes with scroll. |
+| [x] 1.3.2 | Implement camera pan (drag or arrow keys) | P1 | 1.3.1 | Camera position moves with input. |
+| [x] 1.3.3 | Implement camera zoom (scroll wheel) | P1 | 1.3.1 | Camera scale changes with scroll. |
 | [x] 1.3.4 | Integrate `leafwing-input-manager` | P0 | 1.1.2 | Plugin added to app, no errors. |
 | [x] 1.3.5 | Define `PlayerAction` enum (Thrust, Turn, Fire, Anchor, CycleTarget) | P0 | 1.3.4 | Enum implements `Actionlike`. |
 | [x] 1.3.6 | Create default `InputMap<PlayerAction>` for WASD + mouse | P0 | 1.3.5 | Input bindings configured. |

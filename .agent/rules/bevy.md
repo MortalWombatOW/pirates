@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Bevy 0.15 Best Practices
 
 To ensure high performance and maintainable code in Bevy 0.15:
@@ -17,3 +21,17 @@ To ensure high performance and maintainable code in Bevy 0.15:
 1. **Z-Sorting**: Use the `z` coordinate in `Transform` to manage layering of 2D sprites.
 2. **Physics**: Use `avian2d` (successor to `bevy_xpbd`). Ensure `RigidBody` and `Collider` components are used correctly.
 3. **Camera**: Use the new `Camera2d` component instead of the deprecated `Camera2dBundle`.
+
+## Leafwing Input Manager 0.16
+
+The `leafwing-input-manager` 0.16 uses different methods for different input types:
+
+- **Buttons** (KeyCode, MouseButton): Use `.insert(action, button)`
+- **Single Axis** (MouseScrollAxis): Use `.insert_axis(action, axis)`
+- **Dual Axis** (MouseMove, VirtualDPad): Use `.insert_dual_axis(action, dual_axis)`
+
+Common types:
+- `MouseMove::default()` for mouse motion
+- `MouseScrollAxis::Y` for vertical scroll
+- `VirtualDPad::arrow_keys()` for arrow key input
+- `VirtualAxis::horizontal_arrow_keys()` / `VirtualAxis::vertical_arrow_keys()` for single-axis virtual controls

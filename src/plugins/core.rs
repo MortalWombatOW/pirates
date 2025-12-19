@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use crate::plugins::input::{get_default_input_map, PlayerAction};
+use leafwing_input_manager::prelude::*;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
@@ -19,12 +21,39 @@ impl Plugin for CorePlugin {
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
+                camera_control,
             ));
     }
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        InputManagerBundle::with_map(get_default_input_map()),
+    ));
+}
+
+fn camera_control(
+    mut query: Query<(&ActionState<PlayerAction>, &mut Transform, &mut OrthographicProjection), With<Camera2d>>,
+    time: Res<Time>,
+) {
+    let (action_state, mut transform, mut projection) = query.single_mut();
+    
+    // Pan
+    if action_state.pressed(&PlayerAction::CameraMove) {
+        let axis_pair = action_state.axis_pair(&PlayerAction::CameraMove);
+        let move_speed = 500.0 * projection.scale;
+        transform.translation.x += axis_pair.x * move_speed * time.delta_secs();
+        transform.translation.y += axis_pair.y * move_speed * time.delta_secs();
+    }
+
+    // Zoom
+    if action_state.pressed(&PlayerAction::CameraZoom) {
+        let zoom_delta = action_state.value(&PlayerAction::CameraZoom);
+        let zoom_speed = 1.5;
+        projection.scale *= 1.0 - zoom_delta * zoom_speed * time.delta_secs();
+        projection.scale = projection.scale.clamp(0.1, 5.0);
+    }
 }
 
 fn debug_state_transitions(
