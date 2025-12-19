@@ -115,8 +115,9 @@ pub fn projectile_system(
 pub fn projectile_collision_system(
     mut commands: Commands,
     mut collision_events: EventReader<Collision>,
-    projectiles: Query<&Projectile>,
-    mut ships: Query<(Entity, &mut Health, Option<&Name>), With<Ship>>,
+    projectiles: Query<(&Projectile, &Transform)>,
+    mut ships: Query<(Entity, &mut Health, &Transform, Option<&Name>), With<Ship>>,
+    asset_server: Res<AssetServer>,
 ) {
     for Collision(contacts) in collision_events.read() {
         let e1 = contacts.entity1;
@@ -131,7 +132,9 @@ pub fn projectile_collision_system(
             continue;
         };
 
-        if let (Ok(projectile), Ok((_ent, mut health, name))) = (projectiles.get(proj_ent), ships.get_mut(ship_ent)) {
+        if let (Ok((projectile, proj_transform)), Ok((_ent, mut health, _ship_transform, name))) = 
+            (projectiles.get(proj_ent), ships.get_mut(ship_ent)) 
+        {
             // Skip if the ship hit is the source that fired it
             if projectile.source == ship_ent {
                 continue;
@@ -153,6 +156,10 @@ pub fn projectile_collision_system(
                 health.rudder,
                 health.hull
             );
+
+            // Spawn loot at the projectile impact location
+            let loot_pos = proj_transform.translation;
+            spawn_loot(&mut commands, &asset_server, loot_pos.truncate());
 
             // Despawn projectile
             commands.entity(proj_ent).despawn_recursive();
@@ -225,3 +232,82 @@ pub fn handle_player_death_system(
     }
 }
 
+/// Helper function to spawn a loot entity at the given position.
+fn spawn_loot(commands: &mut Commands, asset_server: &Res<AssetServer>, position: Vec2) {
+    let loot_value = 5; // Base gold value per loot drop
+    
+    commands.spawn((
+        Name::new("Loot"),
+        Sprite {
+            image: asset_server.load("sprites/loot/gold.png"),
+            color: Color::srgb(1.0, 0.85, 0.0), // Golden tint
+            custom_size: Some(Vec2::new(16.0, 16.0)),
+            ..default()
+        },
+        Transform::from_xyz(position.x, position.y, 1.0),
+        RigidBody::Dynamic,
+        Collider::circle(8.0),
+        Sensor, // Use sensor so loot doesn't physically block ships
+        LinearVelocity(Vec2::new(
+            rand::random::<f32>() * 40.0 - 20.0,
+            rand::random::<f32>() * 40.0 - 20.0,
+        )),
+        LinearDamping(1.5), // Loot slows down over time
+        Loot::gold(loot_value),
+        LootTimer::default(),
+    ));
+    
+    info!("Loot spawned at ({:.1}, {:.1})", position.x, position.y);
+}
+
+/// System to handle loot collection by the player.
+pub fn loot_collection_system(
+    mut commands: Commands,
+    mut collision_events: EventReader<Collision>,
+    loot_query: Query<(Entity, &Loot)>,
+    mut player_query: Query<(&mut Gold, Option<&mut Cargo>), With<Player>>,
+) {
+    for Collision(contacts) in collision_events.read() {
+        let e1 = contacts.entity1;
+        let e2 = contacts.entity2;
+        
+        // Check if one is loot and the other is the player
+        let (loot_ent, player_ent) = if loot_query.contains(e1) && player_query.contains(e2) {
+            (e1, e2)
+        } else if loot_query.contains(e2) && player_query.contains(e1) {
+            (e2, e1)
+        } else {
+            continue;
+        };
+        
+        if let (Ok((_, loot)), Ok((mut gold, cargo))) = (loot_query.get(loot_ent), player_query.get_mut(player_ent)) {
+            // Add gold value
+            gold.add(loot.value);
+            info!("Collected loot! +{} gold (Total: {})", loot.value, gold.0);
+            
+            // If loot has a good type and player has cargo, add to cargo
+            if let (Some(good_type), Some(mut cargo)) = (loot.good_type, cargo) {
+                let added = cargo.add(good_type, 1);
+                if added > 0 {
+                    info!("Also collected 1x {:?}", good_type);
+                }
+            }
+            
+            // Despawn collected loot
+            commands.entity(loot_ent).despawn_recursive();
+        }
+    }
+}
+
+/// System to despawn loot after its timer expires.
+pub fn loot_timer_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut LootTimer)>,
+) {
+    for (entity, mut timer) in &mut query {
+        if timer.0.tick(time.delta()).finished() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}

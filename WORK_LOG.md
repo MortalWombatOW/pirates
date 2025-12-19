@@ -127,3 +127,26 @@
   - `handle_player_death_system`: Listens for `ShipDestroyedEvent`, transitions to `GameOver` when `was_player` is true.
 - **Integration**: Registered event and systems in `CombatPlugin` with proper ordering constraints.
 - Verified compilation with `cargo check`.
+
+## 2025-12-19: Epic 2.6 - Loot System Complete
+
+### Tasks Completed
+- **2.6.1**: Defined `Loot` component with `value` and `good_type` fields in `components/loot.rs`
+- **2.6.2**: Created loot sprite at `assets/sprites/loot/gold.png` (using Kenney cannonBall asset)
+- **2.6.3**: Added loot spawning to `projectile_collision_system` at hit locations
+- **2.6.4**: Loot entities are `RigidBody::Dynamic` with `Sensor` colliders
+- **2.6.5**: Implemented `loot_collection_system` for player pickup → updates `Gold`/`Cargo`
+
+### Implementation Details
+- `Loot` component with `gold()` and `cargo()` constructors
+- `LootTimer` for 30-second auto-despawn
+- Loot spawns with random velocity and `LinearDamping` for drift effect
+- Golden tint applied to sprite for visibility
+- Registered `loot_collection_system` and `loot_timer_system` in `CombatPlugin`
+
+### Files Changed
+- `src/components/loot.rs` (NEW)
+- `src/components/mod.rs` (loot module export)
+- `src/systems/combat.rs` (spawn_loot, loot_collection_system, loot_timer_system)
+- `src/plugins/combat.rs` (system registration)
+- `assets/sprites/loot/gold.png` (NEW)

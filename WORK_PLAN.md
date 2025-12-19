@@ -132,11 +132,11 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.6.1 | Define `Loot` component | P0 | 1.1.3 | Component with `value`, `good_type`. |
-| 2.6.2 | Create loot sprite | P0 | None | 32x32 PNG in `assets/sprites/loot/gold.png`. |
-| 2.6.3 | Spawn loot on ship hit | P0 | 2.5.3, 2.6.1, 2.6.2 | Loot entity spawned at hit location. |
-| 2.6.4 | Make loot a `RigidBody` | P0 | 2.6.3 | Loot affected by physics. |
-| 2.6.5 | Implement loot collection (player collision) | P0 | 2.6.4, 2.2.5 | Loot despawned, added to player `Gold`/`Cargo`. |
+| [x] 2.6.1 | Define `Loot` component | P0 | 1.1.3 | Component with `value`, `good_type`. |
+| [x] 2.6.2 | Create loot sprite | P0 | None | 32x32 PNG in `assets/sprites/loot/gold.png`. |
+| [x] 2.6.3 | Spawn loot on ship hit | P0 | 2.5.3, 2.6.1, 2.6.2 | Loot entity spawned at hit location. |
+| [x] 2.6.4 | Make loot a `RigidBody` | P0 | 2.6.3 | Loot affected by physics. |
+| [x] 2.6.5 | Implement loot collection (player collision) | P0 | 2.6.4, 2.2.5 | Loot despawned, added to player `Gold`/`Cargo`. |
 
 ### Epic 2.7: Current Zones
 

@@ -13,6 +13,8 @@ use crate::systems::{
     spawn_test_target,
     ship_destruction_system,
     handle_player_death_system,
+    loot_collection_system,
+    loot_timer_system,
     ShipInputBuffer,
     ShipPhysicsConfig,
 };
@@ -54,6 +56,8 @@ impl Plugin for CombatPlugin {
             (
                 projectile_system,
                 projectile_collision_system,
+                loot_collection_system.after(projectile_collision_system),
+                loot_timer_system,
                 debug_ship_physics,
                 ship_destruction_system.after(projectile_collision_system),
                 handle_player_death_system.after(ship_destruction_system),
@@ -67,3 +71,4 @@ impl Plugin for CombatPlugin {
         );
     }
 }
+
