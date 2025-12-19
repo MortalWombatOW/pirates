@@ -155,10 +155,16 @@ pub fn ship_physics_system(
         let mut thrust_magnitude = 0.0;
         
         if input_buffer.thrust {
+            // info!("Movement System: Thrust input detected!");
             thrust_magnitude += config.max_thrust * sail_effectiveness;
         }
         if input_buffer.reverse {
+            // info!("Movement System: Reverse input detected!");
             thrust_magnitude -= config.max_reverse_thrust * sail_effectiveness;
+        }
+        
+        if thrust_magnitude != 0.0 {
+             info!("Movement System: Applying thrust magnitude: {:.1}", thrust_magnitude);
         }
         
         // Apply thrust force in forward direction

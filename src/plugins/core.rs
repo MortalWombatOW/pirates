@@ -24,6 +24,7 @@ impl Plugin for CorePlugin {
                 log_state_transitions,
                 camera_control,
                 camera_follow.run_if(in_state(GameState::Combat)),
+                draw_ocean_grid,
             ));
     }
 }
@@ -110,4 +111,18 @@ fn log_state_transitions(state: Res<State<GameState>>) {
     if state.is_changed() {
         println!("Current State: {:?}", state.get());
     }
+}
+
+/// Draws a static grid to provide visual reference for movement.
+fn draw_ocean_grid(mut gizmos: Gizmos) {
+    let grid_size = 5000.0;
+    let cell_size = 100.0;
+    let color = Color::srgba(1.0, 1.0, 1.0, 0.05); // Very faint white
+
+    gizmos.grid_2d(
+        Isometry2d::IDENTITY,
+        UVec2::new((grid_size / cell_size) as u32, (grid_size / cell_size) as u32),
+        Vec2::splat(cell_size),
+        color,
+    );
 }
