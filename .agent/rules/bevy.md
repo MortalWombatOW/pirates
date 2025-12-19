@@ -43,3 +43,12 @@ Common types:
 > - `ActionState::pressed()` and `.just_pressed()` **MUST ONLY** be used on actions with the `Button` kind.
 > - For `Axis` or `DualAxis` actions, you **MUST** use `.value()` or `.axis_pair()` directly and check for non-zero values if you need to gate logic based on "if active".
 > - Calling `.pressed()` on an analog action will trigger a `debug_assert` panic in debug builds.
+## Input Handling
+1. **Sticky Input Buffering**: When coupling `leafwing` input (Update) with physics (FixedUpdate), you **MUST** use a "sticky" input buffer. Capture `just_pressed` events in `Update` into a Resource, and only clear them in `FixedUpdate` *after* the logic has consumed them. This prevents lost inputs due to frame rate mismatches.
+
+## Visual Feedback
+1. **Camera Reference**: When implementing a strict camera follow system, **ALWAYS** ensure the background has a visible texture, grid, or static objects. A perfect camera follow on a featureless background creates a "stationarity illusion" where the player appears to be not moving, wasting time debugging physics that are actually working.
+
+## Combat & Projectiles
+1. **Self-Hit Prevention**: **ALWAYS** tag projectiles with a `source: Entity` field. In collision handlers, explicitly check `if projectile.source == hit_entity { continue; }`.
+2. **Spawn Offsets**: Ensure projectile spawn positions are calculated to be *outside* the firing entity's collider bounds immediately upon spawning.
