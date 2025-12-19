@@ -177,7 +177,8 @@ pub fn spawn_test_target(
             custom_size: Some(Vec2::new(64.0, 64.0)),
             ..default()
         },
-        Transform::from_xyz(0.0, 150.0, 0.0), // Move closer for easier testing
+        // Rotate 180 degrees: Kenney sprites face DOWN, but physics forward is Y+ (UP)
+        Transform::from_xyz(0.0, 150.0, 0.0).with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
         Ship,
         Health::default(),
         RigidBody::Static,
