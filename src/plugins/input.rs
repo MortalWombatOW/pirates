@@ -7,9 +7,9 @@ pub enum PlayerAction {
     Reverse,
     TurnLeft,
     TurnRight,
-    Fire,
+    FirePort,
+    FireStarboard,
     Anchor,
-    CycleTarget,
     #[actionlike(DualAxis)]
     CameraMove,
     #[actionlike(Axis)]
@@ -35,9 +35,9 @@ pub fn get_default_input_map() -> InputMap<PlayerAction> {
     input_map.insert(PlayerAction::TurnRight, KeyCode::KeyD);
     
     // Actions
-    input_map.insert(PlayerAction::Fire, KeyCode::Space);
+    input_map.insert(PlayerAction::FirePort, KeyCode::KeyQ);
+    input_map.insert(PlayerAction::FireStarboard, KeyCode::KeyE);
     input_map.insert(PlayerAction::Anchor, KeyCode::ShiftLeft);
-    input_map.insert(PlayerAction::CycleTarget, KeyCode::Tab);
     
     // Camera (arrow keys for pan, scroll for zoom)
     // Note: MouseMove removed - was causing camera to fly away on any mouse movement

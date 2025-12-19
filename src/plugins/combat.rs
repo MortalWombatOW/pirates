@@ -5,41 +5,56 @@ use crate::systems::{
     buffer_ship_input, 
     ship_physics_system, 
     debug_ship_physics,
+    cannon_firing_system,
+    projectile_system,
+    projectile_collision_system,
+    target_cycling_system,
+    spawn_test_target,
     ShipInputBuffer,
     ShipPhysicsConfig,
 };
+use crate::resources::CannonState;
 
 /// Plugin that manages all combat-related systems.
-/// 
-/// **Architecture:**
-/// - Input is buffered in `Update` (to catch all input events)
-/// - Physics forces are applied in `FixedUpdate` (for deterministic simulation)
-/// - Avian physics runs in `FixedPostUpdate` (handles force integration)
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         // Initialize resources
         app.init_resource::<ShipInputBuffer>()
-            .init_resource::<ShipPhysicsConfig>();
+            .init_resource::<ShipPhysicsConfig>()
+            .init_resource::<CannonState>();
         
-        // Buffer input in Update (catches all input events)
+        // Buffer input in Update
         app.add_systems(
             Update,
             buffer_ship_input.run_if(in_state(GameState::Combat)),
         );
         
-        // Apply physics forces in FixedUpdate (before Avian physics runs in FixedPostUpdate)
+        // Apply physics forces and firing in FixedUpdate
         app.add_systems(
             FixedUpdate,
-            ship_physics_system.run_if(in_state(GameState::Combat)),
+            (
+                ship_physics_system,
+                cannon_firing_system,
+                target_cycling_system,
+            ).run_if(in_state(GameState::Combat)),
         );
         
-        // Debug logging (can be removed in production)
+        // General combat systems in Update
         app.add_systems(
             Update,
-            debug_ship_physics.run_if(in_state(GameState::Combat)),
+            (
+                projectile_system,
+                projectile_collision_system,
+                debug_ship_physics,
+            ).run_if(in_state(GameState::Combat)),
+        );
+
+        // Spawn test target on enter
+        app.add_systems(
+            OnEnter(GameState::Combat),
+            spawn_test_target,
         );
     }
 }
-

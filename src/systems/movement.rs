@@ -50,6 +50,9 @@ pub struct ShipInputBuffer {
     pub turn_left: bool,
     pub turn_right: bool,
     pub anchor: bool,
+    pub fire_port: bool,
+    pub fire_starboard: bool,
+    pub mouse_world_pos: Vec2,
 }
 
 /// System that captures input state for use by physics systems.
@@ -57,6 +60,8 @@ pub struct ShipInputBuffer {
 pub fn buffer_ship_input(
     action_query: Query<&ActionState<PlayerAction>>,
     mut input_buffer: ResMut<ShipInputBuffer>,
+    window_query: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
 ) {
     if let Ok(action_state) = action_query.get_single() {
         input_buffer.thrust = action_state.pressed(&PlayerAction::Thrust);
@@ -64,6 +69,17 @@ pub fn buffer_ship_input(
         input_buffer.turn_left = action_state.pressed(&PlayerAction::TurnLeft);
         input_buffer.turn_right = action_state.pressed(&PlayerAction::TurnRight);
         input_buffer.anchor = action_state.pressed(&PlayerAction::Anchor);
+        input_buffer.fire_port = action_state.just_pressed(&PlayerAction::FirePort);
+        input_buffer.fire_starboard = action_state.just_pressed(&PlayerAction::FireStarboard);
+    }
+
+    // Capture mouse world position
+    let window = window_query.single();
+    let (camera, camera_transform) = camera_query.single();
+    if let Some(world_position) = window.cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
+    {
+        input_buffer.mouse_world_pos = world_position;
     }
 }
 

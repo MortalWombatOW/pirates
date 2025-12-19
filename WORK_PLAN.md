@@ -105,9 +105,9 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.4.1 | Define `Projectile` component | P0 | 1.1.3 | Component with `damage`, `target_component`. |
-| 2.4.2 | Define `TargetComponent` enum (Sails, Rudder, Hull) | P0 | 1.1.3 | Enum in `src/components/ship.rs`. |
-| 2.4.3 | Create `CannonState` resource (cooldown timer) | P0 | 1.1.3 | Resource with `cooldown_remaining: f32`. |
+| [/] 2.4.1 | Define `Projectile` component | P0 | 1.1.3 | Component with `damage`, `target_component`. |
+| [/] 2.4.2 | Define `TargetComponent` enum (Sails, Rudder, Hull) | P0 | 1.1.3 | Enum in `src/components/ship.rs`. |
+| [/] 2.4.3 | Create `CannonState` resource (cooldown timer) | P0 | 1.1.3 | Resource with `cooldown_remaining: f32`. |
 | 2.4.4 | Create `CannonSystem` | P0 | 2.4.1, 2.4.3, 1.3.5 | On Spacebar, if cooldown <= 0, spawn projectile. |
 | 2.4.5 | Create projectile sprite | P0 | None | 16x16 PNG in `assets/sprites/projectile.png`. |
 | 2.4.6 | Spawn projectile with velocity toward mouse | P0 | 2.4.4, 2.4.5 | Projectile moves in direction of mouse click. |
