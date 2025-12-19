@@ -20,6 +20,28 @@
 
 ---
 
+## Quick Start
+
+```bash
+# First-time setup: run check to compile dependencies (faster than build)
+cargo check
+
+# Run the game
+cargo run
+
+# Build with timing info (useful for profiling slow builds)
+cargo build --timings
+```
+
+> [!TIP]
+> Always run `cargo check` first when pulling new changes or updating dependencies. It's faster than `cargo build` because it skips code generation.
+
+> [!IMPORTANT]
+> **Commit and push after completing every task.** This ensures progress is persisted and visible to the team/other agents.
+
+---
+
+
 ## 1. Project Overview
 
 ### 1.1 High Concept
@@ -568,7 +590,7 @@ pub enum CompanionRole {
 ## 6. Technical Architecture
 
 ### 6.1 Engine & Language
-- **Engine**: Bevy 0.14+ (Rust)
+- **Engine**: Bevy 0.15 (Rust)
 - **Language**: Rust (2021 edition)
 - **Build Tool**: Cargo
 
@@ -577,7 +599,7 @@ Bevy's native ECS is used throughout:
 - **Entities**: Game objects (ships, ports, projectiles).
 - **Components**: Data attached to entities.
 - **Systems**: Logic that queries and mutates components.
-- **Resources**: Global singletons (clock, input state, faction registry).
+- **Resources**: Global singletons (clock, faction registry).
 - **Events**: Pub/Sub for decoupling (e.g., `ShipHitEvent`).
 
 ### 6.3 State Management
@@ -594,18 +616,47 @@ pub enum GameState {
 }
 ```
 
-Systems are gated by state using `in_state(GameState::Combat)`.
+Systems are gated by state using `.run_if(in_state(GameState::Combat))`.
 
 ### 6.4 Schedules
 - `Update`: Runs every frame (rendering, input).
 - `FixedUpdate`: Runs at fixed timestep (physics, world simulation).
 
 ### 6.5 Physics
-Use `bevy_rapier2d`:
+Use `avian2d` (ECS-native physics, successor to bevy_xpbd):
 - Ships are `RigidBody::Dynamic`.
 - Land is `Collider` (static).
 - Projectiles are `Sensor` (trigger on overlap).
 - Currents apply forces via `ExternalForce`.
+
+### 6.6 Input Management
+Use `leafwing-input-manager` for action-based input:
+```rust
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+pub enum PlayerAction {
+    Thrust,
+    TurnLeft,
+    TurnRight,
+    Fire,
+    Anchor,
+    CycleTarget,
+}
+```
+
+### 6.7 Best Practices
+
+**Change Detection**: Use `Changed<T>` and `Added<T>` filters in queries to avoid unnecessary work:
+```rust
+fn update_damaged_ships(query: Query<&Health, Changed<Health>>) {
+    for health in &query {
+        // Only runs when Health component changed
+    }
+}
+```
+
+**Minimal Commands**: Prefer direct component mutation over `Commands` when possible. Use `Commands` only for entity spawn/despawn or adding/removing components.
+
+**Plugin Pattern**: Each game system is encapsulated in a Bevy `Plugin` for modularity and testability.
 
 ---
 
@@ -664,12 +715,13 @@ src/
 
 | Crate | Version | Purpose |
 |---|---|---|
-| `bevy` | `0.14` | Core engine. |
-| `bevy_rapier2d` | `0.27` | 2D physics. |
-| `bevy_ecs_tilemap` | `0.14` | Tilemap rendering for world map. |
-| `bevy_egui` | `0.28` | Immediate-mode UI. |
-| `bevy_kira_audio` | `0.20` | Advanced audio. |
-| `bevy_save` | `0.14` | Save/Load functionality. |
+| `bevy` | `0.15` | Core engine. |
+| `avian2d` | `0.2` | ECS-native 2D physics (successor to bevy_xpbd). |
+| `leafwing-input-manager` | `0.16` | Action-based input handling. |
+| `bevy_ecs_tilemap` | `0.15` | Tilemap rendering for world map. |
+| `bevy_egui` | `0.31` | Immediate-mode UI. |
+| `bevy_kira_audio` | `0.21` | Advanced audio. |
+| `bevy_save` | `0.16` | Save/Load functionality. |
 | `steamworks` | `0.11` | Steamworks SDK bindings. |
 | `noise` | `0.9` | Procedural generation (maps, wind). |
 | `rand` | `0.8` | Random number generation. |
@@ -684,12 +736,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.14", features = ["dynamic_linking"] }
-bevy_rapier2d = "0.27"
-bevy_ecs_tilemap = "0.14"
-bevy_egui = "0.28"
-bevy_kira_audio = "0.20"
-bevy_save = "0.14"
+bevy = { version = "0.15", features = ["dynamic_linking"] }
+avian2d = "0.2"
+leafwing-input-manager = "0.16"
+bevy_ecs_tilemap = "0.15"
+bevy_egui = "0.31"
+bevy_kira_audio = "0.21"
+bevy_save = "0.16"
 steamworks = "0.11"
 noise = "0.9"
 rand = "0.8"
@@ -753,7 +806,7 @@ pirates/
 - [ ] Implement basic input handling (WASD, mouse click).
 
 ### Phase 2: Combat MVP (Est. 2 weeks)
-- [ ] Integrate `bevy_rapier2d`.
+- [ ] Integrate `avian2d` physics.
 - [ ] Create `Ship` entity with `RigidBody`, `Health`, `Velocity`.
 - [ ] Implement `ShipMovementSystem` (WASD thrust/turn).
 - [ ] Implement `CannonSystem` (Spacebar fire, cooldown).

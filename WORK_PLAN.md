@@ -48,8 +48,9 @@
 | 1.3.1 | Add 2D camera (`Camera2dBundle`) | P0 | 1.1.4 | Camera renders to window. |
 | 1.3.2 | Implement camera pan (drag or arrow keys) | P1 | 1.3.1 | Camera position moves with input. |
 | 1.3.3 | Implement camera zoom (scroll wheel) | P1 | 1.3.1 | Camera scale changes with scroll. |
-| 1.3.4 | Create `InputState` resource for input abstraction | P0 | 1.1.4 | Resource holds current input state (movement vector, fire pressed, etc.). |
-| 1.3.5 | Create `InputSystem` to populate `InputState` | P0 | 1.3.4 | System reads keyboard/mouse and updates `InputState` each frame. |
+| 1.3.4 | Integrate `leafwing-input-manager` | P0 | 1.1.2 | Plugin added to app, no errors. |
+| 1.3.5 | Define `PlayerAction` enum (Thrust, Turn, Fire, Anchor, CycleTarget) | P0 | 1.3.4 | Enum implements `Actionlike`. |
+| 1.3.6 | Create default `InputMap<PlayerAction>` for WASD + mouse | P0 | 1.3.5 | Input bindings configured. |
 
 ### Epic 1.4: Debug UI
 
@@ -71,7 +72,7 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.1.1 | Integrate `bevy_rapier2d` | P0 | 1.1.2 | `RapierPhysicsPlugin` added, no errors. |
+| 2.1.1 | Integrate `avian2d` physics | P0 | 1.1.2 | `PhysicsPlugins::default()` added, no errors. |
 | 2.1.2 | Configure physics timestep for combat | P0 | 2.1.1 | Physics runs on `FixedUpdate` at 60Hz. |
 | 2.1.3 | Create test `RigidBody` entity that falls/moves | P0 | 2.1.2 | Entity responds to gravity/forces. |
 
