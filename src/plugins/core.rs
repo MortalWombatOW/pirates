@@ -29,6 +29,17 @@ impl Plugin for CorePlugin {
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
+        Camera {
+            ..default()
+        },
+        OrthographicProjection {
+            near: -1000.0,
+            far: 1000.0,
+            scale: 1.0,
+            ..OrthographicProjection::default_2d()
+        },
+        Transform::from_xyz(0.0, 0.0, 100.0),
+        GlobalTransform::default(),
         InputManagerBundle::with_map(get_default_input_map()),
     ));
 }
@@ -38,6 +49,14 @@ fn camera_control(
     time: Res<Time>,
 ) {
     let (action_state, mut transform, mut projection) = query.single_mut();
+    
+    // Debug Camera
+    if time.elapsed_secs() % 1.0 < 0.1 {
+        // println!("Camera Pos: {:.2}, {:.2}, {:.2} | Proj: near={:.1} far={:.1} scale={:.1}", 
+        //    transform.translation.x, transform.translation.y, transform.translation.z,
+        //    projection.near, projection.far, projection.scale);
+    }
+
     
     // Pan
     let axis_pair = action_state.axis_pair(&PlayerAction::CameraMove);

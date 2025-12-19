@@ -37,8 +37,9 @@ pub fn get_default_input_map() -> InputMap<PlayerAction> {
     input_map.insert(PlayerAction::Anchor, KeyCode::ShiftLeft);
     input_map.insert(PlayerAction::CycleTarget, KeyCode::Tab);
     
-    // Camera
-    input_map.insert_dual_axis(PlayerAction::CameraMove, MouseMove::default());
+    // Camera (arrow keys for pan, scroll for zoom)
+    // Note: MouseMove removed - was causing camera to fly away on any mouse movement
+    // TODO: Implement proper mouse drag with CameraDrag action + modifier button
     input_map.insert_dual_axis(PlayerAction::CameraMove, VirtualDPad::arrow_keys());
     input_map.insert_axis(PlayerAction::CameraZoom, MouseScrollAxis::Y);
     
