@@ -311,3 +311,43 @@ pub fn loot_timer_system(
         }
     }
 }
+
+/// System that applies forces to all RigidBody entities within CurrentZone bounds.
+/// Runs in FixedUpdate since it modifies physics forces.
+pub fn current_zone_system(
+    zone_query: Query<(&CurrentZone, &Transform)>,
+    mut body_query: Query<(&Transform, &mut ExternalForce), With<RigidBody>>,
+) {
+    for (zone, zone_transform) in &zone_query {
+        let zone_center = zone_transform.translation.truncate();
+        
+        for (body_transform, mut force) in &mut body_query {
+            let body_pos = body_transform.translation.truncate();
+            
+            if zone.contains(zone_center, body_pos) {
+                // Apply the current's force to this entity
+                force.apply_force(zone.velocity);
+            }
+        }
+    }
+}
+
+/// Spawns a test current zone for visual debugging.
+pub fn spawn_test_current_zone(mut commands: Commands) {
+    let zone_pos = Vec2::new(200.0, 0.0);
+    let half_extents = Vec2::new(100.0, 150.0);
+    let velocity = Vec2::new(80.0, 0.0); // Gentle rightward push
+    
+    info!("Spawning test current zone at ({}, {})", zone_pos.x, zone_pos.y);
+    
+    commands.spawn((
+        Name::new("Test Current Zone"),
+        CurrentZone::new(velocity, half_extents),
+        Transform::from_xyz(zone_pos.x, zone_pos.y, -1.0), // Below other entities
+        Sprite {
+            color: Color::srgba(0.2, 0.4, 0.8, 0.3), // Semi-transparent blue
+            custom_size: Some(half_extents * 2.0), // Full size, not half-extents
+            ..default()
+        },
+    ));
+}

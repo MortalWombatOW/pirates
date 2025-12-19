@@ -150,3 +150,23 @@
 - `src/systems/combat.rs` (spawn_loot, loot_collection_system, loot_timer_system)
 - `src/plugins/combat.rs` (system registration)
 - `assets/sprites/loot/gold.png` (NEW)
+
+## 2025-12-19: Epic 2.7 - Current Zones Complete
+
+### Tasks Completed
+- **2.7.1**: Defined `CurrentZone` component with `velocity: Vec2` and `half_extents: Vec2`
+- **2.7.2**: Created `current_zone_system` that applies `ExternalForce` to RigidBodies within zone bounds
+- **2.7.3**: Implemented `spawn_test_current_zone` for visual testing in Combat state
+- **2.7.4**: Zone visualization via semi-transparent blue sprite overlay
+
+### Implementation Details
+- `CurrentZone` uses AABB bounds checking with `contains()` method
+- Force applied every physics tick to all entities within zone bounds
+- Test zone spawns at (200, 0) with rightward push of 80 units/s
+- Registered in `CombatPlugin` on `FixedUpdate` schedule
+
+### Files Changed
+- `src/components/current.rs` (NEW)
+- `src/components/mod.rs` (current module export)
+- `src/systems/combat.rs` (current_zone_system, spawn_test_current_zone)
+- `src/plugins/combat.rs` (system registration)

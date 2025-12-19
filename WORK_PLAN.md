@@ -142,10 +142,10 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.7.1 | Define `CurrentZone` component | P0 | 1.1.3 | Component with `velocity: Vec2`, `bounds: Rect`. |
-| 2.7.2 | Create `CurrentSystem` | P0 | 2.7.1 | Queries all `RigidBody` in zone, applies `ExternalForce`. |
-| 2.7.3 | Spawn test current zone | P0 | 2.7.1, 2.7.2 | Visible zone that pushes entities. |
-| 2.7.4 | Visualize current zones (subtle overlay) | P2 | 2.7.3 | Directional arrows or flow lines. |
+| [x] 2.7.1 | Define `CurrentZone` component | P0 | 1.1.3 | Component with `velocity: Vec2`, `bounds: Rect`. |
+| [x] 2.7.2 | Create `CurrentSystem` | P0 | 2.7.1 | Queries all `RigidBody` in zone, applies `ExternalForce`. |
+| [x] 2.7.3 | Spawn test current zone | P0 | 2.7.1, 2.7.2 | Visible zone that pushes entities. |
+| [x] 2.7.4 | Visualize current zones (subtle overlay) | P2 | 2.7.3 | Directional arrows or flow lines. |
 
 ### Epic 2.8: Enemy Ships & AI
 

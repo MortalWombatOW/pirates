@@ -15,6 +15,8 @@ use crate::systems::{
     handle_player_death_system,
     loot_collection_system,
     loot_timer_system,
+    current_zone_system,
+    spawn_test_current_zone,
     ShipInputBuffer,
     ShipPhysicsConfig,
 };
@@ -47,6 +49,7 @@ impl Plugin for CombatPlugin {
                 cannon_firing_system,
                 consume_firing_input.after(cannon_firing_system),
                 target_cycling_system,
+                current_zone_system,
             ).run_if(in_state(GameState::Combat)),
         );
         
@@ -64,10 +67,10 @@ impl Plugin for CombatPlugin {
             ).run_if(in_state(GameState::Combat)),
         );
 
-        // Spawn test target on enter
+        // Spawn test entities on enter
         app.add_systems(
             OnEnter(GameState::Combat),
-            spawn_test_target,
+            (spawn_test_target, spawn_test_current_zone),
         );
     }
 }
