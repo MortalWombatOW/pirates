@@ -46,3 +46,9 @@
 46: - Set `Gravity` to zero for top-down perspective.
 47: - Implemented `spawn_test_physics_entity` to verify physics behavior in `Combat` state.
 48: - Verified compilation with `cargo check`.
+
+### Bug Fix: Test Entity Not Visible in Combat View
+- **Issue**: Test physics entity was spawning but not visible when entering Combat state.
+- **Root Cause**: `MouseMove::default()` was mapped to `CameraMove` action, causing the camera to pan thousands of pixels away from origin on any mouse movement.
+- **Fix**: Removed `MouseMove` from `CameraMove` mapping. Arrow keys still work for camera pan.
+- **Lesson Learned**: `MouseMove::default()` reports raw mouse deltas *every frame* the mouse moves, not just when a button is held. For mouse-drag panning, use a modifier button and gate the action in the system.
