@@ -82,3 +82,19 @@
     - **2.3.8**: Turn debuff - turn rate scaled by `rudder_ratio()`
 - Movement system runs on `FixedUpdate`, gated by `GameState::Combat`.
 - Verified all changes compile with `cargo check`.
+
+### Physics Refinement & Anisotropic Drag [COMPLETED]
+- **Advanced Physics Model**: Transitioned from direct velocity manipulation to a force-based system using `ExternalForce` and `ExternalTorque`.
+- **Anisotropic Water Resistance (Keel Effect)**:
+    - Implemented directional drag by decomposing world velocity into ship-local forward and lateral axes.
+    - Set lateral drag significantly higher than longitudinal drag to simulate the keel's effect on steering.
+    - Disabled isotropic `LinearDamping` in favor of this custom model.
+- **Input Buffering Solution**:
+    - Identified that `leafwing-input-manager` updates in `Update`, which can cause missed inputs for systems in `FixedUpdate`.
+    - Introduced `ShipInputBuffer` resource to capture input states in `Update` and synchronizing them with physics systems in `FixedUpdate`.
+- **Mass Calibration**:
+    - Added explicit `Mass` and `AngularInertia` components to ensure predictable force-based acceleration.
+    - Tuned thrust and torque values to meet the user's "10x speed" requirement while maintaining a heavy nautical feel.
+- **Bevy 0.15 Bundle Optimization**:
+    - Refactored ship spawning to use chained `.insert()` calls, bypassing the 15-component tuple limit.
+- **Verified Behavior**: Ship now correctly "steers its momentum" (heading guides velocity) while allowing for realistic drifting at high speeds.

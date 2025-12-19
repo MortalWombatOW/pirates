@@ -225,10 +225,15 @@ Each system is a Bevy plugin with defined responsibilities.
 ### 4.4 Combat Systems
 
 #### 4.4.1 Ship Movement System
-- Read `InputState` (WASD).
-- Apply forces to `RigidBody` via Rapier.
-- Account for wind direction (upwind = slower, downwind = faster).
-- Handle anchor drop (lock position, enable whip turn).
+- **Action-Based Input**: Uses `leafwing-input-manager` 0.16.
+- **Input Buffering**: To prevent missed inputs between `Update` and `FixedUpdate`, inputs are captured in a `ShipInputBuffer` resource during `Update` and read during fixed physics steps.
+- **Continuous Forces**: Movement is controlled by `ExternalForce` (Thrust/Reverse) and `ExternalTorque` (Turning).
+- **Anisotropic Water Resistance (Keel Effect)**: 
+    - Ships decompose world velocity into local forward and lateral components.
+    - Lateral drag is significantly higher (e.g., 5-10x) than longitudinal drag.
+    - This allows for "steering momentum" where heading changes guide velocity, while still permitting realistic drifting.
+- **Anchor Mechanic**: Temporarily halts linear momentum and clears forces, while allowing limited rotation for "whip turns".
+- **Health Modifiers**: Component damage (sails, rudder) directly scales the maximum applied force and torque.
 
 #### 4.4.2 Cannon System
 - On Spacebar press, check cooldown timer.
@@ -623,11 +628,12 @@ Systems are gated by state using `.run_if(in_state(GameState::Combat))`.
 - `FixedUpdate`: Runs at fixed timestep (physics, world simulation).
 
 ### 6.5 Physics
-Use `avian2d` (ECS-native physics, successor to bevy_xpbd):
+Use `avian2d` (ECS-native physics):
 - Ships are `RigidBody::Dynamic`.
+- **Anisotropic Drag**: Custom positional drag logic is used instead of isotropic `LinearDamping` for ships to simulate the keel effect.
+- **Explicit Mass**: Ships must have `Mass` and `AngularInertia` components for consistent force-based movement.
 - Land is `Collider` (static).
 - Projectiles are `Sensor` (trigger on overlap).
-- Currents apply forces via `ExternalForce`.
 
 ### 6.6 Input Management
 Use `leafwing-input-manager` for action-based input:
