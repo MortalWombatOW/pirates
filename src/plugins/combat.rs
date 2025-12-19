@@ -1,20 +1,45 @@
 use bevy::prelude::*;
 
 use crate::plugins::core::GameState;
-use crate::systems::ship_movement_system;
+use crate::systems::{
+    buffer_ship_input, 
+    ship_physics_system, 
+    debug_ship_physics,
+    ShipInputBuffer,
+    ShipPhysicsConfig,
+};
 
 /// Plugin that manages all combat-related systems.
 /// 
-/// Systems run only when in `GameState::Combat`.
+/// **Architecture:**
+/// - Input is buffered in `Update` (to catch all input events)
+/// - Physics forces are applied in `FixedUpdate` (for deterministic simulation)
+/// - Avian physics runs in `FixedPostUpdate` (handles force integration)
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        // Run movement on Update (not FixedUpdate) because input detection
-        // happens in PreUpdate and may not be visible in FixedUpdate
+        // Initialize resources
+        app.init_resource::<ShipInputBuffer>()
+            .init_resource::<ShipPhysicsConfig>();
+        
+        // Buffer input in Update (catches all input events)
         app.add_systems(
             Update,
-            ship_movement_system.run_if(in_state(GameState::Combat)),
+            buffer_ship_input.run_if(in_state(GameState::Combat)),
+        );
+        
+        // Apply physics forces in FixedUpdate (before Avian physics runs in FixedPostUpdate)
+        app.add_systems(
+            FixedUpdate,
+            ship_physics_system.run_if(in_state(GameState::Combat)),
+        );
+        
+        // Debug logging (can be removed in production)
+        app.add_systems(
+            Update,
+            debug_ship_physics.run_if(in_state(GameState::Combat)),
         );
     }
 }
+

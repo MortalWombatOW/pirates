@@ -11,9 +11,9 @@ pub fn spawn_player_ship(
 ) {
     println!("Spawning player ship at (0, 0)...");
     
-    // Try to load the sprite, fall back to colored sprite if not available
     let texture_handle: Handle<Image> = asset_server.load("sprites/ships/player.png");
     
+    // Spawn in groups to avoid Bevy's tuple size limit (15 elements max)
     commands.spawn((
         Name::new("Player Ship"),
         // Marker components
@@ -30,17 +30,34 @@ pub fn spawn_player_ship(
             color: Color::WHITE,
             ..default()
         },
-        // Physics components
-        Transform::from_xyz(0.0, 0.0, 1.0), // Z=1 to render above background
+        Transform::from_xyz(0.0, 0.0, 1.0),
+    ))
+    .insert((
+        // Physics rigid body
         RigidBody::Dynamic,
-        Collider::rectangle(48.0, 64.0), // Ship-shaped collider
+        Collider::rectangle(48.0, 64.0),
+        // Explicit mass properties
+        Mass(1000.0), // 1 metric ton
+        AngularInertia(20000.0), // Higher inertia makes it harder to spin/stop spinning
+    ))
+    .insert((
+        // Physics velocities
         LinearVelocity(Vec2::ZERO),
         AngularVelocity(0.0),
+    ))
+    .insert((
+        // External forces (controlled by movement system)
         ExternalForce::default(),
-        // Linear and angular damping to simulate water resistance
-        LinearDamping(0.5), // Reduced for testing
-        AngularDamping(1.0),
+        ExternalTorque::default(),
+    ))
+    .insert((
+        // Water resistance (damping)
+        // LinearDamping: F_drag = -coefficient * velocity
+        // These provide a natural "drift" and terminal velocity
+        LinearDamping(0.8),
+        AngularDamping(2.5),
     ));
     
     println!("Player ship spawned!");
 }
+

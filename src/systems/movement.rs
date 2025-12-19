@@ -5,147 +5,184 @@ use leafwing_input_manager::prelude::*;
 use crate::components::{Ship, Player, Health};
 use crate::plugins::input::PlayerAction;
 
-/// Configuration for ship movement parameters.
-pub struct ShipMovementConfig {
-    /// Acceleration when thrusting (units/second^2)
-    pub thrust_accel: f32,
-    /// Acceleration when reversing (units/second^2)
-    pub reverse_accel: f32,
-    /// Turn rate (radians/second)
-    pub turn_rate: f32,
-    /// Maximum linear speed (units/second)
-    pub max_speed: f32,
-    /// Drag coefficient (0-1, how much speed is retained per second)
-    pub drag: f32,
+/// Ship physics configuration.
+/// 
+/// Forces are modeled as:
+/// - **Thrust**: Continuous force applied in ship's forward direction (Newtons)
+/// - **Water Drag**: Handled by Avian's LinearDamping component (coefficient)
+/// - **Angular Drag**: Handled by Avian's AngularDamping component (coefficient)
+/// - **Wind**: Will be added in future phase per README §4.4
+#[derive(Resource)]
+pub struct ShipPhysicsConfig {
+    /// Maximum thrust force when sails are at 100% (Newtons)
+    pub max_thrust: f32,
+    /// Maximum reverse thrust (typically less than forward)
+    pub max_reverse_thrust: f32,
+    /// Torque applied when turning (Newton-meters)
+    pub turn_torque: f32,
+    /// Maximum angular speed (radians/second)
+    pub max_angular_speed: f32,
 }
 
-impl Default for ShipMovementConfig {
+impl Default for ShipPhysicsConfig {
     fn default() -> Self {
         Self {
-            thrust_accel: 200.0,
-            reverse_accel: 100.0,
-            turn_rate: 3.0,
-            max_speed: 300.0,
-            drag: 0.98, // Retain 98% of speed per second
+            max_thrust: 300000.0,     // 300,000 N (Balanced for 1000kg mass + 0.8 damping)
+            max_reverse_thrust: 100000.0,
+            turn_torque: 250000.0,    // 250,000 Nm (Balanced for 20000 inertia + 2.5 damping)
+            max_angular_speed: 3.5,   // Slightly increased turning cap
         }
     }
 }
 
-/// System that handles ship movement based on player input.
-/// Uses direct velocity modification for responsive controls.
-pub fn ship_movement_system(
-    time: Res<Time>,
-    mut debug_timer: Local<f32>,
+/// Buffered input state for physics systems running in FixedUpdate.
+/// This captures input state each frame so FixedUpdate systems can access it reliably.
+#[derive(Resource, Default)]
+pub struct ShipInputBuffer {
+    pub thrust: bool,
+    pub reverse: bool,
+    pub turn_left: bool,
+    pub turn_right: bool,
+    pub anchor: bool,
+}
+
+/// System that captures input state for use by physics systems.
+/// Runs in Update to catch all input events.
+pub fn buffer_ship_input(
     action_query: Query<&ActionState<PlayerAction>>,
+    mut input_buffer: ResMut<ShipInputBuffer>,
+) {
+    if let Ok(action_state) = action_query.get_single() {
+        input_buffer.thrust = action_state.pressed(&PlayerAction::Thrust);
+        input_buffer.reverse = action_state.pressed(&PlayerAction::Reverse);
+        input_buffer.turn_left = action_state.pressed(&PlayerAction::TurnLeft);
+        input_buffer.turn_right = action_state.pressed(&PlayerAction::TurnRight);
+        input_buffer.anchor = action_state.pressed(&PlayerAction::Anchor);
+    }
+}
+
+/// Physics-based ship movement system.
+/// 
+/// Runs in FixedUpdate for deterministic physics.
+/// Applies forces based on buffered input:
+/// 
+/// **Force Model:**
+/// ```text
+/// F_total = F_thrust + F_drag + F_wind (future)
+/// 
+/// F_thrust = thrust_force * forward_direction * sail_health_ratio
+/// F_drag   = -linear_damping_coefficient * velocity (handled by Avian)
+/// ```
+/// 
+/// **Torque Model:**
+/// ```text
+/// τ_total = τ_turn + τ_angular_drag (handled by Avian)
+/// 
+/// τ_turn = turn_torque * rudder_health_ratio
+/// ```
+pub fn ship_physics_system(
+    input_buffer: Res<ShipInputBuffer>,
+    config: Res<ShipPhysicsConfig>,
     mut ship_query: Query<
         (
-            Entity,
             &Health,
             &Transform,
+            &mut ExternalForce,
+            &mut ExternalTorque,
             &mut LinearVelocity,
             &mut AngularVelocity,
         ),
         (With<Ship>, With<Player>),
     >,
 ) {
-    let config = ShipMovementConfig::default();
-    let dt = time.delta_secs();
-    
-    *debug_timer += dt;
-    let should_log = *debug_timer > 1.0;
-    if should_log {
-        *debug_timer = 0.0;
-    }
-    
-    // Get action state
-    let action_state = match action_query.get_single() {
-        Ok(state) => state,
-        Err(_) => {
-            if should_log {
-                println!("[MOVE] ERROR: No ActionState found!");
-            }
-            return;
-        }
-    };
-    
-    for (entity, health, transform, mut linear_vel, mut angular_vel) in &mut ship_query {
-        let sail_modifier = health.sails_ratio();
-        let rudder_modifier = health.rudder_ratio();
-        let effective_max_speed = config.max_speed * sail_modifier;
-        let effective_turn_rate = config.turn_rate * rudder_modifier;
+    for (health, transform, mut force, mut torque, mut lin_vel, mut ang_vel) in &mut ship_query {
+        // Calculate effectiveness based on component damage
+        let sail_effectiveness = health.sails_ratio();
+        let rudder_effectiveness = health.rudder_ratio();
         
-        // Calculate forward direction
+        // Get ship's forward direction (Y-up in local space)
         let forward = transform.rotation * Vec3::Y;
         let forward_2d = Vec2::new(forward.x, forward.y);
         
-        // Check inputs
-        let thrust_pressed = action_state.pressed(&PlayerAction::Thrust);
-        let reverse_pressed = action_state.pressed(&PlayerAction::Reverse);
-        let anchor_pressed = action_state.pressed(&PlayerAction::Anchor);
-        let turn_left = action_state.pressed(&PlayerAction::TurnLeft);
-        let turn_right = action_state.pressed(&PlayerAction::TurnRight);
-        
-        if should_log {
-            println!("[MOVE] Entity {:?} | Pos: ({:.1}, {:.1}) | Vel: ({:.1}, {:.1}) | Speed: {:.1}", 
-                entity, 
-                transform.translation.x, transform.translation.y,
-                linear_vel.0.x, linear_vel.0.y,
-                linear_vel.0.length());
-            println!("[MOVE] Input: Thrust:{} Rev:{} Anchor:{} TurnL:{} TurnR:{}", 
-                thrust_pressed, reverse_pressed, anchor_pressed, turn_left, turn_right);
-        }
-        
-        // === Anchor ===
-        if anchor_pressed {
-            linear_vel.0 = Vec2::ZERO;
-            if turn_left {
-                angular_vel.0 = effective_turn_rate;
-            } else if turn_right {
-                angular_vel.0 = -effective_turn_rate;
+        // === Anchor: Stop all motion ===
+        if input_buffer.anchor {
+            lin_vel.0 = Vec2::ZERO;
+            force.clear();
+            
+            // Still allow turning while anchored
+            if input_buffer.turn_left {
+                ang_vel.0 = config.max_angular_speed * rudder_effectiveness;
+            } else if input_buffer.turn_right {
+                ang_vel.0 = -config.max_angular_speed * rudder_effectiveness;
             } else {
-                angular_vel.0 = 0.0;
+                ang_vel.0 = 0.0;
             }
+            torque.clear();
             continue;
         }
         
-        // === Apply drag (before acceleration so it doesn't fight thrust) ===
-        let drag_factor = config.drag.powf(dt);
-        linear_vel.0 *= drag_factor;
+        // === Calculate net thrust force ===
+        let mut thrust_magnitude = 0.0;
         
-        // === Thrust ===
-        if thrust_pressed {
-            let accel = forward_2d * config.thrust_accel * sail_modifier * dt;
-            linear_vel.0 += accel;
-            if should_log {
-                println!("[MOVE] Thrust accel: {:?}", accel);
-            }
+        if input_buffer.thrust {
+            thrust_magnitude += config.max_thrust * sail_effectiveness;
+        }
+        if input_buffer.reverse {
+            thrust_magnitude -= config.max_reverse_thrust * sail_effectiveness;
         }
         
-        // === Reverse ===
-        if reverse_pressed {
-            let accel = -forward_2d * config.reverse_accel * sail_modifier * dt;
-            linear_vel.0 += accel;
-            if should_log {
-                println!("[MOVE] Reverse accel: {:?}", accel);
-            }
+        // Apply thrust force in forward direction
+        let thrust_force = forward_2d * thrust_magnitude;
+        *force = ExternalForce::new(thrust_force);
+        
+        // === Calculate turning torque ===
+        let mut turn_direction = 0.0;
+        
+        if input_buffer.turn_left {
+            turn_direction = 1.0;
+        } else if input_buffer.turn_right {
+            turn_direction = -1.0;
         }
         
-        // === Speed cap ===
-        let speed = linear_vel.0.length();
-        if speed > effective_max_speed {
-            linear_vel.0 = linear_vel.0.normalize() * effective_max_speed;
-        }
+        let turn_torque_value = config.turn_torque * turn_direction * rudder_effectiveness;
+        *torque = ExternalTorque::new(turn_torque_value);
         
-        // === Turn ===
-        if turn_left {
-            angular_vel.0 = effective_turn_rate;
-        } else if turn_right {
-            angular_vel.0 = -effective_turn_rate;
-        } else {
-            // Apply angular drag
-            angular_vel.0 *= 0.9_f32.powf(dt * 60.0);
+        // === Angular speed limit ===
+        let max_ang = config.max_angular_speed * rudder_effectiveness;
+        if ang_vel.0.abs() > max_ang {
+            ang_vel.0 = ang_vel.0.signum() * max_ang;
         }
     }
 }
+
+/// Debug system to log ship physics state periodically.
+pub fn debug_ship_physics(
+    time: Res<Time>,
+    mut timer: Local<f32>,
+    ship_query: Query<
+        (&Transform, &LinearVelocity, &AngularVelocity, &ExternalForce),
+        (With<Ship>, With<Player>),
+    >,
+) {
+    *timer += time.delta_secs();
+    if *timer < 1.0 {
+        return;
+    }
+    *timer = 0.0;
+    
+    for (transform, lin_vel, ang_vel, force) in &ship_query {
+        let speed = lin_vel.0.length();
+        println!(
+            "[PHYSICS] Pos: ({:.1}, {:.1}) | Speed: {:.1} | AngVel: {:.2} | Force: ({:.1}, {:.1})",
+            transform.translation.x,
+            transform.translation.y,
+            speed,
+            ang_vel.0,
+            force.force().x,
+            force.force().y,
+        );
+    }
+}
+
 
 
