@@ -36,6 +36,9 @@ Common types:
 - `VirtualAxis::horizontal_arrow_keys()` / `VirtualAxis::vertical_arrow_keys()` for single-axis virtual controls
 
 > [!CAUTION]
+> **MouseMove Behavior**: `MouseMove::default()` reports raw mouse delta *every frame* the mouse moves, not just when a button is held. Do NOT map it directly to camera pan actions—this will cause the camera to fly away uncontrollably. For mouse-drag panning, use a modifier (e.g., hold middle-mouse button) and gate the action in the system.
+
+> [!CAUTION]
 > **Action Kind Enforcement**:
 > - `ActionState::pressed()` and `.just_pressed()` **MUST ONLY** be used on actions with the `Button` kind.
 > - For `Axis` or `DualAxis` actions, you **MUST** use `.value()` or `.axis_pair()` directly and check for non-zero values if you need to gate logic based on "if active".
