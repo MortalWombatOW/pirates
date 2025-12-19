@@ -69,8 +69,14 @@ pub fn buffer_ship_input(
         input_buffer.turn_left = action_state.pressed(&PlayerAction::TurnLeft);
         input_buffer.turn_right = action_state.pressed(&PlayerAction::TurnRight);
         input_buffer.anchor = action_state.pressed(&PlayerAction::Anchor);
-        input_buffer.fire_port = action_state.just_pressed(&PlayerAction::FirePort);
-        input_buffer.fire_starboard = action_state.just_pressed(&PlayerAction::FireStarboard);
+        
+        // Sticky firing: capture the intent, don't clear it until consumed by the physics system
+        if action_state.just_pressed(&PlayerAction::FirePort) {
+            input_buffer.fire_port = true;
+        }
+        if action_state.just_pressed(&PlayerAction::FireStarboard) {
+            input_buffer.fire_starboard = true;
+        }
     }
 
     // Capture mouse world position

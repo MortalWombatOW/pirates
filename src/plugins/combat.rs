@@ -6,6 +6,7 @@ use crate::systems::{
     ship_physics_system, 
     debug_ship_physics,
     cannon_firing_system,
+    consume_firing_input,
     projectile_system,
     projectile_collision_system,
     target_cycling_system,
@@ -37,6 +38,7 @@ impl Plugin for CombatPlugin {
             (
                 ship_physics_system,
                 cannon_firing_system,
+                consume_firing_input.after(cannon_firing_system),
                 target_cycling_system,
             ).run_if(in_state(GameState::Combat)),
         );

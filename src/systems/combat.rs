@@ -22,15 +22,15 @@ pub fn cannon_firing_system(
         return;
     }
 
-    // Check for port or starboard fire input
-    let mut firing_direction = None;
+    // Check for port or starboard fire intent in the sticky buffer
+    let mut fired_side = None;
     if input_buffer.fire_port {
-        firing_direction = Some(-1.0); // Left is -Right
+        fired_side = Some(-1.0); // Port
     } else if input_buffer.fire_starboard {
-        firing_direction = Some(1.0);  // Right
+        fired_side = Some(1.0);  // Starboard
     }
 
-    if let Some(side) = firing_direction {
+    if let Some(side) = fired_side {
         if let Ok((_player_ent, transform, ship_velocity)) = query.get_single() {
             // Get ship's local right vector (X-axis in local space)
             let right = transform.rotation * Vec3::X;
@@ -65,8 +65,25 @@ pub fn cannon_firing_system(
             }
 
             cannon_state.cooldown_remaining = cannon_state.base_cooldown;
+            
+            // CONSUME the sticky input from the buffer
+            // We use a separate mutable variable to clear it
             info!("Broadside fired to {}!", if side > 0.0 { "Starboard" } else { "Port" });
         }
+    }
+}
+
+/// System to clear consumed firing input from the buffer.
+/// This must run AFTER the physics/firing systems.
+pub fn consume_firing_input(
+    cannon_state: Res<CannonState>,
+    mut input_buffer: ResMut<ShipInputBuffer>,
+) {
+    // If a broadside was just triggered (cooldown reset to max), clear BOTH sticky flags.
+    // This is a simplified "consume" logic.
+    if cannon_state.cooldown_remaining >= cannon_state.base_cooldown - 0.1 {
+        input_buffer.fire_port = false;
+        input_buffer.fire_starboard = false;
     }
 }
 
