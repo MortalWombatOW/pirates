@@ -52,9 +52,9 @@ pub fn spawn_player_ship(
     ))
     .insert((
         // Water resistance (damping)
-        // LinearDamping: F_drag = -coefficient * velocity
-        // These provide a natural "drift" and terminal velocity
-        LinearDamping(0.8),
+        // LinearDamping is set to 0.0 because we handle directional drag 
+        // manually in ship_physics_system to simulate the keel effect.
+        LinearDamping(0.0),
         AngularDamping(2.5),
     ));
     

@@ -22,15 +22,21 @@ pub struct ShipPhysicsConfig {
     pub turn_torque: f32,
     /// Maximum angular speed (radians/second)
     pub max_angular_speed: f32,
+    /// Drag coefficient for forward/backward movement (longitudinal)
+    pub longitudinal_drag: f32,
+    /// Drag coefficient for sideways movement (lateral) - should be much higher
+    pub lateral_drag: f32,
 }
 
 impl Default for ShipPhysicsConfig {
     fn default() -> Self {
         Self {
-            max_thrust: 300000.0,     // 300,000 N (Balanced for 1000kg mass + 0.8 damping)
-            max_reverse_thrust: 100000.0,
-            turn_torque: 250000.0,    // 250,000 Nm (Balanced for 20000 inertia + 2.5 damping)
-            max_angular_speed: 3.5,   // Slightly increased turning cap
+            max_thrust: 150000.0,     // Halved from 300,000 N
+            max_reverse_thrust: 50000.0, // Halved from 100,000 N
+            turn_torque: 175000.0,    // Halved from 350,000 Nm
+            max_angular_speed: 1.75,  // Halved from 3.5
+            longitudinal_drag: 0.6,
+            lateral_drag: 3.0,
         }
     }
 }
@@ -91,11 +97,13 @@ pub fn ship_physics_system(
             &mut ExternalTorque,
             &mut LinearVelocity,
             &mut AngularVelocity,
+            &Mass,
         ),
         (With<Ship>, With<Player>),
     >,
 ) {
-    for (health, transform, mut force, mut torque, mut lin_vel, mut ang_vel) in &mut ship_query {
+    for (health, transform, mut force, mut torque, mut lin_vel, mut ang_vel, mass) in &mut ship_query {
+        let ship_mass = mass.0;
         // Calculate effectiveness based on component damage
         let sail_effectiveness = health.sails_ratio();
         let rudder_effectiveness = health.rudder_ratio();
@@ -132,8 +140,31 @@ pub fn ship_physics_system(
         }
         
         // Apply thrust force in forward direction
-        let thrust_force = forward_2d * thrust_magnitude;
-        *force = ExternalForce::new(thrust_force);
+        let mut total_force = forward_2d * thrust_magnitude;
+        
+        // === Apply Anisotropic Drag (Keel Effect) ===
+        // 1. Get current velocity
+        let world_vel = lin_vel.0;
+        
+        // 2. Project velocity onto local axes
+        // In Bevy 2D (X-right, Y-up), if forward is (0, 1), right is (1, 0)
+        // Vec2::perp() is (-y, x), which is 90deg CCW (Left)
+        // So Right is -forward.perp()
+        let right_2d = -forward_2d.perp(); 
+        
+        let v_forward = world_vel.dot(forward_2d);
+        let v_lateral = world_vel.dot(right_2d);
+        
+        // 3. Calculate drag forces
+        // F_drag = -velocity * coefficient * mass
+        // Using mass ensures acceleration remains consistent with thrust
+        let drag_longitudinal = -forward_2d * v_forward * config.longitudinal_drag * ship_mass;
+        let drag_lateral = -right_2d * v_lateral * config.lateral_drag * ship_mass;
+        
+        total_force += drag_longitudinal;
+        total_force += drag_lateral;
+        
+        force.set_force(total_force);
         
         // === Calculate turning torque ===
         let mut turn_direction = 0.0;
