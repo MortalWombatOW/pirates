@@ -14,17 +14,20 @@ impl Plugin for PhysicsPlugin {
 }
 
 fn spawn_test_physics_entity(mut commands: Commands) {
+    println!("Spawning test physics entity...");
     commands.spawn((
         Name::new("Test Physics Entity"),
         Sprite {
             color: Color::srgb(1.0, 0.0, 0.0),
-            custom_size: Some(Vec2::splat(32.0)),
+            custom_size: Some(Vec2::splat(64.0)),
             ..default()
         },
         RigidBody::Dynamic,
-        Collider::circle(16.0),
-        LinearVelocity(Vec2::new(100.0, 50.0)),
-        AngularVelocity(1.0),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Collider::circle(32.0),
+        LinearVelocity(Vec2::new(50.0, 25.0)),
+        AngularVelocity(0.5),
+        Transform::from_xyz(0.0, 0.0, 1.0),
+        Visibility::default(),
     ));
+    println!("Test physics entity spawned!");
 }
