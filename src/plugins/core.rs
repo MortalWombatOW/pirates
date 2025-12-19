@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
+use crate::components::{Player, Ship};
 use leafwing_input_manager::prelude::*;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -22,7 +23,19 @@ impl Plugin for CorePlugin {
                 debug_state_transitions,
                 log_state_transitions,
                 camera_control,
+                camera_follow.run_if(in_state(GameState::Combat)),
             ));
+    }
+}
+
+fn camera_follow(
+    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    player_query: Query<&Transform, (With<Player>, With<Ship>)>,
+) {
+    if let (Ok(mut camera_transform), Ok(player_transform)) = (camera_query.get_single_mut(), player_query.get_single()) {
+        let player_pos = player_transform.translation;
+        camera_transform.translation.x = player_pos.x;
+        camera_transform.translation.y = player_pos.y;
     }
 }
 

@@ -19,4 +19,5 @@ impl Default for TargetComponent {
 pub struct Projectile {
     pub damage: f32,
     pub target: TargetComponent,
+    pub source: Entity,
 }

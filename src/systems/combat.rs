@@ -19,6 +19,7 @@ pub fn cannon_firing_system(
     }
 
     if cannon_state.cooldown_remaining > 0.0 {
+        // info!("Cannon on cooldown: {:.2}", cannon_state.cooldown_remaining);
         return;
     }
 
@@ -37,7 +38,7 @@ pub fn cannon_firing_system(
             let spawn_direction = (right * side).truncate();
             
             // Spawn a spread of projectiles (broadside)
-            let spawn_pos_center = transform.translation + (right * side * 20.0);
+            let spawn_pos_center = transform.translation + (right * side * 40.0) + Vec3::new(0.0, 0.0, 5.0);
             let projectile_speed = 400.0;
             
             // Fire 3 cannonballs in a slight spread
@@ -59,6 +60,7 @@ pub fn cannon_firing_system(
                     Projectile {
                         damage: 10.0,
                         target: TargetComponent::Hull, // Default to hull for now
+                        source: _player_ent,
                     },
                     ProjectileTimer::default(),
                 ));
@@ -115,7 +117,7 @@ pub fn projectile_collision_system(
     mut commands: Commands,
     mut collision_events: EventReader<Collision>,
     projectiles: Query<&Projectile>,
-    mut ships: Query<&mut Health, With<Ship>>,
+    mut ships: Query<(Entity, &mut Health, Option<&Name>), With<Ship>>,
 ) {
     for Collision(contacts) in collision_events.read() {
         let e1 = contacts.entity1;
@@ -130,19 +132,24 @@ pub fn projectile_collision_system(
             continue;
         };
 
-        if let (Ok(projectile), Ok(mut health)) = (projectiles.get(proj_ent), ships.get_mut(ship_ent)) {
-            // Apply damage to the hull for now (or specific component if implemented)
-            // Based on target component
+        if let (Ok(projectile), Ok((_ent, mut health, name))) = (projectiles.get(proj_ent), ships.get_mut(ship_ent)) {
+            // Skip if the ship hit is the source that fired it
+            if projectile.source == ship_ent {
+                continue;
+            }
+
+            // Apply damage
             match projectile.target {
                 TargetComponent::Sails => health.sails -= projectile.damage,
                 TargetComponent::Rudder => health.rudder -= projectile.damage,
                 TargetComponent::Hull => health.hull -= projectile.damage,
             }
 
+            let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
             info!(
-                "Hit! Projectile {:?} damaged ship {:?}. New Health: S:{:.1} R:{:.1} H:{:.1}",
+                "Hit! {} damaged by {:?}. New Health: S:{:.1} R:{:.1} H:{:.1}",
+                ship_name,
                 projectile.target,
-                ship_ent,
                 health.sails,
                 health.rudder,
                 health.hull
@@ -162,15 +169,16 @@ pub fn spawn_test_target(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    info!("Spawning test target at (300, 300)");
+    info!("Spawning test target at (0, 150)");
     commands.spawn((
+        Name::new("Test Target"),
         Sprite {
             image: asset_server.load("sprites/ships/player.png"),
             color: Color::srgb(1.0, 0.4, 0.4), // Reddish target
             custom_size: Some(Vec2::new(64.0, 64.0)),
             ..default()
         },
-        Transform::from_xyz(300.0, 300.0, 0.0),
+        Transform::from_xyz(0.0, 150.0, 0.0), // Move closer for easier testing
         Ship,
         Health::default(),
         RigidBody::Static,
