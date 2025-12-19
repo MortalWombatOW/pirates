@@ -36,6 +36,7 @@ pub fn spawn_player_ship(
         Collider::rectangle(48.0, 64.0), // Ship-shaped collider
         LinearVelocity(Vec2::ZERO),
         AngularVelocity(0.0),
+        ExternalForce::default(),
         // Linear and angular damping to simulate water resistance
         LinearDamping(1.0),
         AngularDamping(2.0),

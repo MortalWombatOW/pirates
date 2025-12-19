@@ -4,6 +4,7 @@ use pirates::plugins::core::CorePlugin;
 use pirates::plugins::input::InputPlugin;
 use pirates::plugins::debug_ui::DebugUiPlugin;
 use pirates::plugins::physics::PhysicsPlugin;
+use pirates::plugins::combat::CombatPlugin;
 
 fn main() {
     App::new()
@@ -19,5 +20,6 @@ fn main() {
         .add_plugins(InputPlugin)
         .add_plugins(DebugUiPlugin)
         .add_plugins(PhysicsPlugin)
+        .add_plugins(CombatPlugin)
         .run();
 }

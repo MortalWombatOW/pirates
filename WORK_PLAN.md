@@ -92,14 +92,14 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.3.1 | Create `ShipMovementSystem` | P0 | 2.2.5, 1.3.5 | System queries `Ship` + `RigidBody`. |
-| 2.3.2 | Implement thrust (W key) | P0 | 2.3.1 | Ship accelerates forward when W pressed. |
-| 2.3.3 | Implement reverse (S key) | P1 | 2.3.1 | Ship accelerates backward when S pressed. |
-| 2.3.4 | Implement turn (A/D keys) | P0 | 2.3.1 | Ship rotates left/right. |
-| 2.3.5 | Apply drag to simulate water resistance | P0 | 2.3.1 | Ship slows down when no input. |
-| 2.3.6 | Implement anchor drop (Shift key) | P1 | 2.3.1 | Ship velocity set to zero, rotation allowed. |
-| 2.3.7 | Apply speed debuff based on sail damage | P0 | 2.3.1, 2.2.2 | `MaxSpeed` reduced proportionally to sail damage. |
-| 2.3.8 | Apply turn debuff based on rudder damage | P0 | 2.3.1, 2.2.2 | `TurnRate` reduced proportionally to rudder damage. |
+| [x] 2.3.1 | Create `ShipMovementSystem` | P0 | 2.2.5, 1.3.5 | System queries `Ship` + `RigidBody`. |
+| [x] 2.3.2 | Implement thrust (W key) | P0 | 2.3.1 | Ship accelerates forward when W pressed. |
+| [x] 2.3.3 | Implement reverse (S key) | P1 | 2.3.1 | Ship accelerates backward when S pressed. |
+| [x] 2.3.4 | Implement turn (A/D keys) | P0 | 2.3.1 | Ship rotates left/right. |
+| [x] 2.3.5 | Apply drag to simulate water resistance | P0 | 2.3.1 | Ship slows down when no input. |
+| [x] 2.3.6 | Implement anchor drop (Shift key) | P1 | 2.3.1 | Ship velocity set to zero, rotation allowed. |
+| [x] 2.3.7 | Apply speed debuff based on sail damage | P0 | 2.3.1, 2.2.2 | `MaxSpeed` reduced proportionally to sail damage. |
+| [x] 2.3.8 | Apply turn debuff based on rudder damage | P0 | 2.3.1, 2.2.2 | `TurnRate` reduced proportionally to rudder damage. |
 
 ### Epic 2.4: Cannons & Projectiles
 

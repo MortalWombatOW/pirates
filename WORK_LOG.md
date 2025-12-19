@@ -65,3 +65,20 @@
 - Created placeholder 64x64 ship sprite at `assets/sprites/ships/player.png`.
 - Integrated `spawn_player_ship` into `PhysicsPlugin` to run on `OnEnter(GameState::Combat)`.
 - Verified all changes compile with `cargo check`.
+
+### Epic 2.3: Ship Movement [COMPLETED]
+- Created `ship_movement_system` in `src/systems/movement.rs`.
+- Added `Reverse` action to `PlayerAction` enum and bound to S key.
+- Added `ExternalForce` component to player ship spawn for physics-based thrust.
+- Created `CombatPlugin` in `src/plugins/combat.rs` to register combat systems.
+- Implemented all 8 movement tasks:
+    - **2.3.1**: System queries `Ship` + `Player` + physics components
+    - **2.3.2**: W key applies forward thrust via `ExternalForce`
+    - **2.3.3**: S key applies reverse thrust (half force)
+    - **2.3.4**: A/D keys set `AngularVelocity` for rotation
+    - **2.3.5**: Drag via `LinearDamping`/`AngularDamping` (set in spawn)
+    - **2.3.6**: Shift key (Anchor) zeros velocity but allows rotation
+    - **2.3.7**: Speed debuff - thrust and max speed scaled by `sails_ratio()`
+    - **2.3.8**: Turn debuff - turn rate scaled by `rudder_ratio()`
+- Movement system runs on `FixedUpdate`, gated by `GameState::Combat`.
+- Verified all changes compile with `cargo check`.

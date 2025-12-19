@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum PlayerAction {
     Thrust,
+    Reverse,
     TurnLeft,
     TurnRight,
     Fire,
@@ -29,6 +30,7 @@ pub fn get_default_input_map() -> InputMap<PlayerAction> {
     
     // Movement (Ship)
     input_map.insert(PlayerAction::Thrust, KeyCode::KeyW);
+    input_map.insert(PlayerAction::Reverse, KeyCode::KeyS);
     input_map.insert(PlayerAction::TurnLeft, KeyCode::KeyA);
     input_map.insert(PlayerAction::TurnRight, KeyCode::KeyD);
     
