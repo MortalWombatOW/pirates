@@ -21,6 +21,8 @@ To ensure high performance and maintainable code in Bevy 0.15:
 1. **Z-Sorting**: Use the `z` coordinate in `Transform` to manage layering of 2D sprites.
 2. **Physics**: Use `avian2d` (successor to `bevy_xpbd`). Ensure `RigidBody` and `Collider` components are used correctly.
 3. **Camera**: Use the new `Camera2d` component instead of the deprecated `Camera2dBundle`.
+4. **Sprite Orientation**: Kenney pirate sprites face DOWN (Y-). When using Y+ as physics forward, add a 180-degree rotation: `Transform::from_xyz(...).with_rotation(Quat::from_rotation_z(std::f32::consts::PI))`.
+
 ## Leafwing Input Manager 0.16
 
 The `leafwing-input-manager` 0.16 uses different methods for different input types:

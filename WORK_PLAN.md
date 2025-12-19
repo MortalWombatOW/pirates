@@ -126,7 +126,7 @@
 | [x] 2.5.4 | Create `DamageSystem` | P0 | 2.5.3, 2.2.2 | `projectile_collision_system` updates `Health`. |
 | 2.5.5 | Implement `WaterIntake` component | P1 | 1.1.3 | Component with `rate` and `current` water level. |
 | 2.5.6 | Add `WaterIntake` on hull damage | P1 | 2.5.4, 2.5.5 | Hull damage adds/increases `WaterIntake`. |
-| 2.5.7 | Implement ship destruction (hull HP <= 0) | P0 | 2.5.4 | Ship entity despawned, `ShipDestroyedEvent` emitted. |
+| [x] 2.5.7 | Implement ship destruction (hull HP <= 0) | P0 | 2.5.4 | Ship entity despawned, `ShipDestroyedEvent` emitted. |
 
 ### Epic 2.6: Loot System
 

@@ -184,3 +184,42 @@ pub fn spawn_test_target(
         Collider::rectangle(64.0, 64.0),
     ));
 }
+
+/// System that detects and destroys ships with hull HP <= 0.
+pub fn ship_destruction_system(
+    mut commands: Commands,
+    query: Query<(Entity, &Health, Option<&Player>, Option<&Name>), With<Ship>>,
+    mut ship_destroyed_events: EventWriter<crate::events::ShipDestroyedEvent>,
+) {
+    for (entity, health, player, name) in &query {
+        if health.is_destroyed() {
+            let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
+            let was_player = player.is_some();
+            
+            info!("Ship destroyed: {} (was_player: {})", ship_name, was_player);
+            
+            // Send the event before despawning
+            ship_destroyed_events.send(crate::events::ShipDestroyedEvent {
+                entity,
+                was_player,
+            });
+            
+            // Despawn the ship entity
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+/// System that handles player death by transitioning to GameOver state.
+pub fn handle_player_death_system(
+    mut ship_destroyed_events: EventReader<crate::events::ShipDestroyedEvent>,
+    mut next_state: ResMut<NextState<crate::plugins::core::GameState>>,
+) {
+    for event in ship_destroyed_events.read() {
+        if event.was_player {
+            info!("Player ship destroyed! Transitioning to GameOver state.");
+            next_state.set(crate::plugins::core::GameState::GameOver);
+        }
+    }
+}
+

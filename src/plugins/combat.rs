@@ -11,6 +11,8 @@ use crate::systems::{
     projectile_collision_system,
     target_cycling_system,
     spawn_test_target,
+    ship_destruction_system,
+    handle_player_death_system,
     ShipInputBuffer,
     ShipPhysicsConfig,
 };
@@ -21,6 +23,9 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
+        // Register events
+        app.add_event::<crate::events::ShipDestroyedEvent>();
+        
         // Initialize resources
         app.init_resource::<ShipInputBuffer>()
             .init_resource::<ShipPhysicsConfig>()
@@ -50,6 +55,8 @@ impl Plugin for CombatPlugin {
                 projectile_system,
                 projectile_collision_system,
                 debug_ship_physics,
+                ship_destruction_system.after(projectile_collision_system),
+                handle_player_death_system.after(ship_destruction_system),
             ).run_if(in_state(GameState::Combat)),
         );
 

@@ -118,3 +118,12 @@
   -  - Map tile (ready for Epic 3.1)
 - **Ship Orientation Fix**: Added 180-degree rotation to ship spawn Transform to align Kenney sprites (face down) with physics forward direction (Y+).
 - **Documentation**: Added visual references to README.md and WORK_PLAN.md. Added efficient logging guidance to README Quick Start.
+
+### Epic 2.5: Damage & Hit Detection - Task 2.5.7 [COMPLETED]
+- Implemented ship destruction when hull HP <= 0.
+- **Event**: Added `ShipDestroyedEvent` to `events/mod.rs` with `entity` and `was_player` fields.
+- **Systems**:
+  - `ship_destruction_system`: Queries ships with `Health`, despawns those with `is_destroyed() == true`, emits event.
+  - `handle_player_death_system`: Listens for `ShipDestroyedEvent`, transitions to `GameOver` when `was_player` is true.
+- **Integration**: Registered event and systems in `CombatPlugin` with proper ordering constraints.
+- Verified compilation with `cargo check`.
