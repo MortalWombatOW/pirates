@@ -6,3 +6,4 @@ To ensure high visibility and persistence of project progress:
 2. **Push Consistency**: Push every commit to the remote repository (`main` branch) immediately.
 3. **Commit Messages**: Use descriptive, conventional commit messages (e.g., `feat: Add cannon system`, `fix: Correct ship rotation`).
 4. **Clean State**: Ensure the project is in a compiling state (`cargo check` passes) before every commit.
+5. **Completion Signal**: **Never** call `notify_user` to signal task completion until the changes have been committed and pushed.
