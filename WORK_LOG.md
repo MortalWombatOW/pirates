@@ -98,3 +98,15 @@
 - **Bevy 0.15 Bundle Optimization**:
     - Refactored ship spawning to use chained `.insert()` calls, bypassing the 15-component tuple limit.
 - **Verified Behavior**: Ship now correctly "steers its momentum" (heading guides velocity) while allowing for realistic drifting at high speeds.
+
+### Update: Visual Assets Integration
+- **Assets**:
+    - Replaced placeholder player ship with `ship (1).png` from Kenney Pirate Pack.
+    - Added `enemy_ship.png` for future enemy implementation.
+    - Added `map_tile.png` (tile_73) for future tilemap implementation.
+- **Documentation**:
+    - Updated `README.md` with visual references for Player Ship and Enemy Ship in aesthetic and entity sections.
+    - Updated `WORK_PLAN.md` with visual reference for Tilemap.
+- **Verification**:
+    - Verified `spawn_player_ship` uses the correct asset path.
+    - Ran `cargo check` to ensure no regressions.

@@ -62,6 +62,8 @@ cargo build --timings
 
 ### 1.4 Aesthetic
 - **Visual Style**: "Ink and Parchment" — 2D graphics rendered to look like quill and ink on aged parchment.
+  
+  ![Player Ship](assets/docs/player_ship.png)
 - **UI Style**: Diegetic design using scrolls, daggers, and parchment textures.
 - **Audio**: Scene-specific ambience (creaking hulls, tavern chatter) + orchestral/folk soundtrack.
 
@@ -418,7 +420,12 @@ Each system is a Bevy plugin with defined responsibilities.
 | `Companion` | An officer/crew member. | `Companion`, `Role`, `Skills`, `AssignedTo`. |
 | `CurrentZone` | An area affecting physics. | `CurrentZone`, `Velocity`, `Bounds`. |
 
-### 5.2 Component Definitions
+### 5.2 Visual Reference
+
+![Enemy Ship](assets/docs/enemy_ship.png)
+*Enemy Ship Sprite*
+
+### 5.3 Component Definitions
 
 ```rust
 // === Markers ===

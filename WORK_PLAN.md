@@ -181,6 +181,9 @@
 
 ### Epic 3.1: Tilemap Setup
 
+![Map Tile](assets/docs/map_tile.png)
+*Typical Map Tile*
+
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
 | 3.1.1 | Integrate `bevy_ecs_tilemap` | P0 | 1.1.2 | Plugin added, no errors. |
