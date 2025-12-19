@@ -6,4 +6,4 @@ Please begin by gathering context about the project by reading the readme at REA
 
 Then, ask the user what their task is.
 
-Then, systematically research and plan how best to implement this task harmoniously with the codebase practices, minimizing the amount of tech debt added. Don't prematurely optimize, and use ECS and Phaser best practices.
+Then, systematically research and plan how best to implement this task harmoniously with the codebase practices, minimizing the amount of tech debt added. Don't prematurely optimize, and use Bevy/ECS best practices.

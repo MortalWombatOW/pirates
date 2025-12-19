@@ -7,7 +7,7 @@ Follow these steps to proceed with the next task in the project:
 1. **Context Loading & Research**:
    - Read [README.md](file:///Users/andrewgleeson/Documents/code/pirates/README.md) to understand the full Game Design Document and Technical Specification.
    - Read [WORK_PLAN.md](file:///Users/andrewgleeson/Documents/code/pirates/WORK_PLAN.md) to find the current project status.
-   - **Research**: Carefully research the task requirements. Before writing New code, check Bevy documentation and the existing codebase/libraries (e.g., Rapier, Egui, Tilemap) to identify features and patterns that can be re-used.
+   - **Research**: Carefully research the task requirements. Before writing New code, check Bevy documentation and the existing codebase/libraries (e.g., Avian, Egui, Tilemap, Leafwing) to identify features and patterns that can be re-used.
 
 2. **Task Selection**:
    - Identify the next available task in `WORK_PLAN.md`. 
