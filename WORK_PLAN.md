@@ -56,10 +56,10 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 1.4.1 | Integrate `bevy_egui` | P0 | 1.1.2 | `EguiPlugin` added to app, no errors. |
-| 1.4.2 | Create debug panel showing current `GameState` | P1 | 1.4.1, 1.2.2 | Panel displays current state name. |
-| 1.4.3 | Add FPS counter to debug panel | P2 | 1.4.2 | FPS displayed in corner. |
-| 1.4.4 | Add state transition buttons to debug panel | P1 | 1.4.2, 1.2.3 | Buttons change state on click. |
+| [x] 1.4.1 | Integrate `bevy_egui` | P0 | 1.1.2 | `EguiPlugin` added to app, no errors. |
+| [x] 1.4.2 | Create debug panel showing current `GameState` | P1 | 1.4.1, 1.2.2 | Panel displays current state name. |
+| [x] 1.4.3 | Add FPS counter to debug panel | P2 | 1.4.2 | FPS displayed in corner. |
+| [x] 1.4.4 | Add state transition buttons to debug panel | P1 | 1.4.2, 1.2.3 | Buttons change state on click. |
 
 ---
 

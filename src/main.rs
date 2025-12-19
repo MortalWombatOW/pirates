@@ -1,6 +1,8 @@
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
 use pirates::plugins::core::CorePlugin;
 use pirates::plugins::input::InputPlugin;
+use pirates::plugins::debug_ui::DebugUiPlugin;
 
 fn main() {
     App::new()
@@ -11,7 +13,9 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(EguiPlugin)
         .add_plugins(CorePlugin)
         .add_plugins(InputPlugin)
+        .add_plugins(DebugUiPlugin)
         .run();
 }

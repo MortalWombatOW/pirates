@@ -30,3 +30,11 @@
 - Implemented `camera_control` system for resolution-aware panning and zooming.
 - Fixed runtime panic by adding `#[actionlike(DualAxis)]` and `#[actionlike(Axis)]` attributes to `PlayerAction` variants (Leafwing 0.16 requirement).
 - Verified compilation and baseline app stability.
+### Epic 1.4: Debug UI [COMPLETED]
+- Integrated `bevy_egui` (0.31) for immediate-mode debugging tools.
+- Created `DebugUiPlugin` and registered it in `main.rs`.
+- Implemented a "Debug Panel" window using `egui` that displays:
+    - The current `GameState`.
+    - Real-time FPS counter using `FrameTimeDiagnosticsPlugin`.
+    - Buttons to trigger transitions between all game states (`MainMenu`, `Port`, `HighSeas`, `Combat`, `GameOver`).
+- Verified implementation with `cargo check`.
