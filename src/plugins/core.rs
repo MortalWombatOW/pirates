@@ -40,16 +40,16 @@ fn camera_control(
     let (action_state, mut transform, mut projection) = query.single_mut();
     
     // Pan
-    if action_state.pressed(&PlayerAction::CameraMove) {
-        let axis_pair = action_state.axis_pair(&PlayerAction::CameraMove);
+    let axis_pair = action_state.axis_pair(&PlayerAction::CameraMove);
+    if axis_pair != Vec2::ZERO {
         let move_speed = 500.0 * projection.scale;
         transform.translation.x += axis_pair.x * move_speed * time.delta_secs();
         transform.translation.y += axis_pair.y * move_speed * time.delta_secs();
     }
 
     // Zoom
-    if action_state.pressed(&PlayerAction::CameraZoom) {
-        let zoom_delta = action_state.value(&PlayerAction::CameraZoom);
+    let zoom_delta = action_state.value(&PlayerAction::CameraZoom);
+    if zoom_delta != 0.0 {
         let zoom_speed = 1.5;
         projection.scale *= 1.0 - zoom_delta * zoom_speed * time.delta_secs();
         projection.scale = projection.scale.clamp(0.1, 5.0);
