@@ -327,6 +327,8 @@ pub fn current_zone_system(
             if zone.contains(zone_center, body_pos) {
                 // Apply the current's force to this entity
                 force.apply_force(zone.velocity);
+                info!("[CURRENT] Entity at ({:.1}, {:.1}) pushed by ({:.1}, {:.1})", 
+                    body_pos.x, body_pos.y, zone.velocity.x, zone.velocity.y);
             }
         }
     }
@@ -336,9 +338,11 @@ pub fn current_zone_system(
 pub fn spawn_test_current_zone(mut commands: Commands) {
     let zone_pos = Vec2::new(200.0, 0.0);
     let half_extents = Vec2::new(100.0, 150.0);
-    let velocity = Vec2::new(80.0, 0.0); // Gentle rightward push
+    // Force needs to be significant relative to ship mass (1000 kg)
+    // Ship thrust is 150000, so we use a noticeable fraction of that
+    let velocity = Vec2::new(15000.0, 0.0); // Strong rightward push
     
-    info!("Spawning test current zone at ({}, {})", zone_pos.x, zone_pos.y);
+    info!("Spawning test current zone at ({}, {}) with force {}", zone_pos.x, zone_pos.y, velocity.x);
     
     commands.spawn((
         Name::new("Test Current Zone"),
