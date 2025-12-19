@@ -24,14 +24,15 @@ pub fn spawn_player_ship(
         Cargo::new(100),
         Gold(100),
         // Visual components
+        // Kenney sprites face DOWN (Y-), so we flip vertically to align with physics forward (Y+)
         Sprite {
             image: texture_handle,
             custom_size: Some(Vec2::splat(64.0)),
             color: Color::WHITE,
+            flip_y: true,  // Flip sprite instead of rotating Transform
             ..default()
         },
-        // Rotate 180 degrees: Kenney sprites face DOWN, but physics forward is Y+ (UP)
-        Transform::from_xyz(0.0, 0.0, 1.0).with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
+        Transform::from_xyz(0.0, 0.0, 1.0),
     ))
     .insert((
         // Physics rigid body

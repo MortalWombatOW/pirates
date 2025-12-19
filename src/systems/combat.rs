@@ -171,14 +171,15 @@ pub fn spawn_test_target(
     info!("Spawning test target at (0, 150)");
     commands.spawn((
         Name::new("Test Target"),
+        // Kenney sprites face DOWN (Y-), flip to align with physics forward (Y+)
         Sprite {
             image: asset_server.load("sprites/ships/player.png"),
             color: Color::srgb(1.0, 0.4, 0.4), // Reddish target
             custom_size: Some(Vec2::new(64.0, 64.0)),
+            flip_y: true,
             ..default()
         },
-        // Rotate 180 degrees: Kenney sprites face DOWN, but physics forward is Y+ (UP)
-        Transform::from_xyz(0.0, 150.0, 0.0).with_rotation(Quat::from_rotation_z(std::f32::consts::PI)),
+        Transform::from_xyz(0.0, 150.0, 0.0),
         Ship,
         Health::default(),
         RigidBody::Static,
