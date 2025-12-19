@@ -10,3 +10,7 @@ To maintain high development velocity and avoid long idle times during compilati
 ## Performance Profiling
 - If compilation feels unusually slow, use `cargo build --timings` to identify bottleneck crates.
 - Bevy's `dynamic_linking` feature is enabled in `Cargo.toml` for development; Ensure it remains active to speed up incremental builds.
+
+## Final Check
+- Before considering a task "complete", ensure the project is in a compiling state (`cargo check` passes).
+- **Run the Git Workflow**: Immediately commit and push your changes after every task. Refer to `.agent/rules/git.md` for details.

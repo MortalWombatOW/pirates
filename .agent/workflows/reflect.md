@@ -11,11 +11,13 @@ Review the chat history in your context window.
 Then, examine the current documentation, rules and workflows
 <antigravity_instructions>
 README.md
+WORK_PLAN.md
+WORK_LOG.md
 .agent/rules/*
 .agent/workflows/*
 </antigravity_instructions>
 
-Analyze the chat history, instructions, commands and config to identify areas that could be improved. Look for:
+Analyze the chat history, instructions, project documentation, commands and config to identify areas that could be improved. Look for:
 - Inconsistencies in responses
 - Misunderstandings of user requests
 - Areas where you could provide more detailed or accurate information

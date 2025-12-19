@@ -26,6 +26,7 @@ Follow these steps to proceed with the next task in the project:
    - Once the task and its acceptance criteria are met, update the task in `WORK_PLAN.md` by changing `[/]` to `[x]`.
    - Update `README.md` if the task revealed any necessary changes to the design or technical specification.
    - Summarize the work done in the `WORK_LOG.md`.
+   - **Git Workflow**: Immediately commit and push your changes. Refer to `.agent/rules/git.md`.
 
 6. **Cleanup**:
    - If the task was part of a larger Epic or Phase that is now complete, update the status indicators accordingly.
