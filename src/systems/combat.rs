@@ -78,15 +78,14 @@ pub fn cannon_firing_system(
 /// System to clear consumed firing input from the buffer.
 /// This must run AFTER the physics/firing systems.
 pub fn consume_firing_input(
-    cannon_state: Res<CannonState>,
+    _cannon_state: Res<CannonState>,
     mut input_buffer: ResMut<ShipInputBuffer>,
 ) {
-    // If a broadside was just triggered (cooldown reset to max), clear BOTH sticky flags.
-    // This is a simplified "consume" logic.
-    if cannon_state.cooldown_remaining >= cannon_state.base_cooldown - 0.1 {
-        input_buffer.fire_port = false;
-        input_buffer.fire_starboard = false;
-    }
+    // Unconditionally clear the input buffer every frame.
+    // This ensures that an input is only valid for ONE physics tick.
+    // If the cannon was on cooldown during this tick, the input is discarded.
+    input_buffer.fire_port = false;
+    input_buffer.fire_starboard = false;
 }
 
 /// Component to handle projectile despawning after some time.
