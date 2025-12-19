@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # Development Workflow
 
 To maintain high development velocity and avoid long idle times during compilation:
@@ -14,3 +18,5 @@ To maintain high development velocity and avoid long idle times during compilati
 ## Final Check
 - Before considering a task "complete", ensure the project is in a compiling state (`cargo check` passes).
 - **Run the Git Workflow**: Immediately commit and push your changes after every task. Refer to `.agent/rules/git.md` for details.
+
+- **Library Deep Dive**: When working with core libraries (Bevy, Avian, Leafwing), do not assume method behavior matches older versions or other frameworks. Use `grep` on the cargo registry or check actual library source code (`mod.rs`, `prelude.rs`) to verify method constraints (e.g. `debug_assert` guards) before implementation.
