@@ -38,3 +38,11 @@
     - Real-time FPS counter using `FrameTimeDiagnosticsPlugin`.
     - Buttons to trigger transitions between all game states (`MainMenu`, `Port`, `HighSeas`, `Combat`, `GameOver`).
 - Verified implementation with `cargo check`.
+41: 
+42: ### Epic 2.1: Physics Setup [COMPLETED]
+43: - Integrated `avian2d` (0.2) physics engine.
+44: - Created `PhysicsPlugin` and registered it in `main.rs`.
+45: - Configured `FixedUpdate` frequency to 60Hz for deterministic physics.
+46: - Set `Gravity` to zero for top-down perspective.
+47: - Implemented `spawn_test_physics_entity` to verify physics behavior in `Combat` state.
+48: - Verified compilation with `cargo check`.

@@ -72,9 +72,9 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.1.1 | Integrate `avian2d` physics | P0 | 1.1.2 | `PhysicsPlugins::default()` added, no errors. |
-| 2.1.2 | Configure physics timestep for combat | P0 | 2.1.1 | Physics runs on `FixedUpdate` at 60Hz. |
-| 2.1.3 | Create test `RigidBody` entity that falls/moves | P0 | 2.1.2 | Entity responds to gravity/forces. |
+| [x] 2.1.1 | Integrate `avian2d` physics | P0 | 1.1.2 | `PhysicsPlugins::default()` added, no errors. |
+| [x] 2.1.2 | Configure physics timestep for combat | P0 | 2.1.1 | Physics runs on `FixedUpdate` at 60Hz. |
+| [x] 2.1.3 | Create test `RigidBody` entity that falls/moves | P0 | 2.1.2 | Entity responds to gravity/forces. |
 
 ### Epic 2.2: Ship Entity
 

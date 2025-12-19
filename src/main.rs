@@ -3,6 +3,7 @@ use bevy_egui::EguiPlugin;
 use pirates::plugins::core::CorePlugin;
 use pirates::plugins::input::InputPlugin;
 use pirates::plugins::debug_ui::DebugUiPlugin;
+use pirates::plugins::physics::PhysicsPlugin;
 
 fn main() {
     App::new()
@@ -17,5 +18,6 @@ fn main() {
         .add_plugins(CorePlugin)
         .add_plugins(InputPlugin)
         .add_plugins(DebugUiPlugin)
+        .add_plugins(PhysicsPlugin)
         .run();
 }
