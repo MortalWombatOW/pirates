@@ -38,8 +38,8 @@ pub fn spawn_player_ship(
         AngularVelocity(0.0),
         ExternalForce::default(),
         // Linear and angular damping to simulate water resistance
-        LinearDamping(1.0),
-        AngularDamping(2.0),
+        LinearDamping(0.5), // Reduced for testing
+        AngularDamping(1.0),
     ));
     
     println!("Player ship spawned!");

@@ -10,8 +10,10 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
+        // Run movement on Update (not FixedUpdate) because input detection
+        // happens in PreUpdate and may not be visible in FixedUpdate
         app.add_systems(
-            FixedUpdate,
+            Update,
             ship_movement_system.run_if(in_state(GameState::Combat)),
         );
     }

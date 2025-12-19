@@ -6,125 +6,146 @@ use crate::components::{Ship, Player, Health};
 use crate::plugins::input::PlayerAction;
 
 /// Configuration for ship movement parameters.
-/// These can be adjusted for game balance.
 pub struct ShipMovementConfig {
-    /// Base thrust force applied when W is pressed.
-    pub thrust_force: f32,
-    /// Base reverse force applied when S is pressed (typically lower than thrust).
-    pub reverse_force: f32,
-    /// Base angular velocity applied when turning (radians/second).
+    /// Acceleration when thrusting (units/second^2)
+    pub thrust_accel: f32,
+    /// Acceleration when reversing (units/second^2)
+    pub reverse_accel: f32,
+    /// Turn rate (radians/second)
     pub turn_rate: f32,
-    /// Maximum linear speed (units/second).
+    /// Maximum linear speed (units/second)
     pub max_speed: f32,
+    /// Drag coefficient (0-1, how much speed is retained per second)
+    pub drag: f32,
 }
 
 impl Default for ShipMovementConfig {
     fn default() -> Self {
         Self {
-            thrust_force: 500.0,
-            reverse_force: 250.0,
+            thrust_accel: 200.0,
+            reverse_accel: 100.0,
             turn_rate: 3.0,
             max_speed: 300.0,
+            drag: 0.98, // Retain 98% of speed per second
         }
     }
 }
 
 /// System that handles ship movement based on player input.
-/// Queries ships with `Player` marker and applies physics forces.
-/// 
-/// Tasks implemented:
-/// - 2.3.1: ShipMovementSystem (queries Ship + RigidBody)
-/// - 2.3.2: Thrust (W key)
-/// - 2.3.3: Reverse (S key)
-/// - 2.3.4: Turn (A/D keys)
-/// - 2.3.5: Drag (handled by LinearDamping in spawn)
-/// - 2.3.6: Anchor (Shift key)
-/// - 2.3.7: Speed debuff based on sail damage
-/// - 2.3.8: Turn debuff based on rudder damage
+/// Uses direct velocity modification for responsive controls.
 pub fn ship_movement_system(
-    _time: Res<Time>,
+    time: Res<Time>,
+    mut debug_timer: Local<f32>,
     action_query: Query<&ActionState<PlayerAction>>,
     mut ship_query: Query<
         (
+            Entity,
             &Health,
             &Transform,
             &mut LinearVelocity,
             &mut AngularVelocity,
-            &mut ExternalForce,
         ),
         (With<Ship>, With<Player>),
     >,
 ) {
     let config = ShipMovementConfig::default();
+    let dt = time.delta_secs();
     
-    // Get action state from whatever entity has it (camera currently)
-    let Ok(action_state) = action_query.get_single() else {
-        return;
+    *debug_timer += dt;
+    let should_log = *debug_timer > 1.0;
+    if should_log {
+        *debug_timer = 0.0;
+    }
+    
+    // Get action state
+    let action_state = match action_query.get_single() {
+        Ok(state) => state,
+        Err(_) => {
+            if should_log {
+                println!("[MOVE] ERROR: No ActionState found!");
+            }
+            return;
+        }
     };
     
-    for (health, transform, mut linear_vel, mut angular_vel, mut force) in &mut ship_query {
-        // Calculate damage modifiers (task 2.3.7 and 2.3.8)
+    for (entity, health, transform, mut linear_vel, mut angular_vel) in &mut ship_query {
         let sail_modifier = health.sails_ratio();
         let rudder_modifier = health.rudder_ratio();
-        
-        // Effective max speed and turn rate
         let effective_max_speed = config.max_speed * sail_modifier;
         let effective_turn_rate = config.turn_rate * rudder_modifier;
         
-        // Get forward direction from ship's rotation
+        // Calculate forward direction
         let forward = transform.rotation * Vec3::Y;
         let forward_2d = Vec2::new(forward.x, forward.y);
         
-        // Reset force each frame
-        force.clear();
+        // Check inputs
+        let thrust_pressed = action_state.pressed(&PlayerAction::Thrust);
+        let reverse_pressed = action_state.pressed(&PlayerAction::Reverse);
+        let anchor_pressed = action_state.pressed(&PlayerAction::Anchor);
+        let turn_left = action_state.pressed(&PlayerAction::TurnLeft);
+        let turn_right = action_state.pressed(&PlayerAction::TurnRight);
         
-        // === Anchor (Shift key) - Task 2.3.6 ===
-        if action_state.pressed(&PlayerAction::Anchor) {
-            // Stop linear motion, but allow rotation for "whip turns"
+        if should_log {
+            println!("[MOVE] Entity {:?} | Pos: ({:.1}, {:.1}) | Vel: ({:.1}, {:.1}) | Speed: {:.1}", 
+                entity, 
+                transform.translation.x, transform.translation.y,
+                linear_vel.0.x, linear_vel.0.y,
+                linear_vel.0.length());
+            println!("[MOVE] Input: Thrust:{} Rev:{} Anchor:{} TurnL:{} TurnR:{}", 
+                thrust_pressed, reverse_pressed, anchor_pressed, turn_left, turn_right);
+        }
+        
+        // === Anchor ===
+        if anchor_pressed {
             linear_vel.0 = Vec2::ZERO;
-            
-            // Still allow turning while anchored
-            if action_state.pressed(&PlayerAction::TurnLeft) {
+            if turn_left {
                 angular_vel.0 = effective_turn_rate;
-            } else if action_state.pressed(&PlayerAction::TurnRight) {
+            } else if turn_right {
                 angular_vel.0 = -effective_turn_rate;
             } else {
                 angular_vel.0 = 0.0;
             }
-            
-            continue; // Skip thrust logic when anchored
+            continue;
         }
         
-        // === Thrust (W key) - Task 2.3.2 ===
-        if action_state.pressed(&PlayerAction::Thrust) {
-            let thrust = forward_2d * config.thrust_force * sail_modifier;
-            force.apply_force(thrust);
+        // === Apply drag (before acceleration so it doesn't fight thrust) ===
+        let drag_factor = config.drag.powf(dt);
+        linear_vel.0 *= drag_factor;
+        
+        // === Thrust ===
+        if thrust_pressed {
+            let accel = forward_2d * config.thrust_accel * sail_modifier * dt;
+            linear_vel.0 += accel;
+            if should_log {
+                println!("[MOVE] Thrust accel: {:?}", accel);
+            }
         }
         
-        // === Reverse (S key) - Task 2.3.3 ===
-        if action_state.pressed(&PlayerAction::Reverse) {
-            let reverse = -forward_2d * config.reverse_force * sail_modifier;
-            force.apply_force(reverse);
+        // === Reverse ===
+        if reverse_pressed {
+            let accel = -forward_2d * config.reverse_accel * sail_modifier * dt;
+            linear_vel.0 += accel;
+            if should_log {
+                println!("[MOVE] Reverse accel: {:?}", accel);
+            }
         }
         
-        // === Turn (A/D keys) - Task 2.3.4 ===
-        if action_state.pressed(&PlayerAction::TurnLeft) {
-            angular_vel.0 = effective_turn_rate;
-        } else if action_state.pressed(&PlayerAction::TurnRight) {
-            angular_vel.0 = -effective_turn_rate;
-        } else {
-            // No turn input - let angular damping handle slowdown
-            // Angular damping is set in spawn_player_ship
-        }
-        
-        // === Speed cap - Task 2.3.7 (partial) ===
-        let current_speed = linear_vel.0.length();
-        if current_speed > effective_max_speed {
+        // === Speed cap ===
+        let speed = linear_vel.0.length();
+        if speed > effective_max_speed {
             linear_vel.0 = linear_vel.0.normalize() * effective_max_speed;
         }
         
-        // === Drag - Task 2.3.5 ===
-        // Drag is already applied via LinearDamping component in spawn_player_ship
-        // No additional logic needed here
+        // === Turn ===
+        if turn_left {
+            angular_vel.0 = effective_turn_rate;
+        } else if turn_right {
+            angular_vel.0 = -effective_turn_rate;
+        } else {
+            // Apply angular drag
+            angular_vel.0 *= 0.9_f32.powf(dt * 60.0);
+        }
     }
 }
+
+
