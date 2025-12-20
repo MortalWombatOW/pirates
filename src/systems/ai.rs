@@ -80,6 +80,7 @@ pub fn combat_ai_system(
             &Transform,
             &Health,
             &LinearVelocity,
+            &AngularVelocity,
             &Mass,
             &mut ExternalForce,
             &mut ExternalTorque,
@@ -93,7 +94,7 @@ pub fn combat_ai_system(
     };
     let player_pos = player_transform.translation.truncate();
 
-    for (transform, health, velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
+    for (transform, health, velocity, ang_velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
         let ai_pos = transform.translation.truncate();
         let to_player = player_pos - ai_pos;
         let distance = to_player.length();
@@ -115,8 +116,7 @@ pub fn combat_ai_system(
         let (desired_direction, should_thrust) = match *ai_state {
             AIState::Circling => {
                 // Broadside circling: maintain perpendicular angle to player
-                // We want the player to be at our right (starboard) side for firing
-                // Desired position is perpendicular to line-of-sight, at optimal range
+                // Dynamically choose which side to present based on player position
                 
                 let to_player_normalized = if distance > 0.01 { 
                     to_player / distance 
@@ -124,9 +124,20 @@ pub fn combat_ai_system(
                     Vec2::Y 
                 };
                 
-                // The tangent direction (circle around player)
-                // We circle counter-clockwise so player is on our starboard
-                let tangent = Vec2::new(-to_player_normalized.y, to_player_normalized.x);
+                // Determine which side the player is on relative to our heading
+                // Positive = starboard (right), Negative = port (left)
+                let player_side = right.dot(to_player_normalized);
+                
+                // Circle direction: if player is to starboard, circle counter-clockwise
+                // to keep them on starboard; if port, circle clockwise to keep them on port
+                let circle_direction = player_side.signum();
+                
+                // The tangent direction (perpendicular to line-of-sight)
+                // Direction depends on which side we want the player
+                let tangent = Vec2::new(
+                    -to_player_normalized.y * circle_direction,
+                    to_player_normalized.x * circle_direction,
+                );
                 
                 // Blend between closing in and circling based on range
                 let range_factor = (distance / config.optimal_range).clamp(0.5, 2.0);
@@ -151,7 +162,7 @@ pub fn combat_ai_system(
             }
         };
 
-        // Calculate steering torque to face desired direction
+        // Calculate steering torque using a PD controller to prevent oscillation
         let desired_angle = desired_direction.y.atan2(desired_direction.x) - std::f32::consts::FRAC_PI_2;
         let current_angle = transform.rotation.to_euler(EulerRot::ZYX).0;
         
@@ -160,12 +171,26 @@ pub fn combat_ai_system(
         while angle_diff > std::f32::consts::PI { angle_diff -= 2.0 * std::f32::consts::PI; }
         while angle_diff < -std::f32::consts::PI { angle_diff += 2.0 * std::f32::consts::PI; }
 
-        // Apply torque based on angle difference
-        let torque_amount = angle_diff.signum() * config.torque;
+        // PD Controller for steering:
+        // - Proportional term: torque proportional to angle error
+        // - Derivative term: damping based on current angular velocity
+        let kp = 1.5;  // Proportional gain - higher = snappier turning
+        let kd = 0.25; // Derivative gain - lower = less damping, more responsive
+        
+        // Scale angle_diff to [-1, 1] range (full torque at PI radians error)
+        let proportional = (angle_diff / std::f32::consts::PI).clamp(-1.0, 1.0);
+        
+        // Damping term reduces torque when already spinning in the right direction
+        let derivative = -ang_velocity.0 * kd;
+        
+        // Combine P and D terms, clamp to [-1, 1], then scale by max torque
+        let torque_factor = (proportional * kp + derivative).clamp(-1.0, 1.0);
+        let torque_amount = torque_factor * config.torque;
         torque.set_torque(torque_amount);
 
-        // Apply thrust only when roughly facing the right direction
-        let facing_threshold = 0.7; // ~45 degrees
+        // Apply thrust when roughly facing correct direction
+        // Lower threshold (0.3 ≈ 72°) allows thrusting while still turning
+        let facing_threshold = 0.3;
         let facing_right = forward.dot(desired_direction) > facing_threshold;
         
         let thrust_force = if should_thrust && facing_right {
