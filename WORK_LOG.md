@@ -215,3 +215,23 @@
 ### Files Changed
 - `src/components/health.rs` (added WaterIntake component)
 - `src/systems/combat.rs` (modified projectile_collision_system)
+
+## 2025-12-19: Epic 2.9 - Combat Flow Complete
+
+### Tasks Completed
+- **2.9.1**: Defined `CombatEndedEvent` with `victory: bool` field in `events/mod.rs`
+- **2.9.2**: Implemented `combat_victory_system` to detect when all AI ships are destroyed
+- **2.9.3**: Event emitted when all enemies destroyed (while player alive)
+- **2.9.4-2.9.6**: Already implemented via `handle_player_death_system`
+- **2.9.7**: Implemented `handle_combat_victory_system` to transition to HighSeas on victory
+
+### Implementation Details
+- `combat_victory_system`: Checks if AI ship query is empty while player exists
+- `handle_combat_victory_system`: Transitions to `GameState::HighSeas` on victory event
+- Both systems run in `Update` schedule, ordered after `ship_destruction_system`
+- Event and systems registered in `CombatPlugin`
+
+### Files Changed
+- `src/events/mod.rs` (added CombatEndedEvent)
+- `src/systems/combat.rs` (combat_victory_system, handle_combat_victory_system)
+- `src/plugins/combat.rs` (event and system registration)

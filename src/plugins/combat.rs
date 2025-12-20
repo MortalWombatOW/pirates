@@ -16,6 +16,8 @@ use crate::systems::{
     loot_timer_system,
     current_zone_system,
     spawn_test_current_zone,
+    combat_victory_system,
+    handle_combat_victory_system,
     // AI systems
     combat_ai_system,
     ai_firing_system,
@@ -32,7 +34,8 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         // Register events
-        app.add_event::<crate::events::ShipDestroyedEvent>();
+        app.add_event::<crate::events::ShipDestroyedEvent>()
+            .add_event::<crate::events::CombatEndedEvent>();
         
         // Initialize resources
         app.init_resource::<ShipInputBuffer>()
@@ -74,6 +77,8 @@ impl Plugin for CombatPlugin {
                 debug_ship_physics,
                 ship_destruction_system.after(projectile_collision_system),
                 handle_player_death_system.after(ship_destruction_system),
+                combat_victory_system.after(ship_destruction_system),
+                handle_combat_victory_system.after(combat_victory_system),
             ).run_if(in_state(GameState::Combat)),
         );
 

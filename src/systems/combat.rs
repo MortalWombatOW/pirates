@@ -368,3 +368,34 @@ pub fn spawn_test_current_zone(mut commands: Commands) {
         },
     ));
 }
+
+/// System that detects combat victory when all AI ships are destroyed.
+pub fn combat_victory_system(
+    ai_ships: Query<Entity, (With<Ship>, With<AI>)>,
+    player_ships: Query<Entity, (With<Ship>, With<Player>)>,
+    mut combat_ended_events: EventWriter<crate::events::CombatEndedEvent>,
+) {
+    // Only check for victory if the player is still alive
+    if player_ships.is_empty() {
+        return;
+    }
+    
+    // Victory when all AI ships are destroyed
+    if ai_ships.is_empty() {
+        info!("All enemies destroyed!");
+        combat_ended_events.send(crate::events::CombatEndedEvent { victory: true });
+    }
+}
+
+/// System that handles combat victory by transitioning to HighSeas state.
+pub fn handle_combat_victory_system(
+    mut combat_ended_events: EventReader<crate::events::CombatEndedEvent>,
+    mut next_state: ResMut<NextState<crate::plugins::core::GameState>>,
+) {
+    for event in combat_ended_events.read() {
+        if event.victory {
+            info!("Combat victory! Transitioning to HighSeas state.");
+            next_state.set(crate::plugins::core::GameState::HighSeas);
+        }
+    }
+}

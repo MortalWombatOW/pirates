@@ -163,13 +163,13 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 2.9.1 | Define `CombatEndedEvent` | 1.1.3 | Event with `victory: bool`. |
-| 2.9.2 | Detect all enemies destroyed | 2.5.7 | System checks if no `AI` + `Ship` entities remain. |
-| 2.9.3 | Emit `CombatEndedEvent` on victory | 2.9.1, 2.9.2 | Event sent when all enemies dead. |
-| 2.9.4 | Detect player destroyed | 2.5.7 | System checks if `Player` + `Ship` is gone. |
-| 2.9.5 | Emit `PlayerDiedEvent` | 2.9.4 | Event sent when player dies. |
-| 2.9.6 | Transition to `GameOverState` on player death | 2.9.5, 1.2.2 | State changes to `GameOver`. |
-| 2.9.7 | Transition to `HighSeasState` on combat victory | 2.9.3, 1.2.2 | State changes to `HighSeas`. |
+| [x] 2.9.1 | Define `CombatEndedEvent` | 1.1.3 | Event with `victory: bool`. |
+| [x] 2.9.2 | Detect all enemies destroyed | 2.5.7 | System checks if no `AI` + `Ship` entities remain. |
+| [x] 2.9.3 | Emit `CombatEndedEvent` on victory | 2.9.1, 2.9.2 | Event sent when all enemies dead. |
+| [x] 2.9.4 | Detect player destroyed | 2.5.7 | System checks if `Player` + `Ship` is gone. |
+| [x] 2.9.5 | Emit `PlayerDiedEvent` | 2.9.4 | Event sent when player dies. |
+| [x] 2.9.6 | Transition to `GameOverState` on player death | 2.9.5, 1.2.2 | State changes to `GameOver`. |
+| [x] 2.9.7 | Transition to `HighSeasState` on combat victory | 2.9.3, 1.2.2 | State changes to `HighSeas`. |
 
 ---
 
