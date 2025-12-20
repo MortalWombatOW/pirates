@@ -218,7 +218,12 @@ fn spawn_tilemap_from_map_data(
             storage: tile_storage,
             texture: TilemapTexture::Single(tileset.0.clone()),
             tile_size,
-            transform: Transform::from_xyz(0.0, 0.0, -10.0), // Below ships
+            // Center the tilemap at origin by offsetting by half the map size
+            transform: Transform::from_xyz(
+                -(map_size.x as f32 * tile_size.x) / 2.0,
+                -(map_size.y as f32 * tile_size.y) / 2.0,
+                -10.0, // Below ships
+            ),
             ..Default::default()
         },
         WorldMap,

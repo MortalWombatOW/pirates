@@ -354,3 +354,34 @@
 - Dark blue deep water ocean
 - Circular islands with green land, tan sand beaches, teal shallow water
 - Port location (brown tile)
+
+## 2025-12-20: Epic 3.1 Complete - Tilemap Setup
+
+**Status**: Complete ✅
+
+### Tasks Completed:
+- **3.1.1**: Integrated `bevy_ecs_tilemap` plugin
+- **3.1.2**: Created tileset image (copied Kenney tilesheet, later replaced with procedural)
+- **3.1.3**: Created `WorldMapPlugin` for tilemap management
+- **3.1.4**: Defined `MapData` resource with `TileType` enum
+- **3.1.5**: Spawn tilemap from `MapData` with proper terrain rendering
+
+### Key Implementation Details:
+- **Procedural Tileset**: Created at runtime with proper colors:
+  - Index 0: Deep Water (dark blue)
+  - Index 1: Shallow Water (teal)
+  - Index 2: Sand (tan)
+  - Index 3: Land (green)
+  - Index 4: Port (brown)
+- **RenderAssetUsages Fix**: Must use `MAIN_WORLD | RENDER_WORLD` for procedural images
+- **Centered Tilemap**: Offset by half map size so origin is at center
+
+### Files Created/Modified:
+- `src/plugins/worldmap.rs` (new)
+- `src/resources/map_data.rs` (new)
+- `src/plugins/mod.rs` (updated)
+- `src/resources/mod.rs` (updated)
+- `src/main.rs` (updated)
+
+### Next Steps:
+- Epic 3.2: Procedural Generation (noise-based world generation)
