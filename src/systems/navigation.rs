@@ -74,6 +74,7 @@ pub fn pathfinding_system(
 }
 
 /// System that moves the player along the navigation path.
+/// Uses smooth rotation for natural ship turning.
 pub fn navigation_movement_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut NavigationPath), With<Player>>,
@@ -111,41 +112,76 @@ pub fn navigation_movement_system(
         transform.translation.x += movement.x;
         transform.translation.y += movement.y;
         
-        // Face direction of movement
-        let angle = direction_normalized.y.atan2(direction_normalized.x) - std::f32::consts::FRAC_PI_2;
-        transform.rotation = Quat::from_rotation_z(angle);
+        // Smooth rotation toward direction of movement
+        let target_angle = direction_normalized.y.atan2(direction_normalized.x) - std::f32::consts::FRAC_PI_2;
+        let target_rotation = Quat::from_rotation_z(target_angle);
+        
+        // Smoothly interpolate rotation (slerp)
+        let rotation_speed = 3.0; // Radians per second
+        transform.rotation = transform.rotation.slerp(target_rotation, rotation_speed * time.delta_secs());
     }
 }
 
-/// System that visualizes the navigation path using gizmos.
+/// System that visualizes the navigation path using old-timey map style.
+/// Draws a dotted line with an X at the destination.
 pub fn path_visualization_system(
-    query: Query<(&Transform, &NavigationPath), With<Player>>,
+    query: Query<(&Transform, &NavigationPath, &Destination), With<Player>>,
     mut gizmos: Gizmos,
+    time: Res<Time>,
 ) {
-    for (transform, path) in &query {
+    for (transform, path, destination) in &query {
         if path.waypoints.is_empty() {
             continue;
         }
         
-        let path_color = Color::srgba(1.0, 0.8, 0.2, 0.8); // Golden yellow
-        let waypoint_color = Color::srgba(1.0, 0.5, 0.0, 0.6); // Orange
+        // Parchment/sepia colors for old-timey map look
+        let line_color = Color::srgba(0.6, 0.4, 0.2, 0.9); // Brown/sepia
+        let x_color = Color::srgba(0.8, 0.2, 0.1, 1.0); // Red X
         
         let current_pos = transform.translation.truncate();
         
-        // Draw line from current position to first waypoint
-        if let Some(&first) = path.waypoints.first() {
-            gizmos.line_2d(current_pos, first, path_color);
+        // Build full path for dotted line
+        let mut full_path = vec![current_pos];
+        full_path.extend(&path.waypoints);
+        
+        // Draw dotted line along path
+        let dot_spacing = 24.0;
+        let dot_radius = 4.0;
+        
+        for window in full_path.windows(2) {
+            let start = window[0];
+            let end = window[1];
+            let segment = end - start;
+            let segment_len = segment.length();
+            let segment_dir = segment.normalize_or_zero();
+            
+            // Draw dots along this segment
+            let num_dots = (segment_len / dot_spacing).ceil() as i32;
+            for i in 0..num_dots {
+                let t = (i as f32 * dot_spacing) / segment_len;
+                if t <= 1.0 {
+                    let dot_pos = start + segment_dir * (i as f32 * dot_spacing);
+                    gizmos.circle_2d(Isometry2d::from_translation(dot_pos), dot_radius, line_color);
+                }
+            }
         }
         
-        // Draw lines between waypoints
-        for window in path.waypoints.windows(2) {
-            gizmos.line_2d(window[0], window[1], path_color);
-        }
+        // Draw X at destination
+        let x_size = 20.0;
+        let dest = destination.target;
+        gizmos.line_2d(
+            dest + Vec2::new(-x_size, -x_size),
+            dest + Vec2::new(x_size, x_size),
+            x_color,
+        );
+        gizmos.line_2d(
+            dest + Vec2::new(-x_size, x_size),
+            dest + Vec2::new(x_size, -x_size),
+            x_color,
+        );
         
-        // Draw circles at waypoints
-        for waypoint in &path.waypoints {
-            gizmos.circle_2d(Isometry2d::from_translation(*waypoint), 8.0, waypoint_color);
-        }
+        // Draw small circle around X for emphasis
+        gizmos.circle_2d(Isometry2d::from_translation(dest), x_size * 1.2, x_color);
     }
 }
 
