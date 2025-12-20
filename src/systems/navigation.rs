@@ -86,8 +86,8 @@ pub fn pathfinding_system(
 
 /// Smooths a path using Catmull-Rom spline interpolation.
 /// 
-/// Unlike Bezier curves, Catmull-Rom splines pass through all control points,
-/// making them ideal for path smoothing where we want to hit specific waypoints.
+/// Uses reflected phantom points at endpoints to avoid overshoot, and a reduced
+/// number of samples for smoother visuals.
 /// 
 /// # Arguments
 /// * `points` - Control points (must have at least 2 points)
@@ -108,22 +108,30 @@ fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize) -> Vec<V
     }
     
     let mut result = Vec::with_capacity(points.len() * samples_per_segment);
-    
-    // For Catmull-Rom, we need 4 points for each segment
-    // We'll duplicate endpoints to handle the first and last segments
     let n = points.len();
     
     for i in 0..n - 1 {
         // Get the 4 control points for this segment
-        let p0 = if i == 0 { points[0] } else { points[i - 1] };
+        // Use REFLECTION for phantom points at endpoints to avoid overshoot
+        let p0 = if i == 0 { 
+            // Reflect p1 around p0: phantom = p0 - (p1 - p0) = 2*p0 - p1
+            points[0] * 2.0 - points[1]
+        } else { 
+            points[i - 1] 
+        };
         let p1 = points[i];
         let p2 = points[i + 1];
-        let p3 = if i + 2 >= n { points[n - 1] } else { points[i + 2] };
+        let p3 = if i + 2 >= n { 
+            // Reflect p(n-2) around p(n-1): phantom = 2*p(n-1) - p(n-2)
+            points[n - 1] * 2.0 - points[n - 2]
+        } else { 
+            points[i + 2] 
+        };
         
         // Sample points along this segment
         for j in 0..samples_per_segment {
             let t = j as f32 / samples_per_segment as f32;
-            let point = catmull_rom_interpolate(p0, p1, p2, p3, t);
+            let point = catmull_rom_interpolate(p0, p1, p2, p3, t, 0.5);
             result.push(point);
         }
     }
@@ -136,15 +144,19 @@ fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize) -> Vec<V
 
 /// Catmull-Rom spline interpolation between p1 and p2.
 /// p0 and p3 are used to calculate tangents.
-fn catmull_rom_interpolate(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32) -> Vec2 {
+/// 
+/// # Arguments
+/// * `tension` - Controls curve tightness (0.5 = standard, lower = tighter/less swervy)
+fn catmull_rom_interpolate(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32, tension: f32) -> Vec2 {
     let t2 = t * t;
     let t3 = t2 * t;
     
-    // Catmull-Rom basis functions
-    let b0 = -0.5 * t3 + t2 - 0.5 * t;
-    let b1 = 1.5 * t3 - 2.5 * t2 + 1.0;
-    let b2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
-    let b3 = 0.5 * t3 - 0.5 * t2;
+    // Catmull-Rom basis functions with configurable tension
+    // Standard Catmull-Rom uses tension = 0.5
+    let b0 = -tension * t3 + 2.0 * tension * t2 - tension * t;
+    let b1 = (2.0 - tension) * t3 + (tension - 3.0) * t2 + 1.0;
+    let b2 = (tension - 2.0) * t3 + (3.0 - 2.0 * tension) * t2 + tension * t;
+    let b3 = tension * t3 - tension * t2;
     
     p0 * b0 + p1 * b1 + p2 * b2 + p3 * b3
 }
