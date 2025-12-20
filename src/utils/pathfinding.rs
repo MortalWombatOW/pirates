@@ -160,8 +160,8 @@ fn compute_cost(
     g_score: &HashMap<IVec2, OrderedF32>,
     map_data: &MapData,
 ) -> (OrderedF32, IVec2) {
-    // Apply coastal penalty: 1.5x cost for water tiles adjacent to land
-    let coastal_multiplier = if is_coastal(neighbor, map_data) { 1.5 } else { 1.0 };
+    // Apply coastal penalty: 5x cost for water tiles adjacent to land
+    let coastal_multiplier = if is_coastal(neighbor, map_data) { 5.0 } else { 1.0 };
 
     // Try Path 2: direct connection from parent to neighbor
     if let Some(parent_pos) = parent {
