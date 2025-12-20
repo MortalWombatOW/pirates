@@ -340,7 +340,7 @@ pub fn spawn_test_current_zone(mut commands: Commands) {
     let half_extents = Vec2::new(100.0, 150.0);
     // Force needs to be significant relative to ship mass (1000 kg)
     // Ship thrust is 150000, so we use a noticeable fraction of that
-    let velocity = Vec2::new(15000.0, 0.0); // Strong rightward push
+    let velocity = Vec2::new(30000.0, 0.0); // Strong rightward push (doubled)
     
     info!("Spawning test current zone at ({}, {}) with force {}", zone_pos.x, zone_pos.y, velocity.x);
     
