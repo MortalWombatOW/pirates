@@ -432,3 +432,7 @@
 - Added `Wind` resource and `wind_system` for dynamic weather.
 - Integrated wind display in Debug UI.
 - Wind affects High Seas navigation speed and Combat ship physics.
+- Completed Navigation System (Epic 3.5).
+- Added click-to-navigate with A* pathfinding.
+- Path visualization and port arrival detection.
+- Removed temporary WASD movement.

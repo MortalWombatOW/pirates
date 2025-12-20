@@ -2,9 +2,13 @@ use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
-use crate::resources::{MapData, FogOfWar, Wind};
+use crate::resources::{MapData, FogOfWar};
 use crate::components::{Player, Ship, Health, Vision};
-use crate::systems::{fog_of_war_update_system, update_fog_tilemap_system, FogTile};
+use crate::systems::{
+    fog_of_war_update_system, update_fog_tilemap_system, FogTile,
+    click_to_navigate_system, pathfinding_system, navigation_movement_system,
+    path_visualization_system, port_arrival_system,
+};
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -25,7 +29,11 @@ impl Plugin for WorldMapPlugin {
             .add_systems(Update, (
                 fog_of_war_update_system,
                 update_fog_tilemap_system,
-                high_seas_movement_system,
+                click_to_navigate_system,
+                pathfinding_system.after(click_to_navigate_system),
+                navigation_movement_system.after(pathfinding_system),
+                path_visualization_system,
+                port_arrival_system,
             ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player));
     }
@@ -299,49 +307,6 @@ fn despawn_high_seas_player(
     }
 }
 
-/// Simple temporary movement system for High Seas view.
-/// Wind affects travel speed: sailing with the wind is faster, against is slower.
-fn high_seas_movement_system(
-    mut query: Query<&mut Transform, With<HighSeasPlayer>>,
-    keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
-    wind: Res<Wind>,
-) {
-    let mut direction = Vec2::ZERO;
-    if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp) {
-        direction.y += 1.0;
-    }
-    if keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown) {
-        direction.y -= 1.0;
-    }
-    if keys.pressed(KeyCode::KeyA) || keys.pressed(KeyCode::ArrowLeft) {
-        direction.x -= 1.0;
-    }
-    if keys.pressed(KeyCode::KeyD) || keys.pressed(KeyCode::ArrowRight) {
-        direction.x += 1.0;
-    }
-
-    if direction != Vec2::ZERO {
-        let base_speed = 400.0;
-        let direction_normalized = direction.normalize();
-        
-        // Wind bonus: dot product of move direction and wind direction
-        // +1 = sailing with wind (bonus), -1 = against wind (penalty)
-        let wind_alignment = direction_normalized.dot(wind.direction_vec());
-        let wind_effect = wind_alignment * wind.strength * 0.5; // Up to ±50% speed change
-        let speed = base_speed * (1.0 + wind_effect);
-        
-        let mut transform = query.single_mut();
-        
-        let movement = direction_normalized * speed * time.delta_secs();
-        transform.translation.x += movement.x;
-        transform.translation.y += movement.y;
-        
-        // Face the direction of movement
-        let angle = movement.y.atan2(movement.x) - std::f32::consts::FRAC_PI_2;
-        transform.rotation = Quat::from_rotation_z(angle);
-    }
-}
 
 /// Despawns the world map when leaving HighSeas state.
 pub fn despawn_tilemap(

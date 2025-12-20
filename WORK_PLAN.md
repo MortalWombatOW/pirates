@@ -225,13 +225,13 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 3.5.1 | Define `Destination` component | 1.1.3 | Component with `target: Vec2`. |
-| 3.5.2 | Create `NavigationSystem` | 3.5.1, 3.4.4 | Moves player toward destination each tick. |
-| 3.5.3 | Implement click-to-navigate | 3.5.1, 1.3.5 | Clicking on map sets `Destination`. |
-| 3.5.4 | Implement A* pathfinding around land | 3.5.2, 3.1.4 | Path avoids land tiles. |
-| 3.5.5 | Visualize planned path | 3.5.4 | Dotted line shows route. |
+| [x] 3.5.1 | Define `Destination` component | 1.1.3 | Component with `target: Vec2`. |
+| [x] 3.5.2 | Create `NavigationSystem` | 3.5.1, 3.4.4 | Moves player toward destination each tick. |
+| [x] 3.5.3 | Implement click-to-navigate | 3.5.1, 1.3.5 | Clicking on map sets `Destination`. |
+| [x] 3.5.4 | Implement A* pathfinding around land | 3.5.2, 3.1.4 | Path avoids land tiles. |
+| [x] 3.5.5 | Visualize planned path | 3.5.4 | Dotted line shows route. |
 | 3.5.6 | Navigator companion auto-routes | 3.5.4 | If Navigator present, path is optimized. |
-| 3.5.7 | Detect arrival at port | 3.5.2 | When player reaches port tile, trigger `PortState`. |
+| [x] 3.5.7 | Detect arrival at port | 3.5.2 | When player reaches port tile, trigger `PortState`. |
 
 ### Epic 3.6: Encounters
 

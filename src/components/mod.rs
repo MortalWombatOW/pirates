@@ -5,6 +5,7 @@ pub mod combat;
 pub mod loot;
 pub mod current;
 pub mod worldmap;
+pub mod navigation;
 
 pub use ship::*;
 pub use health::*;
@@ -13,3 +14,4 @@ pub use combat::*;
 pub use loot::*;
 pub use current::*;
 pub use worldmap::*;
+pub use navigation::*;
