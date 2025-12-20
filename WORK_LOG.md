@@ -423,3 +423,8 @@
 - Implemented `FogOfWar` resource (Task 3.3.1).
 - Created `src/resources/fog_of_war.rs` and registered in `src/resources/mod.rs`.
 - Verified with `cargo check`.
+- Completed functional Fog of War implementation (Tasks 3.3.2 - 3.3.4).
+- Added `Vision` component and visibility systems.
+- Added a second tilemap layer for FOW visuals (parchment style).
+- Added temporary High Seas player movement for testing.
+- Fixed camera follow in High Seas view.

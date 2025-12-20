@@ -23,7 +23,7 @@ impl Plugin for CorePlugin {
                 debug_state_transitions,
                 log_state_transitions,
                 camera_control,
-                camera_follow.run_if(in_state(GameState::Combat)),
+                camera_follow.run_if(in_state(GameState::Combat).or_else(in_state(GameState::HighSeas))),
                 draw_ocean_grid,
             ));
     }

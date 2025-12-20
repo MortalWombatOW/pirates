@@ -206,9 +206,9 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 3.3.1 | Define `FogOfWar` resource (explored tile set) | 3.1.4 | Resource holds `HashSet<IVec2>` of explored tiles. |
-| 3.3.2 | Create `FogOfWarSystem` | 3.3.1 | Updates explored tiles based on player position. |
-| 3.3.3 | Render fog overlay on unexplored tiles | 3.3.2 | Dark overlay on tiles not in `FogOfWar`. |
-| 3.3.4 | Define player vision radius | 3.3.2 | Tiles within radius of player are revealed. |
+| [x] 3.3.2 | Create `FogOfWarSystem` | 3.3.1 | Updates explored tiles based on player position. |
+| [x] 3.3.3 | Render fog overlay on unexplored tiles | 3.3.2 | Dark overlay on tiles not in `FogOfWar`. |
+| [x] 3.3.4 | Define player vision radius | 3.3.2 | Tiles within radius of player are revealed. |
 | 3.3.5 | Lookout companion increases vision radius | 3.3.4 | If Lookout present, radius increased. |
 
 ### Epic 3.4: Wind System
