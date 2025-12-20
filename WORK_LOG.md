@@ -464,3 +464,28 @@ All 7 unit tests pass:
 ### Files Modified:
 - `src/utils/pathfinding.rs` (complete rewrite)
 
+
+## 2025-12-20: Pathfinding Improvements & FPS Fix
+
+**Status**: Complete ✅
+
+### FPS Issue Fixed
+- **Root Cause**: `FogOfWar.explore()` was mutating even for already-explored tiles, triggering Bevy's change detection and causing `update_fog_tilemap_system` to iterate 262k tiles every frame.
+- **Fix**: Modified `explore()` to return early for known tiles. Added `newly_explored` tracking so tilemap only updates changed tiles.
+
+### Coastal Penalty & Corner Cutting Prevention
+- **5x Coastal Penalty**: Water tiles adjacent to land cost 5x more to traverse, pushing paths toward open water.
+- **Supercover LOS**: Replaced Bresenham's line algorithm with supercover variant that checks ALL cells a line passes through, preventing corner cutting in Theta* paths.
+- **1-Tile Shore Buffer**: Pathfinding now enforces that all waypoints (except the goal) stay 1+ tiles away from land. This gives Catmull-Rom smoothing room to curve without clipping corners.
+
+### Path Smoothing
+- **Catmull-Rom Splines**: Theta* waypoints become control points for smooth flowing curves (8 samples per segment).
+- **Reflected Phantom Points**: Endpoints use reflection instead of duplication to prevent overshoot at path start/end.
+
+### Files Modified
+- `src/resources/fog_of_war.rs` - Efficient change tracking
+- `src/systems/worldmap.rs` - Only update newly explored tiles
+- `src/systems/combat.rs` - Removed excessive logging
+- `src/systems/navigation.rs` - Catmull-Rom path smoothing
+- `src/utils/pathfinding.rs` - Shore buffer, supercover LOS, coastal penalty
+

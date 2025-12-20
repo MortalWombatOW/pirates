@@ -206,14 +206,20 @@ Each system is a Bevy plugin with defined responsibilities.
 
 | Responsibility | Details |
 |---|---|
-| Pathfinding | Calculate route from current position to destination, avoiding land. |
+| Pathfinding | Theta* any-angle pathfinding with 1-tile shore buffer around land. |
+| Path Smoothing | Catmull-Rom splines convert waypoints to flowing curves. |
+| Coastal Penalty | 5x cost for tiles adjacent to land to favor open water routes. |
 | Wind Effect | Adjust travel speed based on wind direction relative to heading. |
 | Travel Progress | Move player icon along path each tick. |
 | Arrival Detection | Trigger `PortState` when arriving at a port. |
 
-**Components Used**: `Position`, `Destination`, `Speed`, `WindSailModifier`.
+**Implementation Details**:
+- **Theta* Algorithm**: Any-angle pathfinding that checks line-of-sight to skip grid-aligned detours.
+- **Supercover LOS**: Checks all cells a line passes through, preventing corner cutting.
+- **Shore Buffer**: All waypoints (except goal) must be 1+ tiles from land—gives curves room to bend.
+- **Catmull-Rom Splines**: Interpolates 8 samples per segment with reflected phantom endpoints.
 
----
+**Components Used**: `Destination`, `NavigationPath`, `Speed`, `WindSailModifier`.
 
 ### 4.3 Encounter System
 **Purpose**: Determine when the player encounters events on the High Seas.
