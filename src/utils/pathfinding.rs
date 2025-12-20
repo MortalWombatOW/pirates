@@ -116,7 +116,7 @@ pub fn find_path(start: IVec2, goal: IVec2, map_data: &MapData) -> Option<Vec<IV
         let parent = came_from.get(&current.pos).copied();
 
         // Explore neighbors (8-directional)
-        for neighbor in neighbors_8(current.pos, map_data) {
+        for neighbor in neighbors_8(current.pos, goal, map_data) {
             if closed_set.contains_key(&neighbor) {
                 continue;
             }
@@ -292,57 +292,70 @@ fn line_of_sight(p1: IVec2, p2: IVec2, map_data: &MapData) -> bool {
 ///
 /// Diagonal movement is only allowed if both adjacent cardinal directions
 /// are navigable, preventing ships from cutting through land corners.
-fn neighbors_8(pos: IVec2, map_data: &MapData) -> Vec<IVec2> {
+/// 
+/// Enforces 1-tile shore buffer: coastal tiles are only allowed if they are the goal.
+fn neighbors_8(pos: IVec2, goal: IVec2, map_data: &MapData) -> Vec<IVec2> {
     let mut neighbors = Vec::with_capacity(8);
 
-    // Check cardinal neighbors
-    let e_ok = is_valid_neighbor(pos + IVec2::new(1, 0), map_data);
-    let w_ok = is_valid_neighbor(pos + IVec2::new(-1, 0), map_data);
-    let n_ok = is_valid_neighbor(pos + IVec2::new(0, 1), map_data);
-    let s_ok = is_valid_neighbor(pos + IVec2::new(0, -1), map_data);
+    // Check cardinal neighbors (with shore buffer except for goal)
+    let e_pos = pos + IVec2::new(1, 0);
+    let w_pos = pos + IVec2::new(-1, 0);
+    let n_pos = pos + IVec2::new(0, 1);
+    let s_pos = pos + IVec2::new(0, -1);
+    
+    let e_ok = is_valid_neighbor_with_buffer(e_pos, goal, map_data);
+    let w_ok = is_valid_neighbor_with_buffer(w_pos, goal, map_data);
+    let n_ok = is_valid_neighbor_with_buffer(n_pos, goal, map_data);
+    let s_ok = is_valid_neighbor_with_buffer(s_pos, goal, map_data);
 
     // Add valid cardinal neighbors
-    if e_ok {
-        neighbors.push(pos + IVec2::new(1, 0));
-    }
-    if w_ok {
-        neighbors.push(pos + IVec2::new(-1, 0));
-    }
-    if n_ok {
-        neighbors.push(pos + IVec2::new(0, 1));
-    }
-    if s_ok {
-        neighbors.push(pos + IVec2::new(0, -1));
-    }
+    if e_ok { neighbors.push(e_pos); }
+    if w_ok { neighbors.push(w_pos); }
+    if n_ok { neighbors.push(n_pos); }
+    if s_ok { neighbors.push(s_pos); }
 
     // Diagonal directions - only allow if both adjacent cardinals are passable
-    // NE: requires N and E to be passable
-    if n_ok && e_ok && is_valid_neighbor(pos + IVec2::new(1, 1), map_data) {
-        neighbors.push(pos + IVec2::new(1, 1));
+    let ne_pos = pos + IVec2::new(1, 1);
+    let nw_pos = pos + IVec2::new(-1, 1);
+    let se_pos = pos + IVec2::new(1, -1);
+    let sw_pos = pos + IVec2::new(-1, -1);
+    
+    if n_ok && e_ok && is_valid_neighbor_with_buffer(ne_pos, goal, map_data) {
+        neighbors.push(ne_pos);
     }
-    // NW: requires N and W to be passable
-    if n_ok && w_ok && is_valid_neighbor(pos + IVec2::new(-1, 1), map_data) {
-        neighbors.push(pos + IVec2::new(-1, 1));
+    if n_ok && w_ok && is_valid_neighbor_with_buffer(nw_pos, goal, map_data) {
+        neighbors.push(nw_pos);
     }
-    // SE: requires S and E to be passable
-    if s_ok && e_ok && is_valid_neighbor(pos + IVec2::new(1, -1), map_data) {
-        neighbors.push(pos + IVec2::new(1, -1));
+    if s_ok && e_ok && is_valid_neighbor_with_buffer(se_pos, goal, map_data) {
+        neighbors.push(se_pos);
     }
-    // SW: requires S and W to be passable
-    if s_ok && w_ok && is_valid_neighbor(pos + IVec2::new(-1, -1), map_data) {
-        neighbors.push(pos + IVec2::new(-1, -1));
+    if s_ok && w_ok && is_valid_neighbor_with_buffer(sw_pos, goal, map_data) {
+        neighbors.push(sw_pos);
     }
 
     neighbors
 }
 
-/// Helper to check if a position is in bounds and navigable.
-fn is_valid_neighbor(pos: IVec2, map_data: &MapData) -> bool {
-    pos.x >= 0
-        && pos.y >= 0
-        && (pos.x as u32) < map_data.width
-        && (pos.y as u32) < map_data.height
-        && map_data.is_navigable(pos.x as u32, pos.y as u32)
+/// Helper to check if a position is valid with 1-tile shore buffer.
+/// Goal tile is exempt from the shore buffer requirement.
+fn is_valid_neighbor_with_buffer(pos: IVec2, goal: IVec2, map_data: &MapData) -> bool {
+    // Basic bounds and navigability check
+    if pos.x < 0 || pos.y < 0 
+        || (pos.x as u32) >= map_data.width 
+        || (pos.y as u32) >= map_data.height {
+        return false;
+    }
+    if !map_data.is_navigable(pos.x as u32, pos.y as u32) {
+        return false;
+    }
+    
+    // Goal is always valid (no shore buffer)
+    if pos == goal {
+        return true;
+    }
+    
+    // Enforce 1-tile shore buffer: reject if any adjacent tile is land
+    !is_coastal(pos, map_data)
 }
 
 /// Reconstructs the path from the came_from map.
