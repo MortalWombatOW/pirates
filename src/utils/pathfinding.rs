@@ -220,7 +220,8 @@ fn line_of_sight(p1: IVec2, p2: IVec2, map_data: &MapData) -> bool {
 
         // Check for diagonal movement and ensure we don't cut corners
         if e2 > -dy && e2 < dx {
-            // Diagonal step - check both adjacent cells to prevent corner cutting
+            // Diagonal step - block if EITHER adjacent cell is not navigable
+            // This prevents cutting through the corner between two land tiles
             let adj_x = x0 + sx;
             let adj_y = y0 + sy;
 
@@ -230,7 +231,8 @@ fn line_of_sight(p1: IVec2, p2: IVec2, map_data: &MapData) -> bool {
             let y_adj_blocked = !map_data.in_bounds(x0, adj_y)
                 || !map_data.is_navigable(x0 as u32, adj_y as u32);
 
-            if x_adj_blocked && y_adj_blocked {
+            // Block if EITHER is not navigable (strict corner prevention)
+            if x_adj_blocked || y_adj_blocked {
                 return false;
             }
         }
