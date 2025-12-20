@@ -250,3 +250,15 @@
 **Notes**:
 - The `bevy_ecs_tilemap = "0.15"` dependency was already in `Cargo.toml`
 - This lays the foundation for Epic 3.1 (Tilemap Setup) and the High Seas map rendering
+
+## 2025-12-19: Task 3.1.2 - Create tileset image
+
+**Status**: Complete
+
+**Changes**:
+- Copied Kenney pirate-pack tilesheet to `assets/tilemaps/tileset.png`
+- Tilesheet contains 96 tiles at 64x64 pixels each (water, land, coastlines, islands, etc.)
+
+**Notes**:
+- Using the pre-made Kenney tilesheet for consistency with existing art style
+- Tiles are 64x64 with no margin between them
