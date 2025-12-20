@@ -418,3 +418,8 @@
 
 ### Next Steps:
 - Epic 3.3: Fog of War
+
+## 2025-12-20
+- Implemented `FogOfWar` resource (Task 3.3.1).
+- Created `src/resources/fog_of_war.rs` and registered in `src/resources/mod.rs`.
+- Verified with `cargo check`.
