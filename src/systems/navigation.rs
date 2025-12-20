@@ -46,6 +46,7 @@ pub fn click_to_navigate_system(
 
 /// System that calculates Theta* path when destination changes.
 /// Applies Catmull-Rom spline smoothing for natural, flowing paths.
+/// Validates that smoothed waypoints maintain distance from shore.
 pub fn pathfinding_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform, &Destination), (With<Player>, Changed<Destination>)>,
@@ -67,7 +68,24 @@ pub fn pathfinding_system(
             
             // Apply curve smoothing if we have enough points
             let waypoints = if control_points.len() >= 3 {
-                smooth_path_catmull_rom(&control_points, 8) // 8 samples per segment
+                let smoothed = smooth_path_catmull_rom(&control_points, 8);
+                
+                // Validate: all waypoints except the final one must be 1+ tiles from shore
+                let n = smoothed.len();
+                let all_safe = smoothed.iter().enumerate().all(|(i, &wp)| {
+                    // Allow the final waypoint to be at the shore (destination)
+                    if i == n - 1 {
+                        return true;
+                    }
+                    is_safe_from_shore(wp, &map_data, 1)
+                });
+                
+                if all_safe {
+                    smoothed
+                } else {
+                    // Fall back to original Theta* path
+                    control_points
+                }
             } else {
                 control_points
             };
@@ -82,6 +100,33 @@ pub fn pathfinding_system(
             commands.entity(entity).remove::<Destination>();
         }
     }
+}
+
+/// Checks if a world position is at least `min_distance` tiles away from any land.
+fn is_safe_from_shore(world_pos: Vec2, map_data: &MapData, min_distance: i32) -> bool {
+    let tile = world_to_tile(world_pos, map_data.width, map_data.height);
+    
+    // Check all tiles within min_distance radius
+    for dy in -min_distance..=min_distance {
+        for dx in -min_distance..=min_distance {
+            let check_x = tile.x + dx;
+            let check_y = tile.y + dy;
+            
+            // Out of bounds is fine (edge of map = open water)
+            if check_x < 0 || check_y < 0 
+                || (check_x as u32) >= map_data.width 
+                || (check_y as u32) >= map_data.height {
+                continue;
+            }
+            
+            // If any nearby tile is not navigable, we're too close to shore
+            if !map_data.is_navigable(check_x as u32, check_y as u32) {
+                return false;
+            }
+        }
+    }
+    
+    true
 }
 
 /// Smooths a path using Catmull-Rom spline interpolation.
