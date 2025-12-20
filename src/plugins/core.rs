@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
+use crate::resources::Wind;
+use crate::systems::wind_system;
 use leafwing_input_manager::prelude::*;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -18,13 +20,15 @@ pub struct CorePlugin;
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
+            .init_resource::<Wind>()
             .add_systems(Startup, spawn_camera)
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
                 camera_control,
-                camera_follow.run_if(in_state(GameState::Combat).or_else(in_state(GameState::HighSeas))),
+                camera_follow.run_if(in_state(GameState::Combat).or(in_state(GameState::HighSeas))),
                 draw_ocean_grid,
+                wind_system,
             ));
     }
 }

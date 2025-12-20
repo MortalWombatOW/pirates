@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy_egui::{egui, EguiContexts};
 use crate::plugins::core::GameState;
+use crate::resources::Wind;
 
 pub struct DebugUiPlugin;
 
@@ -20,6 +21,7 @@ fn debug_panel(
     state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     diagnostics: Res<DiagnosticsStore>,
+    wind: Option<Res<Wind>>,
 ) {
     egui::Window::new("Debug Panel").show(contexts.ctx_mut(), |ui| {
         ui.label(format!("Current State: {:?}", state.get()));
@@ -29,6 +31,18 @@ fn debug_panel(
             .and_then(|diag| diag.smoothed())
         {
             ui.label(format!("FPS: {:.1}", fps));
+        }
+
+        // Wind display
+        if let Some(wind) = wind {
+            ui.separator();
+            ui.heading("Wind");
+            ui.label(format!(
+                "Direction: {} ({:.0}°)",
+                wind.cardinal_direction(),
+                wind.direction.to_degrees().rem_euclid(360.0)
+            ));
+            ui.label(format!("Strength: {:.0}%", wind.strength * 100.0));
         }
 
         ui.separator();

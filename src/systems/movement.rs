@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 
 use crate::components::{Ship, Player, Health};
 use crate::plugins::input::PlayerAction;
+use crate::resources::Wind;
 
 /// Ship physics configuration.
 /// 
@@ -11,7 +12,7 @@ use crate::plugins::input::PlayerAction;
 /// - **Thrust**: Continuous force applied in ship's forward direction (Newtons)
 /// - **Water Drag**: Handled by Avian's LinearDamping component (coefficient)
 /// - **Angular Drag**: Handled by Avian's AngularDamping component (coefficient)
-/// - **Wind**: Will be added in future phase per README §4.4
+/// - **Wind**: Continuous force applied in wind direction, scaled by strength
 #[derive(Resource)]
 pub struct ShipPhysicsConfig {
     /// Maximum thrust force when sails are at 100% (Newtons)
@@ -111,6 +112,7 @@ pub fn buffer_ship_input(
 pub fn ship_physics_system(
     input_buffer: Res<ShipInputBuffer>,
     config: Res<ShipPhysicsConfig>,
+    wind: Res<Wind>,
     mut ship_query: Query<
         (
             &Health,
@@ -191,6 +193,12 @@ pub fn ship_physics_system(
         
         total_force += drag_longitudinal;
         total_force += drag_lateral;
+        
+        // === Apply Wind Force ===
+        // Wind pushes the ship in its direction, scaled by sail effectiveness
+        let wind_force_magnitude = 20000.0; // Base wind force at 100% strength
+        let wind_force = wind.velocity() * wind_force_magnitude * sail_effectiveness;
+        total_force += wind_force;
         
         force.set_force(total_force);
         

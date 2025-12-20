@@ -428,3 +428,7 @@
 - Added a second tilemap layer for FOW visuals (parchment style).
 - Added temporary High Seas player movement for testing.
 - Fixed camera follow in High Seas view.
+- Completed Wind System (Epic 3.4).
+- Added `Wind` resource and `wind_system` for dynamic weather.
+- Integrated wind display in Debug UI.
+- Wind affects High Seas navigation speed and Combat ship physics.

@@ -215,11 +215,11 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 3.4.1 | Define `Wind` resource | 1.1.3 | Resource with `direction: Vec2`, `strength: f32`. |
-| 3.4.2 | Create `WindSystem` | 3.4.1 | Updates wind periodically (slowly shifts). |
-| 3.4.3 | Display wind direction on HUD (compass rose) | 3.4.1, 1.4.1 | UI shows arrow indicating wind direction. |
-| 3.4.4 | Apply wind to navigation speed | 3.4.1 | Traveling with wind = faster, against = slower. |
-| 3.4.5 | Apply wind to combat movement | 3.4.1, 2.3.1 | Ships move faster downwind, slower upwind in combat. |
+| [x] 3.4.1 | Define `Wind` resource | 1.1.3 | Resource with `direction: Vec2`, `strength: f32`. |
+| [x] 3.4.2 | Create `WindSystem` | 3.4.1 | Updates wind periodically (slowly shifts). |
+| [x] 3.4.3 | Display wind direction on HUD (compass rose) | 3.4.1, 1.4.1 | UI shows arrow indicating wind direction. |
+| [x] 3.4.4 | Apply wind to navigation speed | 3.4.1 | Traveling with wind = faster, against = slower. |
+| [x] 3.4.5 | Apply wind to combat movement | 3.4.1, 2.3.1 | Ships move faster downwind, slower upwind in combat. |
 
 ### Epic 3.5: Navigation
 
