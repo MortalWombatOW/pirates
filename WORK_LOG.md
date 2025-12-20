@@ -283,3 +283,20 @@
 - Created custom `WorldMapPlugin` (not to be confused with `bevy_ecs_tilemap::TilemapPlugin`)
 - Added `WorldMap` and `WorldMapTile` marker components for entity management
 - Tilemap renders at z=-10 to appear behind ships
+
+## 2025-12-19: Task 3.1.4 - Define MapData resource
+
+**Status**: Complete
+
+**Changes**:
+- Created `src/resources/map_data.rs` with:
+  - `TileType` enum: DeepWater, ShallowWater, Land, Sand, Port
+  - `MapData` resource: 2D tile grid with accessor methods
+  - Navigation helpers: `is_navigable()`, `in_bounds()`
+  - Texture index mapping for rendering
+
+**API**:
+- `MapData::new(width, height)` - creates water-filled map
+- `MapData::get(x, y)` / `MapData::set(x, y, tile)` - tile access
+- `MapData::iter()` - iterate all tiles with coordinates
+- `TileType::texture_index()` - get tileset index for rendering
