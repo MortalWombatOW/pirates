@@ -340,8 +340,6 @@ pub fn current_zone_system(
             if zone.contains(zone_center, body_pos) {
                 // Apply the current's force to this entity
                 force.apply_force(zone.velocity);
-                info!("[CURRENT] Entity at ({:.1}, {:.1}) pushed by ({:.1}, {:.1})", 
-                    body_pos.x, body_pos.y, zone.velocity.x, zone.velocity.y);
             }
         }
     }
