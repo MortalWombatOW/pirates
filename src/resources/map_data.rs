@@ -17,14 +17,19 @@ pub enum TileType {
 
 impl TileType {
     /// Returns the tileset texture index for this tile type.
-    /// Based on the Kenney pirate-pack tilesheet layout.
+    /// Based on the procedural tileset layout in WorldMapPlugin:
+    /// Index 0: Deep Water (dark blue)
+    /// Index 1: Shallow Water (teal)  
+    /// Index 2: Sand (tan)
+    /// Index 3: Land (green)
+    /// Index 4: Port (brown)
     pub fn texture_index(&self) -> u32 {
         match self {
-            TileType::DeepWater => 0,      // First water tile
-            TileType::ShallowWater => 1,   // Lighter water variant
-            TileType::Land => 50,          // Land/grass tile
-            TileType::Sand => 17,          // Sand/beach tile
-            TileType::Port => 50,          // Use land tile for ports (will add marker later)
+            TileType::DeepWater => 0,
+            TileType::ShallowWater => 1,
+            TileType::Sand => 2,
+            TileType::Land => 3,
+            TileType::Port => 4,
         }
     }
 

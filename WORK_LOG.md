@@ -320,3 +320,24 @@
 **Notes**:
 - Epic 3.1 (Tilemap Setup) is now complete
 - Ready to proceed with Epic 3.2 (Procedural Generation)
+
+## 2025-12-20: Tilemap Rendering Fix
+
+**Problem**: Tilemap was showing incorrect textures (ship parts instead of terrain)
+
+**Root Cause**: The Kenney pirate-pack tilesheet contains ship parts, ports, and mixed content - not proper water/land terrain tiles. The tile indices I used (0, 1, 17, 50) pointed to the wrong tiles.
+
+**Solution**: 
+- Created procedural tileset generation in `WorldMapPlugin::create_tileset_texture()`
+- Tileset is a 320x64 image with 5 tiles (64x64 each):
+  - Index 0: Deep Water (dark blue)
+  - Index 1: Shallow Water (teal)
+  - Index 2: Sand (tan)
+  - Index 3: Land (green)
+  - Index 4: Port (brown)
+- Updated `TileType::texture_index()` to use correct indices (0-4)
+- Added subtle color variation for visual interest
+
+**Files Modified**:
+- `src/plugins/worldmap.rs` - Added procedural tileset generation
+- `src/resources/map_data.rs` - Fixed texture index mappings
