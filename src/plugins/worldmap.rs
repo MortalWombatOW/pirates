@@ -90,6 +90,7 @@ fn create_tileset_texture(
     }
 
     // Create the image
+    // Use both MAIN_WORLD and RENDER_WORLD to ensure the texture is properly retained
     let image = Image::new(
         bevy::render::render_resource::Extent3d {
             width: TEXTURE_WIDTH,
@@ -99,7 +100,7 @@ fn create_tileset_texture(
         bevy::render::render_resource::TextureDimension::D2,
         data,
         bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD,
+        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
 
     let handle = images.add(image);
@@ -206,7 +207,7 @@ fn spawn_tilemap_from_map_data(
 
     // Tile size (64x64 pixels)
     let tile_size = TilemapTileSize { x: 64.0, y: 64.0 };
-    let grid_size = tile_size.into();
+    let grid_size: TilemapGridSize = tile_size.into();
     let map_type = TilemapType::default(); // Square tiles
 
     commands.entity(tilemap_entity).insert((
@@ -223,7 +224,7 @@ fn spawn_tilemap_from_map_data(
         WorldMap,
     ));
 
-    info!("World map tilemap spawned from MapData: {}x{} tiles", map_size.x, map_size.y);
+    info!("World map tilemap spawned: {}x{} tiles", map_size.x, map_size.y);
 }
 
 /// Despawns the world map when leaving HighSeas state.

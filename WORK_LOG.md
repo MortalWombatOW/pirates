@@ -341,3 +341,16 @@
 **Files Modified**:
 - `src/plugins/worldmap.rs` - Added procedural tileset generation
 - `src/resources/map_data.rs` - Fixed texture index mappings
+
+## 2025-12-20: Tilemap Visibility Fix (RenderAssetUsages)
+
+**Problem**: Tilemap was not visible despite tiles being spawned correctly
+
+**Root Cause**: The procedural tileset image was created with `RenderAssetUsages::RENDER_WORLD` only, but it also needs `MAIN_WORLD` for the asset to be properly retained in the main world.
+
+**Solution**: Changed `RenderAssetUsages::RENDER_WORLD` to `RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD`
+
+**Result**: Tilemap now renders correctly showing:
+- Dark blue deep water ocean
+- Circular islands with green land, tan sand beaches, teal shallow water
+- Port location (brown tile)
