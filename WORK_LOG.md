@@ -170,3 +170,32 @@
 - `src/components/mod.rs` (current module export)
 - `src/systems/combat.rs` (current_zone_system, spawn_test_current_zone)
 - `src/plugins/combat.rs` (system registration)
+
+## 2025-12-19: Epic 2.8 - Enemy Ships & AI Complete
+
+### Tasks Completed
+- **2.8.1**: Defined `AI` marker component in `components/ship.rs`
+- **2.8.2**: Defined `Faction` component with `FactionId` enum (Pirates, NationA, NationB, NationC)
+- **2.8.3**: Created `spawn_enemy_ship` function with full physics setup
+- **2.8.4**: Enemy ship sprite already existed at `assets/sprites/ships/enemy.png`
+- **2.8.5**: Created `CombatAISystem` in new `systems/ai.rs` module
+- **2.8.6**: Implemented broadside circling behavior (circles to maintain perpendicular angle)
+- **2.8.7**: Implemented AI firing logic (fires when player in broadside arc and range)
+- **2.8.8**: Implemented flee behavior (triggers when hull HP < 20%)
+
+### Implementation Details
+- **AI Behavior**: Uses broadside circling strategy instead of direct pursuit
+  - Circles around player to keep them perpendicular (in firing arc)
+  - Blends closing/retreating with circular motion based on range
+  - Flees when critically damaged
+- **Components**: `AI`, `Faction(FactionId)`, `AIState`, `AICannonCooldown`
+- **Resource**: `AIPhysicsConfig` for tunable AI parameters
+- **Physics**: Same force-based model as player (anisotropic drag for keel effect)
+- **Firing**: Same broadside spread pattern as player, 2-second cooldown
+
+### Files Changed
+- `src/components/ship.rs` (AI, Faction, FactionId)
+- `src/systems/ship.rs` (spawn_enemy_ship function)
+- `src/systems/ai.rs` (NEW - combat_ai_system, ai_firing_system, spawn_combat_enemies)
+- `src/systems/mod.rs` (ai module export)
+- `src/plugins/combat.rs` (AI system registration, AIPhysicsConfig resource)

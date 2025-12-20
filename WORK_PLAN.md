@@ -151,14 +151,14 @@
 
 | ID | Task | Priority | Dependencies | Acceptance Criteria |
 |---|---|---|---|---|
-| 2.8.1 | Define `AI` marker component | P0 | 1.1.3 | Component exists. |
-| 2.8.2 | Define `Faction` component | P0 | 1.1.3 | Component with `FactionId`. |
-| 2.8.3 | Create `spawn_enemy_ship` function | P0 | 2.8.1, 2.8.2, 2.2.2 | Spawns enemy with `AI`, `Faction`, `Ship`, `Health`. |
-| 2.8.4 | Create enemy ship sprite (different color) | P0 | None | 64x64 PNG in `assets/sprites/ships/enemy.png`. |
-| 2.8.5 | Create `CombatAISystem` | P0 | 2.8.3, 2.3.1 | Enemy chases player. |
-| 2.8.6 | Implement AI pursuit behavior | P0 | 2.8.5 | Enemy rotates toward and moves toward player. |
-| 2.8.7 | Implement AI firing logic | P0 | 2.8.5, 2.4.4 | Enemy fires when in range and facing player. |
-| 2.8.8 | Implement AI flee behavior (low HP) | P1 | 2.8.5 | Enemy turns and flees when HP < 20%. |
+| [x] 2.8.1 | Define `AI` marker component | P0 | 1.1.3 | Component exists. |
+| [x] 2.8.2 | Define `Faction` component | P0 | 1.1.3 | Component with `FactionId`. |
+| [x] 2.8.3 | Create `spawn_enemy_ship` function | P0 | 2.8.1, 2.8.2, 2.2.2 | Spawns enemy with `AI`, `Faction`, `Ship`, `Health`. |
+| [x] 2.8.4 | Create enemy ship sprite (different color) | P0 | None | 64x64 PNG in `assets/sprites/ships/enemy.png`. |
+| [x] 2.8.5 | Create `CombatAISystem` | P0 | 2.8.3, 2.3.1 | Enemy chases player. |
+| [x] 2.8.6 | Implement AI pursuit behavior | P0 | 2.8.5 | Enemy rotates toward and moves toward player. |
+| [x] 2.8.7 | Implement AI firing logic | P0 | 2.8.5, 2.4.4 | Enemy fires when in range and facing player. |
+| [x] 2.8.8 | Implement AI flee behavior (low HP) | P1 | 2.8.5 | Enemy turns and flees when HP < 20%. |
 
 ### Epic 2.9: Combat Flow
 

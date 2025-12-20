@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use avian2d::prelude::*;
 
-use crate::components::{Ship, Player, Health, Cargo, Gold};
+use crate::components::{Ship, Player, Health, Cargo, Gold, AI, Faction, FactionId};
 
 /// Spawns the player's ship with all required components.
 /// This function is designed to be called from an `OnEnter(GameState::Combat)` system.
@@ -63,3 +63,57 @@ pub fn spawn_player_ship(
     println!("Player ship spawned!");
 }
 
+/// Spawns an AI-controlled enemy ship at the given position.
+/// Returns the Entity ID of the spawned ship.
+pub fn spawn_enemy_ship(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    position: Vec2,
+    faction: FactionId,
+) -> Entity {
+    info!("Spawning enemy ship at ({}, {})...", position.x, position.y);
+    
+    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
+    
+    commands.spawn((
+        Name::new("Enemy Ship"),
+        // Marker components
+        Ship,
+        AI,
+        Faction(faction),
+        // Data components
+        Health::default(),
+        // Visual components
+        Sprite {
+            image: texture_handle,
+            custom_size: Some(Vec2::splat(64.0)),
+            flip_y: true,  // Kenney sprites face DOWN (Y-)
+            ..default()
+        },
+        Transform::from_xyz(position.x, position.y, 1.0),
+    ))
+    .insert((
+        // Physics rigid body
+        RigidBody::Dynamic,
+        Collider::rectangle(48.0, 64.0),
+        // Explicit mass properties - same as player
+        Mass(1000.0),
+        AngularInertia(20000.0),
+    ))
+    .insert((
+        // Physics velocities
+        LinearVelocity(Vec2::ZERO),
+        AngularVelocity(0.0),
+    ))
+    .insert((
+        // External forces (controlled by AI system)
+        ExternalForce::default(),
+        ExternalTorque::default(),
+    ))
+    .insert((
+        // Water resistance (damping)
+        LinearDamping(0.0),
+        AngularDamping(2.5),
+    ))
+    .id()
+}
