@@ -235,3 +235,18 @@
 - `src/events/mod.rs` (added CombatEndedEvent)
 - `src/systems/combat.rs` (combat_victory_system, handle_combat_victory_system)
 - `src/plugins/combat.rs` (event and system registration)
+
+## 2025-12-19: Task 3.1.1 - Integrate bevy_ecs_tilemap
+
+**Status**: Complete
+
+**Changes**:
+- Added `use bevy_ecs_tilemap::prelude::*;` import to `src/main.rs`
+- Added `.add_plugins(TilemapPlugin)` to the Bevy app setup
+
+**Verification**:
+- `cargo check` passed successfully
+
+**Notes**:
+- The `bevy_ecs_tilemap = "0.15"` dependency was already in `Cargo.toml`
+- This lays the foundation for Epic 3.1 (Tilemap Setup) and the High Seas map rendering

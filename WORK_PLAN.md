@@ -185,7 +185,7 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 3.1.1 | Integrate `bevy_ecs_tilemap` | 1.1.2 | Plugin added, no errors. |
+| [x] 3.1.1 | Integrate `bevy_ecs_tilemap` | 1.1.2 | Plugin added, no errors. |
 | 3.1.2 | Create tileset image (water, land variants) | None | PNG in `assets/tilemaps/tileset.png`. |
 | 3.1.3 | Create `TilemapPlugin` | 3.1.1 | Plugin manages map loading/rendering. |
 | 3.1.4 | Define `MapData` resource (tile grid) | 3.1.3 | Resource holds 2D array of tile types. |

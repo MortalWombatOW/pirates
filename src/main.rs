@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
+use bevy_ecs_tilemap::prelude::*;
 use pirates::plugins::core::CorePlugin;
 use pirates::plugins::input::InputPlugin;
 use pirates::plugins::debug_ui::DebugUiPlugin;
@@ -16,6 +17,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(EguiPlugin)
+        .add_plugins(TilemapPlugin)
         .add_plugins(CorePlugin)
         .add_plugins(InputPlugin)
         .add_plugins(DebugUiPlugin)
