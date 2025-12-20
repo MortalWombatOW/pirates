@@ -262,3 +262,24 @@
 **Notes**:
 - Using the pre-made Kenney tilesheet for consistency with existing art style
 - Tiles are 64x64 with no margin between them
+
+## 2025-12-19: Task 3.1.3 - Create TilemapPlugin
+
+**Status**: Complete
+
+**Changes**:
+- Created `src/plugins/worldmap.rs` with `WorldMapPlugin`
+- Plugin spawns tilemap on `GameState::HighSeas` entry
+- Plugin despawns tilemap on `GameState::HighSeas` exit
+- Test tilemap: 32x32 tiles with water and central land mass
+- Uses Kenney tilesheet (64x64 tiles)
+
+**Files**:
+- `src/plugins/worldmap.rs` (new)
+- `src/plugins/mod.rs` (updated)
+- `src/main.rs` (updated)
+
+**Notes**:
+- Created custom `WorldMapPlugin` (not to be confused with `bevy_ecs_tilemap::TilemapPlugin`)
+- Added `WorldMap` and `WorldMapTile` marker components for entity management
+- Tilemap renders at z=-10 to appear behind ships

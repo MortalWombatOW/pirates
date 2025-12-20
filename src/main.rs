@@ -6,6 +6,7 @@ use pirates::plugins::input::InputPlugin;
 use pirates::plugins::debug_ui::DebugUiPlugin;
 use pirates::plugins::physics::PhysicsPlugin;
 use pirates::plugins::combat::CombatPlugin;
+use pirates::plugins::worldmap::WorldMapPlugin;
 
 fn main() {
     App::new()
@@ -23,5 +24,7 @@ fn main() {
         .add_plugins(DebugUiPlugin)
         .add_plugins(PhysicsPlugin)
         .add_plugins(CombatPlugin)
+        .add_plugins(WorldMapPlugin)
         .run();
 }
+
