@@ -44,7 +44,8 @@ pub fn click_to_navigate_system(
           tile_pos.x, tile_pos.y, world_target.x, world_target.y);
 }
 
-/// System that calculates A* path when destination changes.
+/// System that calculates Theta* path when destination changes.
+/// Applies Catmull-Rom spline smoothing for natural, flowing paths.
 pub fn pathfinding_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform, &Destination), (With<Player>, Changed<Destination>)>,
@@ -57,12 +58,22 @@ pub fn pathfinding_system(
         
         if let Some(tile_path) = find_path(start_tile, goal_tile, &map_data) {
             // Convert tile path to world waypoints
-            let waypoints: Vec<Vec2> = tile_path
+            let control_points: Vec<Vec2> = tile_path
                 .into_iter()
                 .map(|t| tile_to_world(t, map_data.width, map_data.height))
                 .collect();
             
-            info!("Path found with {} waypoints", waypoints.len());
+            let num_control_points = control_points.len();
+            
+            // Apply curve smoothing if we have enough points
+            let waypoints = if control_points.len() >= 3 {
+                smooth_path_catmull_rom(&control_points, 8) // 8 samples per segment
+            } else {
+                control_points
+            };
+            
+            info!("Path found with {} waypoints (smoothed from {} control points)", 
+                  waypoints.len(), num_control_points);
             commands.entity(entity).insert(NavigationPath { waypoints });
         } else {
             warn!("No path found from ({}, {}) to ({}, {})", 
@@ -71,6 +82,71 @@ pub fn pathfinding_system(
             commands.entity(entity).remove::<Destination>();
         }
     }
+}
+
+/// Smooths a path using Catmull-Rom spline interpolation.
+/// 
+/// Unlike Bezier curves, Catmull-Rom splines pass through all control points,
+/// making them ideal for path smoothing where we want to hit specific waypoints.
+/// 
+/// # Arguments
+/// * `points` - Control points (must have at least 2 points)
+/// * `samples_per_segment` - Number of interpolated points per segment
+fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize) -> Vec<Vec2> {
+    if points.len() < 2 {
+        return points.to_vec();
+    }
+    
+    if points.len() == 2 {
+        // Just interpolate linearly between 2 points
+        let mut result = Vec::new();
+        for i in 0..=samples_per_segment {
+            let t = i as f32 / samples_per_segment as f32;
+            result.push(points[0].lerp(points[1], t));
+        }
+        return result;
+    }
+    
+    let mut result = Vec::with_capacity(points.len() * samples_per_segment);
+    
+    // For Catmull-Rom, we need 4 points for each segment
+    // We'll duplicate endpoints to handle the first and last segments
+    let n = points.len();
+    
+    for i in 0..n - 1 {
+        // Get the 4 control points for this segment
+        let p0 = if i == 0 { points[0] } else { points[i - 1] };
+        let p1 = points[i];
+        let p2 = points[i + 1];
+        let p3 = if i + 2 >= n { points[n - 1] } else { points[i + 2] };
+        
+        // Sample points along this segment
+        for j in 0..samples_per_segment {
+            let t = j as f32 / samples_per_segment as f32;
+            let point = catmull_rom_interpolate(p0, p1, p2, p3, t);
+            result.push(point);
+        }
+    }
+    
+    // Add the final point
+    result.push(*points.last().unwrap());
+    
+    result
+}
+
+/// Catmull-Rom spline interpolation between p1 and p2.
+/// p0 and p3 are used to calculate tangents.
+fn catmull_rom_interpolate(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32) -> Vec2 {
+    let t2 = t * t;
+    let t3 = t2 * t;
+    
+    // Catmull-Rom basis functions
+    let b0 = -0.5 * t3 + t2 - 0.5 * t;
+    let b1 = 1.5 * t3 - 2.5 * t2 + 1.0;
+    let b2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+    let b3 = 0.5 * t3 - 0.5 * t2;
+    
+    p0 * b0 + p1 * b1 + p2 * b2 + p3 * b3
 }
 
 /// System that moves the player along the navigation path.
