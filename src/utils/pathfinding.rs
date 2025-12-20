@@ -220,62 +220,68 @@ fn euclidean_distance(a: IVec2, b: IVec2) -> f32 {
 
 /// Checks if there is a clear line of sight between two grid positions.
 ///
-/// Uses a supercover line algorithm (modified Bresenham) to ensure that
-/// diagonal walls properly block the line. This prevents cutting through
-/// the corner between two diagonally-adjacent land tiles.
+/// Uses a supercover line algorithm that checks ALL cells the line passes through,
+/// including cells that are just barely touched at corners. This is more conservative
+/// than standard Bresenham and prevents any corner cutting.
 fn line_of_sight(p1: IVec2, p2: IVec2, map_data: &MapData) -> bool {
-    let mut x0 = p1.x;
-    let mut y0 = p1.y;
-    let x1 = p2.x;
-    let y1 = p2.y;
+    let mut x = p1.x;
+    let mut y = p1.y;
+    let dx = (p2.x - p1.x).abs();
+    let dy = (p2.y - p1.y).abs();
+    let sx = if p1.x < p2.x { 1 } else { -1 };
+    let sy = if p1.y < p2.y { 1 } else { -1 };
 
-    let dx = (x1 - x0).abs();
-    let dy = (y1 - y0).abs();
+    // Check start cell
+    if !map_data.in_bounds(x, y) || !map_data.is_navigable(x as u32, y as u32) {
+        return false;
+    }
 
-    let sx = if x0 < x1 { 1 } else { -1 };
-    let sy = if y0 < y1 { 1 } else { -1 };
+    // Handle degenerate cases
+    if dx == 0 && dy == 0 {
+        return true;
+    }
 
     let mut err = dx - dy;
 
-    loop {
-        // Check if current cell is navigable
-        if !map_data.in_bounds(x0, y0) || !map_data.is_navigable(x0 as u32, y0 as u32) {
-            return false;
-        }
-
-        if x0 == x1 && y0 == y1 {
-            break;
-        }
-
+    while x != p2.x || y != p2.y {
         let e2 = 2 * err;
 
-        // Check for diagonal movement and ensure we don't cut corners
-        if e2 > -dy && e2 < dx {
-            // Diagonal step - block if EITHER adjacent cell is not navigable
-            // This prevents cutting through the corner between two land tiles
-            let adj_x = x0 + sx;
-            let adj_y = y0 + sy;
+        // Determine step direction
+        let step_x = e2 > -dy;
+        let step_y = e2 < dx;
 
-            // Check the two cells that would be "cut through" on a diagonal
-            let x_adj_blocked = !map_data.in_bounds(adj_x, y0)
-                || !map_data.is_navigable(adj_x as u32, y0 as u32);
-            let y_adj_blocked = !map_data.in_bounds(x0, adj_y)
-                || !map_data.is_navigable(x0 as u32, adj_y as u32);
+        if step_x && step_y {
+            // Diagonal step: check BOTH intermediate cells (supercover)
+            // This is the key difference from Bresenham - we check both cells
+            // that the line might pass through when moving diagonally
+            let cell_x = IVec2::new(x + sx, y);
+            let cell_y = IVec2::new(x, y + sy);
 
-            // Block if EITHER is not navigable (strict corner prevention)
-            if x_adj_blocked || y_adj_blocked {
+            let x_blocked = !map_data.in_bounds(cell_x.x, cell_x.y)
+                || !map_data.is_navigable(cell_x.x as u32, cell_x.y as u32);
+            let y_blocked = !map_data.in_bounds(cell_y.x, cell_y.y)
+                || !map_data.is_navigable(cell_y.x as u32, cell_y.y as u32);
+
+            // Block if EITHER adjacent cell is not navigable (strict corner prevention)
+            if x_blocked || y_blocked {
                 return false;
             }
-        }
 
-        if e2 > -dy {
             err -= dy;
-            x0 += sx;
+            err += dx;
+            x += sx;
+            y += sy;
+        } else if step_x {
+            err -= dy;
+            x += sx;
+        } else {
+            err += dx;
+            y += sy;
         }
 
-        if e2 < dx {
-            err += dx;
-            y0 += sy;
+        // Check current cell
+        if !map_data.in_bounds(x, y) || !map_data.is_navigable(x as u32, y as u32) {
+            return false;
         }
     }
 
