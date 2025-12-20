@@ -489,3 +489,15 @@ All 7 unit tests pass:
 - `src/systems/navigation.rs` - Catmull-Rom path smoothing
 - `src/utils/pathfinding.rs` - Shore buffer, supercover LOS, coastal penalty
 
+
+## 2025-12-20: Task 3.6.1 - SpatialHash Utility
+
+Created `src/utils/spatial_hash.rs` with generic `SpatialHash<T>` struct for O(1) proximity queries.
+
+**Features:**
+- `insert()`, `remove()`, `clear()` for managing items
+- `query(position, radius)` for circular range queries
+- `query_rect(min, max)` for AABB queries
+- 7 unit tests
+
+**Also fixed:** Pre-existing broken test in `pathfinding.rs` (missing `goal` parameter).

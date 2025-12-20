@@ -472,7 +472,8 @@ mod tests {
         map.set(5, 4, TileType::Land);
 
         // Trying to go from (3, 4) to (5, 5) should not cut through the diagonal
-        let neighbors = neighbors_8(IVec2::new(4, 4), &map);
+        // Use (6, 6) as goal - far enough to not affect neighbor calculations
+        let neighbors = neighbors_8(IVec2::new(4, 4), IVec2::new(6, 6), &map);
 
         // (5, 5) should NOT be a valid diagonal neighbor because (5, 4) is land
         assert!(!neighbors.contains(&IVec2::new(5, 5)));
