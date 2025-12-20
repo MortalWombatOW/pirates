@@ -436,3 +436,31 @@
 - Added click-to-navigate with A* pathfinding.
 - Path visualization and port arrival detection.
 - Removed temporary WASD movement.
+
+## 2025-12-20: Theta* Pathfinding Upgrade
+
+**Status**: Complete ✅
+
+### Summary
+Upgraded pathfinding from 4-directional A* with Manhattan distance to **Basic Theta*** for any-angle navigation. Ships now follow straight-line paths across open ocean rather than jagged grid-aligned routes.
+
+### Key Changes to `pathfinding.rs`:
+- **OrderedF32 wrapper**: Enables `f32` costs in `BinaryHeap` (which requires `Ord`)
+- **Euclidean heuristic**: Replaced Manhattan distance for accurate cost estimation
+- **8-way neighbors**: Diagonal movement with corner-cutting prevention
+- **Line of Sight (LOS)**: Bresenham's line algorithm with supercover variant for diagonal walls
+- **Theta* expansion**: Parent-to-neighbor LOS check enables path shortcuts
+
+### Tests:
+All 7 unit tests pass:
+- `test_direct_path`
+- `test_path_around_obstacle`
+- `test_no_path_to_land`
+- `test_line_of_sight_clear`
+- `test_line_of_sight_blocked`
+- `test_diagonal_movement`
+- `test_corner_cutting_prevention`
+
+### Files Modified:
+- `src/utils/pathfinding.rs` (complete rewrite)
+
