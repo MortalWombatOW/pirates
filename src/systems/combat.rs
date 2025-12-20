@@ -116,7 +116,7 @@ pub fn projectile_collision_system(
     mut commands: Commands,
     mut collision_events: EventReader<Collision>,
     projectiles: Query<(&Projectile, &Transform)>,
-    mut ships: Query<(Entity, &mut Health, &Transform, Option<&Name>), With<Ship>>,
+    mut ships: Query<(Entity, &mut Health, &Transform, Option<&Name>, Option<&mut WaterIntake>), With<Ship>>,
     asset_server: Res<AssetServer>,
 ) {
     for Collision(contacts) in collision_events.read() {
@@ -132,7 +132,7 @@ pub fn projectile_collision_system(
             continue;
         };
 
-        if let (Ok((projectile, proj_transform)), Ok((_ent, mut health, _ship_transform, name))) = 
+        if let (Ok((projectile, proj_transform)), Ok((entity, mut health, _ship_transform, name, water_intake))) = 
             (projectiles.get(proj_ent), ships.get_mut(ship_ent)) 
         {
             // Skip if the ship hit is the source that fired it
@@ -144,7 +144,20 @@ pub fn projectile_collision_system(
             match projectile.target {
                 TargetComponent::Sails => health.sails -= projectile.damage,
                 TargetComponent::Rudder => health.rudder -= projectile.damage,
-                TargetComponent::Hull => health.hull -= projectile.damage,
+                TargetComponent::Hull => {
+                    health.hull -= projectile.damage;
+                    
+                    // Add or increase WaterIntake on hull damage
+                    let intake_rate_increase = projectile.damage * 0.1; // 0.1 units/sec per damage point
+                    if let Some(mut intake) = water_intake {
+                        intake.increase_rate(intake_rate_increase);
+                        info!("Hull breach worsened! Water intake rate: {:.2}/s", intake.rate);
+                    } else {
+                        // Add new WaterIntake component
+                        commands.entity(entity).insert(WaterIntake::new(intake_rate_increase));
+                        info!("Hull breached! Water intake started at {:.2}/s", intake_rate_increase);
+                    }
+                }
             }
 
             let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");

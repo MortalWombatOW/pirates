@@ -199,3 +199,19 @@
 - `src/systems/ai.rs` (NEW - combat_ai_system, ai_firing_system, spawn_combat_enemies)
 - `src/systems/mod.rs` (ai module export)
 - `src/plugins/combat.rs` (AI system registration, AIPhysicsConfig resource)
+
+## 2025-12-19: Tasks 2.5.5-2.5.6 - WaterIntake Complete
+
+### Tasks Completed
+- **2.5.5**: Implemented `WaterIntake` component in `components/health.rs`
+- **2.5.6**: Modified `projectile_collision_system` to add/increase WaterIntake on hull damage
+
+### Implementation Details
+- `WaterIntake` component with `rate` (water per second) and `current` (accumulated water)
+- Hull damage adds 0.1 rate per damage point
+- If ship already has WaterIntake, rate is increased; otherwise component is added
+- Helper methods: `new()`, `increase_rate()`, `tick()`
+
+### Files Changed
+- `src/components/health.rs` (added WaterIntake component)
+- `src/systems/combat.rs` (modified projectile_collision_system)

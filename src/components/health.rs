@@ -73,3 +73,37 @@ impl Default for Health {
         Self::new(100.0, 100.0, 100.0)
     }
 }
+
+/// Represents water flooding into a damaged ship hull.
+/// Water accumulates over time based on `rate`, and `current` tracks
+/// total water taken on. High water levels could affect ship performance.
+#[derive(Component, Debug, Clone)]
+pub struct WaterIntake {
+    /// Rate of water intake per second (affected by hull damage severity).
+    pub rate: f32,
+    /// Current accumulated water level.
+    pub current: f32,
+}
+
+impl WaterIntake {
+    /// Creates a new WaterIntake component with the given rate.
+    pub fn new(rate: f32) -> Self {
+        Self { rate, current: 0.0 }
+    }
+
+    /// Increases the water intake rate (e.g., from additional hull damage).
+    pub fn increase_rate(&mut self, additional_rate: f32) {
+        self.rate += additional_rate;
+    }
+
+    /// Ticks the water accumulation based on elapsed time.
+    pub fn tick(&mut self, delta_seconds: f32) {
+        self.current += self.rate * delta_seconds;
+    }
+}
+
+impl Default for WaterIntake {
+    fn default() -> Self {
+        Self::new(1.0) // 1 unit of water per second by default
+    }
+}

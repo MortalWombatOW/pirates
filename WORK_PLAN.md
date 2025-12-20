@@ -124,8 +124,8 @@
 | [x] 2.5.2 | Implement collision detection (projectile vs ship) | P0 | 2.4.7, 2.2.5 | `avian2d` collision events processed. |
 | [x] 2.5.3 | Emit `ShipHitEvent` on collision | P0 | 2.5.1, 2.5.2 | (Skipped: Direct component modification for MVP). |
 | [x] 2.5.4 | Create `DamageSystem` | P0 | 2.5.3, 2.2.2 | `projectile_collision_system` updates `Health`. |
-| 2.5.5 | Implement `WaterIntake` component | P1 | 1.1.3 | Component with `rate` and `current` water level. |
-| 2.5.6 | Add `WaterIntake` on hull damage | P1 | 2.5.4, 2.5.5 | Hull damage adds/increases `WaterIntake`. |
+| [x] 2.5.5 | Implement `WaterIntake` component | P1 | 1.1.3 | Component with `rate` and `current` water level. |
+| [x] 2.5.6 | Add `WaterIntake` on hull damage | P1 | 2.5.4, 2.5.5 | Hull damage adds/increases `WaterIntake`. |
 | [x] 2.5.7 | Implement ship destruction (hull HP <= 0) | P0 | 2.5.4 | Ship entity despawned, `ShipDestroyedEvent` emitted. |
 
 ### Epic 2.6: Loot System
