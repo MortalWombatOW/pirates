@@ -160,19 +160,50 @@ fn compute_cost(
     g_score: &HashMap<IVec2, OrderedF32>,
     map_data: &MapData,
 ) -> (OrderedF32, IVec2) {
+    // Apply coastal penalty: 1.5x cost for water tiles adjacent to land
+    let coastal_multiplier = if is_coastal(neighbor, map_data) { 1.5 } else { 1.0 };
+
     // Try Path 2: direct connection from parent to neighbor
     if let Some(parent_pos) = parent {
         if line_of_sight(parent_pos, neighbor, map_data) {
             let parent_g = g_score.get(&parent_pos).copied().unwrap_or(OrderedF32::new(0.0));
-            let cost = parent_g + OrderedF32::new(euclidean_distance(parent_pos, neighbor));
+            let base_cost = euclidean_distance(parent_pos, neighbor);
+            let cost = parent_g + OrderedF32::new(base_cost * coastal_multiplier);
             return (cost, parent_pos);
         }
     }
 
     // Path 1: standard A* through current node
     let current_g = g_score.get(&current).copied().unwrap_or(OrderedF32::new(0.0));
-    let cost = current_g + OrderedF32::new(euclidean_distance(current, neighbor));
+    let base_cost = euclidean_distance(current, neighbor);
+    let cost = current_g + OrderedF32::new(base_cost * coastal_multiplier);
     (cost, current)
+}
+
+/// Checks if a water tile is "coastal" (adjacent to any non-navigable tile).
+/// Coastal tiles receive a movement cost penalty to encourage open-water routes.
+fn is_coastal(pos: IVec2, map_data: &MapData) -> bool {
+    let directions = [
+        IVec2::new(1, 0),
+        IVec2::new(-1, 0),
+        IVec2::new(0, 1),
+        IVec2::new(0, -1),
+        IVec2::new(1, 1),
+        IVec2::new(-1, 1),
+        IVec2::new(1, -1),
+        IVec2::new(-1, -1),
+    ];
+
+    for dir in directions {
+        let adj = pos + dir;
+        if !map_data.in_bounds(adj.x, adj.y) {
+            continue;
+        }
+        if !map_data.is_navigable(adj.x as u32, adj.y as u32) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Euclidean distance heuristic for Theta*.
