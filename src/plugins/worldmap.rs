@@ -3,12 +3,13 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
 use crate::resources::{MapData, FogOfWar};
-use crate::components::{Player, Ship, Health, Vision};
+use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId};
 use crate::systems::{
     fog_of_war_update_system, update_fog_tilemap_system, FogTile,
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
     path_visualization_system, port_arrival_system,
 };
+use crate::utils::pathfinding::tile_to_world;
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -25,7 +26,7 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
-            .add_systems(OnEnter(GameState::HighSeas), (spawn_tilemap_from_map_data, spawn_high_seas_player))
+            .add_systems(OnEnter(GameState::HighSeas), (spawn_tilemap_from_map_data, spawn_high_seas_player, spawn_high_seas_ai_ships))
             .add_systems(Update, (
                 fog_of_war_update_system,
                 update_fog_tilemap_system,
@@ -35,7 +36,7 @@ impl Plugin for WorldMapPlugin {
                 path_visualization_system,
                 port_arrival_system,
             ).run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player));
+            .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player, despawn_high_seas_ai_ships));
     }
 }
 
@@ -54,6 +55,10 @@ pub struct FogMap;
 /// Marker component for the player in High Seas view
 #[derive(Component)]
 pub struct HighSeasPlayer;
+
+/// Marker component for AI ships in High Seas view (no physics, just visual)
+#[derive(Component)]
+pub struct HighSeasAI;
 
 /// Resource holding the procedurally generated tileset image handle
 #[derive(Resource)]
@@ -325,4 +330,74 @@ pub fn despawn_tilemap(
     }
 
     info!("Tilemaps despawned");
+}
+
+/// Spawns AI ships on the High Seas map at random navigable locations.
+fn spawn_high_seas_ai_ships(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    map_data: Res<MapData>,
+) {
+    use rand::prelude::*;
+    
+    let mut rng = rand::thread_rng();
+    let num_ships = rng.gen_range(5..=10);
+    
+    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
+    
+    // Collect navigable tiles (deep water only for AI ships)
+    let navigable_tiles: Vec<(u32, u32)> = map_data.iter()
+        .filter(|(_, _, tile)| tile.is_navigable())
+        .map(|(x, y, _)| (x, y))
+        .collect();
+    
+    if navigable_tiles.is_empty() {
+        warn!("No navigable tiles found for AI ship spawning!");
+        return;
+    }
+    
+    // Spawn AI ships at random navigable locations
+    let factions = [FactionId::Pirates, FactionId::NationA, FactionId::NationB, FactionId::NationC];
+    
+    for i in 0..num_ships {
+        let (tile_x, tile_y) = navigable_tiles[rng.gen_range(0..navigable_tiles.len())];
+        let world_pos = tile_to_world(IVec2::new(tile_x as i32, tile_y as i32), map_data.width, map_data.height);
+        
+        // Random faction (50% pirates, 50% split among nations)
+        let faction = if rng.gen_bool(0.5) {
+            FactionId::Pirates
+        } else {
+            factions[rng.gen_range(1..factions.len())]
+        };
+        
+        commands.spawn((
+            Name::new(format!("High Seas AI Ship {}", i)),
+            Ship,
+            AI,
+            Faction(faction),
+            HighSeasAI,
+            Health::default(),
+            Sprite {
+                image: texture_handle.clone(),
+                custom_size: Some(Vec2::splat(48.0)), // Slightly smaller than player
+                flip_y: true,
+                ..default()
+            },
+            Transform::from_xyz(world_pos.x, world_pos.y, 1.0), // Same layer as player
+        ));
+    }
+    
+    info!("Spawned {} AI ships on High Seas map", num_ships);
+}
+
+/// Despawn AI ships when leaving the High Seas state.
+fn despawn_high_seas_ai_ships(
+    mut commands: Commands,
+    query: Query<Entity, With<HighSeasAI>>,
+) {
+    let count = query.iter().count();
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    info!("Despawned {} AI ships", count);
 }

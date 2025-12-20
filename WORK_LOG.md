@@ -501,3 +501,13 @@ Created `src/utils/spatial_hash.rs` with generic `SpatialHash<T>` struct for O(1
 - 7 unit tests
 
 **Also fixed:** Pre-existing broken test in `pathfinding.rs` (missing `goal` parameter).
+
+## 2025-12-20: Task 3.6.2 - AI Ships on World Map
+
+Added AI ship spawning on the High Seas world map.
+
+**Changes:**
+- Added `HighSeasAI` marker component in `worldmap.rs`
+- Created `spawn_high_seas_ai_ships` system (spawns 5-10 random ships)
+- Created `despawn_high_seas_ai_ships` system for cleanup
+- Ships spawn at random navigable tiles with random factions
