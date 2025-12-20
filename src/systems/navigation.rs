@@ -46,7 +46,6 @@ pub fn click_to_navigate_system(
 
 /// System that calculates Theta* path when destination changes.
 /// Applies Catmull-Rom spline smoothing for natural, flowing paths.
-/// Validates smoothed paths against the map to prevent corner cutting.
 pub fn pathfinding_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform, &Destination), (With<Player>, Changed<Destination>)>,
@@ -68,24 +67,7 @@ pub fn pathfinding_system(
             
             // Apply curve smoothing if we have enough points
             let waypoints = if control_points.len() >= 3 {
-                // Use tighter curves (4 samples, 0.25 tension) to reduce corner cutting
-                let smoothed = smooth_path_catmull_rom(&control_points, 4, 0.25);
-                
-                // Validate all smoothed points are navigable
-                let all_navigable = smoothed.iter().all(|&wp| {
-                    let tile = world_to_tile(wp, map_data.width, map_data.height);
-                    tile.x >= 0 && tile.y >= 0 
-                        && (tile.x as u32) < map_data.width 
-                        && (tile.y as u32) < map_data.height
-                        && map_data.is_navigable(tile.x as u32, tile.y as u32)
-                });
-                
-                if all_navigable {
-                    smoothed
-                } else {
-                    // Fall back to original waypoints if smoothed path cuts through land
-                    control_points
-                }
+                smooth_path_catmull_rom(&control_points, 8) // 8 samples per segment
             } else {
                 control_points
             };
@@ -104,13 +86,13 @@ pub fn pathfinding_system(
 
 /// Smooths a path using Catmull-Rom spline interpolation.
 /// 
-/// Uses reflected phantom points at endpoints to avoid overshoot.
+/// Uses reflected phantom points at endpoints to avoid overshoot, and a reduced
+/// number of samples for smoother visuals.
 /// 
 /// # Arguments
 /// * `points` - Control points (must have at least 2 points)
 /// * `samples_per_segment` - Number of interpolated points per segment
-/// * `tension` - Curve tightness (0.5 = standard, lower = tighter/less swervy)
-fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize, tension: f32) -> Vec<Vec2> {
+fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize) -> Vec<Vec2> {
     if points.len() < 2 {
         return points.to_vec();
     }
@@ -149,7 +131,7 @@ fn smooth_path_catmull_rom(points: &[Vec2], samples_per_segment: usize, tension:
         // Sample points along this segment
         for j in 0..samples_per_segment {
             let t = j as f32 / samples_per_segment as f32;
-            let point = catmull_rom_interpolate(p0, p1, p2, p3, t, tension);
+            let point = catmull_rom_interpolate(p0, p1, p2, p3, t, 0.5);
             result.push(point);
         }
     }
