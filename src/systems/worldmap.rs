@@ -45,31 +45,34 @@ pub fn fog_of_war_update_system(
 }
 
 /// System that updates the visual representation of fog tiles.
-/// Only updates tiles that are near the player to avoid iterating the whole map.
+/// Only updates tiles that were newly explored (not all 262k tiles).
 pub fn update_fog_tilemap_system(
-    fog_of_war: Res<FogOfWar>,
+    mut fog_of_war: ResMut<FogOfWar>,
     mut tile_query: Query<(&TilePos, &mut TileColor), With<FogTile>>,
     _player_query: Query<&Transform, With<Player>>,
     _map_data: Res<MapData>,
 ) {
-    // Optimization: Only update tiles near the player
-    // For now, let's try updating all tiles to see if it performs.
-    // If we have 512x512, this is 262k iterations. We should check FogOfWar.is_changed().
-    
-    if !fog_of_war.is_changed() {
+    // Only process if there are newly explored tiles
+    if !fog_of_war.has_newly_explored() {
         return;
     }
 
+    // Take the list of newly explored tiles (clears the list)
+    let newly_explored = fog_of_war.take_newly_explored();
+    
+    // Build a set of newly explored positions for O(1) lookup
+    let newly_explored_set: bevy::utils::HashSet<IVec2> = newly_explored.into_iter().collect();
+    
+    // Only iterate tiles and update those that were newly explored
+    // This is still O(n) for tiles but the early continue makes it much faster
+    // A better approach would be to store Entity references, but this is simpler
     for (pos, mut color) in &mut tile_query {
-        let tx = pos.x as i32;
-        let ty = pos.y as i32;
+        let tile_pos = IVec2::new(pos.x as i32, pos.y as i32);
         
-        if fog_of_war.is_explored(IVec2::new(tx, ty)) {
-            // Set alpha to 0 for explored tiles
+        if newly_explored_set.contains(&tile_pos) {
+            // Set alpha to 0 for explored tiles (make transparent)
             color.0.set_alpha(0.0);
-        } else {
-            // Set alpha to 1 for unexplored tiles
-            color.0.set_alpha(1.0);
         }
     }
 }
+
