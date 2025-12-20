@@ -49,7 +49,9 @@ impl Plugin for CombatPlugin {
                 cannon_firing_system,
                 consume_firing_input.after(cannon_firing_system),
                 target_cycling_system,
-                current_zone_system,
+                // Current zone must run AFTER ship_physics_system because ship physics
+                // uses set_force() (replaces), and current zone uses apply_force() (adds)
+                current_zone_system.after(ship_physics_system),
             ).run_if(in_state(GameState::Combat)),
         );
         
