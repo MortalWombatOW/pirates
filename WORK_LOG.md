@@ -300,3 +300,23 @@
 - `MapData::get(x, y)` / `MapData::set(x, y, tile)` - tile access
 - `MapData::iter()` - iterate all tiles with coordinates
 - `TileType::texture_index()` - get tileset index for rendering
+
+## 2025-12-19: Task 3.1.5 - Spawn tilemap from MapData
+
+**Status**: Complete
+
+**Changes**:
+- Updated `WorldMapPlugin` to use `MapData` resource instead of hardcoded values
+- Added `initialize_test_map` system to create test islands
+- Tiles now use `TileType::texture_index()` for proper tileset mapping
+- Plugin now initializes `MapData` resource on app startup
+
+**Test Map Features**:
+- 64x64 tile map
+- Main circular island with land, sand, and shallow water zones
+- Secondary smaller island
+- Port location on main island
+
+**Notes**:
+- Epic 3.1 (Tilemap Setup) is now complete
+- Ready to proceed with Epic 3.2 (Procedural Generation)

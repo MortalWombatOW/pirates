@@ -1,19 +1,23 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
+use crate::resources::MapData;
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
 /// This plugin handles:
 /// - Loading the tileset texture
-/// - Spawning the tilemap entity and tiles
+/// - Spawning the tilemap entity and tiles from MapData
 /// - Managing map visibility based on game state
 pub struct WorldMapPlugin;
 
 impl Plugin for WorldMapPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(GameState::HighSeas), spawn_test_tilemap)
+            // Initialize MapData resource with default test map
+            .init_resource::<MapData>()
+            .add_systems(Startup, initialize_test_map)
+            .add_systems(OnEnter(GameState::HighSeas), spawn_tilemap_from_map_data)
             .add_systems(OnExit(GameState::HighSeas), despawn_tilemap);
     }
 }
@@ -26,17 +30,76 @@ pub struct WorldMap;
 #[derive(Component)]
 pub struct WorldMapTile;
 
-/// Spawns a test tilemap for development purposes.
-/// This will later be replaced by procedural generation in task 3.2.
-fn spawn_test_tilemap(
+/// Initializes the MapData resource with a test map.
+/// This will be replaced by procedural generation in Epic 3.2.
+fn initialize_test_map(mut map_data: ResMut<MapData>) {
+    use crate::resources::TileType;
+
+    // Reset to a clean 64x64 map
+    *map_data = MapData::new(64, 64);
+
+    // Create a simple island in the center
+    for x in 25..40 {
+        for y in 25..40 {
+            // Create circular island shape
+            let center_x = 32.0;
+            let center_y = 32.0;
+            let dx = x as f32 - center_x;
+            let dy = y as f32 - center_y;
+            let distance = (dx * dx + dy * dy).sqrt();
+
+            if distance < 5.0 {
+                // Inner land
+                map_data.set(x, y, TileType::Land);
+            } else if distance < 7.0 {
+                // Transition to sand/beach
+                map_data.set(x, y, TileType::Sand);
+            } else if distance < 9.0 {
+                // Shallow water around island
+                map_data.set(x, y, TileType::ShallowWater);
+            }
+        }
+    }
+
+    // Add a second smaller island
+    for x in 10..20 {
+        for y in 45..55 {
+            let center_x = 15.0;
+            let center_y = 50.0;
+            let dx = x as f32 - center_x;
+            let dy = y as f32 - center_y;
+            let distance = (dx * dx + dy * dy).sqrt();
+
+            if distance < 3.0 {
+                map_data.set(x, y, TileType::Land);
+            } else if distance < 4.5 {
+                map_data.set(x, y, TileType::Sand);
+            } else if distance < 6.0 {
+                map_data.set(x, y, TileType::ShallowWater);
+            }
+        }
+    }
+
+    // Add a port on the main island
+    map_data.set(37, 32, TileType::Port);
+
+    info!("Test map initialized: {}x{} tiles", map_data.width, map_data.height);
+}
+
+/// Spawns the tilemap from MapData resource.
+fn spawn_tilemap_from_map_data(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    map_data: Res<MapData>,
 ) {
     // Load the tileset texture
     let texture_handle: Handle<Image> = asset_server.load("tilemaps/tileset.png");
 
-    // Define map dimensions
-    let map_size = TilemapSize { x: 32, y: 32 };
+    // Define map dimensions from MapData
+    let map_size = TilemapSize { 
+        x: map_data.width, 
+        y: map_data.height 
+    };
 
     // Create a tilemap entity early to associate tiles with it
     let tilemap_entity = commands.spawn_empty().id();
@@ -44,36 +107,23 @@ fn spawn_test_tilemap(
     // Create tile storage
     let mut tile_storage = TileStorage::empty(map_size);
 
-    // Spawn tiles - for now, use tile index 0 (water) for all tiles
-    // The Kenney tilesheet has water tiles in the first few indices
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_pos = TilePos { x, y };
-            
-            // Determine tile texture index based on position
-            // For testing: mostly water (index 0), with some land
-            let texture_index = if (x > 10 && x < 20) && (y > 10 && y < 20) {
-                // Land in the center - use various land/island tiles
-                // Kenney tileset has various tiles, index 50+ are often land variants
-                50u32
-            } else {
-                // Water tile - index 0 in the Kenney tileset is water
-                0u32
-            };
+    // Spawn tiles from MapData
+    for (x, y, tile_type) in map_data.iter() {
+        let tile_pos = TilePos { x, y };
+        let texture_index = tile_type.texture_index();
 
-            let tile_entity = commands
-                .spawn((
-                    TileBundle {
-                        position: tile_pos,
-                        tilemap_id: TilemapId(tilemap_entity),
-                        texture_index: TileTextureIndex(texture_index),
-                        ..Default::default()
-                    },
-                    WorldMapTile,
-                ))
-                .id();
-            tile_storage.set(&tile_pos, tile_entity);
-        }
+        let tile_entity = commands
+            .spawn((
+                TileBundle {
+                    position: tile_pos,
+                    tilemap_id: TilemapId(tilemap_entity),
+                    texture_index: TileTextureIndex(texture_index),
+                    ..Default::default()
+                },
+                WorldMapTile,
+            ))
+            .id();
+        tile_storage.set(&tile_pos, tile_entity);
     }
 
     // Tile size from Kenney tilesheet (64x64 pixels, no margin)
@@ -95,7 +145,7 @@ fn spawn_test_tilemap(
         WorldMap,
     ));
 
-    info!("World map tilemap spawned with {} tiles", map_size.x * map_size.y);
+    info!("World map tilemap spawned from MapData: {}x{} tiles", map_size.x, map_size.y);
 }
 
 /// Despawns the world map when leaving HighSeas state.

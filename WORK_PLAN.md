@@ -189,7 +189,7 @@
 | [x] 3.1.2 | Create tileset image (water, land variants) | None | PNG in `assets/tilemaps/tileset.png`. |
 | [x] 3.1.3 | Create `TilemapPlugin` | 3.1.1 | Plugin manages map loading/rendering. |
 | [x] 3.1.4 | Define `MapData` resource (tile grid) | 3.1.3 | Resource holds 2D array of tile types. |
-| 3.1.5 | Spawn tilemap from `MapData` | 3.1.4, 3.1.2 | Tilemap renders water and land tiles. |
+| [x] 3.1.5 | Spawn tilemap from `MapData` | 3.1.4, 3.1.2 | Tilemap renders water and land tiles. |
 
 ### Epic 3.2: Procedural Generation
 
