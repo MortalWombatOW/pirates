@@ -9,7 +9,7 @@ use crate::systems::{
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
     path_visualization_system, port_arrival_system,
 };
-use crate::utils::pathfinding::tile_to_world;
+use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -30,6 +30,7 @@ impl Plugin for WorldMapPlugin {
             .add_systems(Update, (
                 fog_of_war_update_system,
                 update_fog_tilemap_system,
+                fog_of_war_ai_visibility_system,
                 click_to_navigate_system,
                 pathfinding_system.after(click_to_navigate_system),
                 navigation_movement_system.after(pathfinding_system),
@@ -341,7 +342,7 @@ fn spawn_high_seas_ai_ships(
     use rand::prelude::*;
     
     let mut rng = rand::thread_rng();
-    let num_ships = rng.gen_range(5..=10);
+    let num_ships = 50;
     
     let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
     
@@ -400,4 +401,23 @@ fn despawn_high_seas_ai_ships(
         commands.entity(entity).despawn_recursive();
     }
     info!("Despawned {} AI ships", count);
+}
+
+/// Updates AI ship visibility based on fog of war.
+/// Ships in unexplored tiles are hidden, ships in explored tiles are visible.
+fn fog_of_war_ai_visibility_system(
+    fog_of_war: Res<FogOfWar>,
+    map_data: Res<MapData>,
+    mut query: Query<(&Transform, &mut Visibility), With<HighSeasAI>>,
+) {
+    for (transform, mut visibility) in &mut query {
+        let world_pos = transform.translation.truncate();
+        let tile_pos = world_to_tile(world_pos, map_data.width, map_data.height);
+        
+        if fog_of_war.is_explored(tile_pos) {
+            *visibility = Visibility::Inherited;
+        } else {
+            *visibility = Visibility::Hidden;
+        }
+    }
 }

@@ -511,3 +511,12 @@ Added AI ship spawning on the High Seas world map.
 - Created `spawn_high_seas_ai_ships` system (spawns 5-10 random ships)
 - Created `despawn_high_seas_ai_ships` system for cleanup
 - Ships spawn at random navigable tiles with random factions
+
+## 2025-12-20: AI Ship Visibility Improvements
+
+Enhanced AI ship behavior on the High Seas map:
+
+**Changes:**
+- Increased AI ship count from 5-10 to 50 for better visibility
+- Added `fog_of_war_ai_visibility_system` to hide AI ships in unexplored tiles
+- Ships now only appear when the player has explored their location
