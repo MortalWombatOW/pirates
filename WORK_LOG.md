@@ -385,3 +385,36 @@
 
 ### Next Steps:
 - Epic 3.2: Procedural Generation (noise-based world generation)
+
+## 2025-12-20: Epic 3.2 Complete - Procedural Generation
+
+**Status**: Complete ✅
+
+### Tasks Completed:
+- **3.2.1**: `noise` crate already in `Cargo.toml` - verified available
+- **3.2.2**: Created `generate_world_map` function in `src/utils/procgen.rs`
+- **3.2.3**: Implemented Fbm (Fractal Brownian Motion) noise for natural landmasses
+- **3.2.4**: Ensured center spawn area (16x16 radius) is always navigable water
+- **3.2.5**: Ports placed procedurally on coastlines (sand tiles adjacent to land and water)
+
+### Implementation Details:
+- **Map Size**: 512x512 tiles (user requested upgrade from 64x64)
+- **Noise Algorithm**: Fbm (multi-octave Perlin) with 6 octaves, frequency 0.015
+- **Radial Gradient**: Applied to push edges toward ocean, creating archipelago feel
+- **Coastal Transitions**: Automatic shallow water around landmasses
+- **Port Placement**: 8-15 ports with 50-tile minimum spacing
+- **Random Seed**: New seed each game session for variety
+
+### Tile Type Thresholds:
+- `-1.0 to -0.1`: Deep Water
+- `-0.1 to 0.05`: Shallow Water  
+- `0.05 to 0.12`: Sand/Beach
+- `0.12 to 1.0`: Land
+
+### Files Created/Modified:
+- `src/utils/procgen.rs` (NEW) - Procedural generation module
+- `src/utils/mod.rs` - Added procgen module export
+- `src/plugins/worldmap.rs` - Replaced test map with procedural generation
+
+### Next Steps:
+- Epic 3.3: Fog of War

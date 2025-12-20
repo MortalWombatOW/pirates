@@ -195,11 +195,11 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 3.2.1 | Integrate `noise` crate | 1.1.2 | Crate available. |
-| 3.2.2 | Create `generate_world_map` function | 3.2.1, 3.1.4 | Returns `MapData` with procedural land/water. |
-| 3.2.3 | Use Perlin/Simplex noise for landmasses | 3.2.2 | Noise-based threshold determines land vs water. |
-| 3.2.4 | Ensure starting area is navigable | 3.2.2 | Player spawn point is always on water. |
-| 3.2.5 | Place port locations procedurally | 3.2.2 | Ports spawn on coastlines. |
+| [x] 3.2.1 | Integrate `noise` crate | 1.1.2 | Crate available. |
+| [x] 3.2.2 | Create `generate_world_map` function | 3.2.1, 3.1.4 | Returns `MapData` with procedural land/water. |
+| [x] 3.2.3 | Use Perlin/Simplex noise for landmasses | 3.2.2 | Noise-based threshold determines land vs water. |
+| [x] 3.2.4 | Ensure starting area is navigable | 3.2.2 | Player spawn point is always on water. |
+| [x] 3.2.5 | Place port locations procedurally | 3.2.2 | Ports spawn on coastlines. |
 
 ### Epic 3.3: Fog of War
 
