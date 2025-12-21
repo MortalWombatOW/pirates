@@ -29,6 +29,7 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<FogOfWar>()
             .init_resource::<EncounterSpatialHash>()
             .init_resource::<EncounterCooldown>()
+            .init_resource::<EncounteredEnemy>()
             .add_event::<CombatTriggeredEvent>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
             .add_systems(OnEnter(GameState::HighSeas), (
@@ -93,6 +94,13 @@ const ENCOUNTER_RADIUS: f32 = 128.0;
 pub struct EncounterCooldown {
     /// If true, an encounter is being processed and no new ones should trigger.
     pub active: bool,
+}
+
+/// Resource storing data about the last encountered enemy for combat spawning.
+#[derive(Resource, Default)]
+pub struct EncounteredEnemy {
+    /// Faction of the encountered enemy.
+    pub faction: Option<FactionId>,
 }
 
 /// Creates a procedural tileset texture with colors for each tile type.
@@ -523,12 +531,16 @@ fn handle_combat_trigger_system(
     mut combat_events: EventReader<CombatTriggeredEvent>,
     mut next_state: ResMut<NextState<GameState>>,
     mut encounter_cooldown: ResMut<EncounterCooldown>,
+    mut encountered_enemy: ResMut<EncounteredEnemy>,
 ) {
     for event in combat_events.read() {
         info!(
             "Combat triggered by {:?} faction ship! Transitioning to Combat state.",
             event.enemy_faction
         );
+        
+        // Store encounter data for combat spawning (3.6.7)
+        encountered_enemy.faction = Some(event.enemy_faction);
         
         // Set cooldown to prevent re-triggering
         encounter_cooldown.active = true;

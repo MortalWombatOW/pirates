@@ -541,3 +541,13 @@ Completed the encounter-to-combat system.
 - Updated `encounter_detection_system` to emit `CombatTriggeredEvent` (3.6.5)
 - Added `handle_combat_trigger_system` to transition to Combat state (3.6.6)
 - Added `EncounterCooldown` resource to prevent rapid re-triggering
+
+## 2025-12-20: Task 3.6.7 - Entity Transfer to Combat
+
+Implemented encounter data transfer to combat scene.
+
+**Changes:**
+- Added `EncounteredEnemy` resource to store pending encounter faction
+- Updated `handle_combat_trigger_system` to store encounter faction
+- Modified `spawn_combat_enemies` to use `EncounteredEnemy` data
+- Combat now spawns enemy with correct faction from encounter

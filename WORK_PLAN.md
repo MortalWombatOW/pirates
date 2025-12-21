@@ -243,7 +243,7 @@
 | [x] 3.6.4 | Determine hostility based on faction reputation | 3.6.3, 2.8.2 | Pirates always hostile, others based on rep. |
 | [x] 3.6.5 | Emit `CombatTriggeredEvent` | 3.6.4 | Event sent when hostile encounter. |
 | [x] 3.6.6 | Transition to `CombatState` on encounter | 3.6.5, 1.2.2 | State changes to `Combat`. |
-| 3.6.7 | Transfer relevant entities to combat scene | 3.6.6 | Player ship and encountered enemies spawn in combat. |
+| [x] 3.6.7 | Transfer relevant entities to combat scene | 3.6.6 | Player ship and encountered enemies spawn in combat. |
 
 ---
 

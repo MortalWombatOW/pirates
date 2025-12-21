@@ -312,20 +312,25 @@ pub fn ai_firing_system(
     }
 }
 
-/// System to spawn a test enemy when entering combat state.
+/// System to spawn enemies when entering combat state.
+/// Uses the EncounteredEnemy resource to spawn the correct faction.
 pub fn spawn_combat_enemies(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut encountered_enemy: ResMut<crate::plugins::worldmap::EncounteredEnemy>,
 ) {
     use crate::components::FactionId;
     use crate::systems::ship::spawn_enemy_ship;
+    
+    // Get faction from encounter data, default to Pirates
+    let faction = encountered_enemy.faction.take().unwrap_or(FactionId::Pirates);
     
     // Spawn one enemy ship to the north
     let enemy_id = spawn_enemy_ship(
         &mut commands,
         &asset_server,
         Vec2::new(0.0, 200.0),
-        FactionId::Pirates,
+        faction,
     );
     
     // Add AI-specific components
@@ -334,5 +339,5 @@ pub fn spawn_combat_enemies(
         AICannonCooldown::default(),
     ));
     
-    info!("Combat enemies spawned!");
+    info!("Combat enemy spawned with faction {:?}!", faction);
 }
