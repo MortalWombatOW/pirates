@@ -4,6 +4,7 @@
 //! from their OrderQueue to perform trade, patrol, escort, and scouting tasks.
 
 use bevy::prelude::*;
+use std::collections::VecDeque;
 
 /// An order that can be assigned to an AI ship.
 /// 
@@ -57,5 +58,72 @@ pub enum Order {
 impl Default for Order {
     fn default() -> Self {
         Order::Idle
+    }
+}
+
+/// Component that holds a queue of orders for an AI ship.
+/// 
+/// The ship processes orders from the front of the queue. When an order
+/// completes, it is removed and the next order begins. Repeating orders
+/// (like TradeRoute) re-add themselves to the back of the queue.
+#[derive(Component, Debug, Default, Clone, Reflect)]
+pub struct OrderQueue {
+    /// The queue of pending orders. Front order is currently active.
+    pub orders: VecDeque<Order>,
+}
+
+impl OrderQueue {
+    /// Creates a new empty order queue.
+    pub fn new() -> Self {
+        Self {
+            orders: VecDeque::new(),
+        }
+    }
+
+    /// Creates a queue with a single order.
+    pub fn with_order(order: Order) -> Self {
+        let mut queue = Self::new();
+        queue.push(order);
+        queue
+    }
+
+    /// Returns the current (front) order, if any.
+    pub fn current(&self) -> Option<&Order> {
+        self.orders.front()
+    }
+
+    /// Returns a mutable reference to the current order.
+    pub fn current_mut(&mut self) -> Option<&mut Order> {
+        self.orders.front_mut()
+    }
+
+    /// Adds an order to the back of the queue.
+    pub fn push(&mut self, order: Order) {
+        self.orders.push_back(order);
+    }
+
+    /// Adds an order to the front of the queue (high priority).
+    pub fn push_front(&mut self, order: Order) {
+        self.orders.push_front(order);
+    }
+
+    /// Removes and returns the current order.
+    pub fn pop(&mut self) -> Option<Order> {
+        self.orders.pop_front()
+    }
+
+    /// Clears all orders from the queue.
+    pub fn clear(&mut self) {
+        self.orders.clear();
+    }
+
+    /// Returns true if the queue is empty.
+    pub fn is_empty(&self) -> bool {
+        self.orders.is_empty()
+    }
+
+    /// Returns the number of orders in the queue.
+    pub fn len(&self) -> usize {
+        self.orders.len()
     }
 }
