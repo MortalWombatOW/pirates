@@ -54,3 +54,17 @@ Common types:
 ## Combat & Projectiles
 1. **Self-Hit Prevention**: **ALWAYS** tag projectiles with a `source: Entity` field. In collision handlers, explicitly check `if projectile.source == hit_entity { continue; }`.
 2. **Spawn Offsets**: Ensure projectile spawn positions are calculated to be *outside* the firing entity's collider bounds immediately upon spawning.
+
+## State Transfer Pattern
+When data needs to persist across game state transitions:
+1. Create a `Resource` to hold the pending data (e.g., [EncounteredEnemy](cci:2://file:///Users/andrewgleeson/Documents/code/pirates/src/plugins/worldmap.rs:100:0-103:1))
+2. Populate it in the exiting state's event handler
+3. Consume (and clear) it in the entering state's `OnEnter` system
+4. Use `Option<T>` fields for data that may or may not be present
+
+## SpatialHash for Proximity Detection
+For efficient entity proximity queries:
+1. Create a wrapper Resource: `struct MySpatialHash { hash: SpatialHash<Entity> }`
+2. Rebuild the hash each frame in an early Update system
+3. Query the hash in detection systems that run after the rebuild
+4. Add cooldown to prevent rapid re-triggering of events

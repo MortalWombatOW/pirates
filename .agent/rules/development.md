@@ -23,3 +23,9 @@ To maintain high development velocity and avoid long idle times during compilati
 ## Agent Best Practices
 - **Artifact Metadata**: When using `write_to_file` or `replace_file_content` on files in the artifacts directory, you **must** include `ArtifactMetadata`.
 - **Library Deep Dive**: When working with core libraries (Bevy, Avian, Leafwing), do not assume method behavior matches older versions or other frameworks. Use `grep` on the cargo registry or check actual library source code (`mod.rs`, `prelude.rs`) to verify method constraints (e.g. `debug_assert` guards) before implementation.
+
+## Log Level Discipline
+- **`info!`**: Use for significant state changes (game state transitions, entity spawns, combat triggers)
+- **`debug!`**: Use for per-frame diagnostics you may want occasionally (physics values, AI decisions)
+- **`trace!`**: Use for high-frequency data (every-frame values)
+- Avoid `info!` inside tight loops or per-frame systems
