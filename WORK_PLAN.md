@@ -293,7 +293,7 @@
 | [x] 5.3.5c | Register `RouteCache` in `WorldMapPlugin` | 5.3.5a | Initialize resource. |
 | [x] 5.3.6 | Implement `Patrol` order | 5.3.3 | Ship moves around area, engages hostiles. |
 | [x] 5.3.7 | Implement `Escort` order | 5.3.3 | Ship follows target entity. |
-| [ ] 5.3.8 | Implement `Scout` order | 5.3.3 | Ship explores area, reports intel. |
+| [x] 5.3.8 | Implement `Scout` order | 5.3.3 | Ship explores area, reports intel. |
 
 ### Epic 5.4: Player Fleet Management
 | ID | Task | Dependencies | Acceptance Criteria |

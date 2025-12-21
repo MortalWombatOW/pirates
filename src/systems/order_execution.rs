@@ -101,6 +101,7 @@ pub fn order_execution_system(
                     *area_radius,
                     *progress,
                     &mut order_queue,
+                    &map_data,
                 );
             }
             Order::Idle => {
@@ -246,7 +247,8 @@ fn execute_escort(
 
 /// Executes Scout order logic.
 /// 
-/// Ship explores the area systematically, updating progress.
+/// Ship explores the area systematically using a spiral pattern.
+/// Checks invalid (land) points and skips them by incrementing progress.
 fn execute_scout(
     commands: &mut Commands,
     entity: Entity,
@@ -255,28 +257,43 @@ fn execute_scout(
     area_radius: f32,
     progress: f32,
     order_queue: &mut OrderQueue,
+    map_data: &MapData,
 ) {
-    // Simple spiral pattern based on progress
+    if progress >= 1.0 {
+        // Scouting complete
+        order_queue.pop();
+        debug!("Scout order complete");
+        return;
+    }
+
+    // Generate spiral pattern
     let angle = progress * std::f32::consts::TAU * 5.0;
-    let dist = area_radius * progress.min(1.0);
+    let dist = area_radius * progress;
     let target = area_center + Vec2::new(angle.cos() * dist, angle.sin() * dist);
     
+    // Check navigability
+    let tile_pos = world_to_tile(target, map_data.width, map_data.height);
+    if !map_data.is_navigable(tile_pos.x as u32, tile_pos.y as u32) {
+        // Point is on land - skip it by minor progress increment
+        order_queue.pop();
+        order_queue.push(Order::Scout {
+            area_center,
+            area_radius,
+            progress: progress + 0.05, // Skip ahead
+        });
+        return;
+    }
+
     // Check if arrived at target
     let ship_pos = ship_transform.translation.truncate();
     if ship_pos.distance(target) < 50.0 {
-         if progress >= 1.0 {
-            // Scouting complete
-            order_queue.pop();
-            debug!("Scout order complete");
-        } else {
-            // Continue scouting
-            order_queue.pop();
-            order_queue.push(Order::Scout {
-                area_center,
-                area_radius,
-                progress: progress + 0.1,
-            });
-        }
+        // Arrived! Move to next spiral point
+        order_queue.pop();
+        order_queue.push(Order::Scout {
+            area_center,
+            area_radius,
+            progress: progress + 0.1,
+        });
     } else {
         // Navigate to target
         commands.entity(entity).insert(Destination { target });
