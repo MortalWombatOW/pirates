@@ -295,12 +295,12 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 4.5.1 | Define `Contract` entity and components | 1.1.3 | `Contract`, `ContractType`, `Origin`, `Destination`, `Reward`, `Expiry`. |
-| 4.5.2 | Create `ContractGenerationSystem` | 4.5.1 | Procedurally creates contracts per port. |
-| 4.5.3 | Implement contract acceptance | 4.5.1, 4.2.5 | Player accepts, contract added to active list. |
-| 4.5.4 | Implement contract tracking | 4.5.3 | Track progress (cargo delivered, area explored). |
-| 4.5.5 | Implement contract completion | 4.5.4 | On conditions met, reward paid, `ContractCompletedEvent`. |
-| 4.5.6 | Implement contract expiry | 4.5.1 | Expired contracts removed, reputation penalty. |
+| [x] 4.5.1 | Define `Contract` entity and components | 1.1.3 | `Contract`, `ContractType`, `Origin`, `Destination`, `Reward`, `Expiry`. |
+| [x] 4.5.2 | Create `ContractGenerationSystem` | 4.5.1 | Procedurally creates contracts per port. |
+| [x] 4.5.3 | Implement contract acceptance | 4.5.1, 4.2.5 | Player accepts, contract added to active list. |
+| [x] 4.5.4 | Implement contract tracking | 4.5.3 | Track progress (cargo delivered, area explored). |
+| [x] 4.5.5 | Implement contract completion | 4.5.4 | On conditions met, reward paid, `ContractCompletedEvent`. |
+| [~] 4.5.6 | Implement contract expiry | 4.5.1 | Deferred: requires WorldClock (Epic 5.1). |
 
 ### Epic 4.6: Ship Repair
 

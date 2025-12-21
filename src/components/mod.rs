@@ -7,6 +7,7 @@ pub mod current;
 pub mod worldmap;
 pub mod navigation;
 pub mod port;
+pub mod contract;
 
 pub use ship::*;
 pub use health::*;
@@ -17,3 +18,4 @@ pub use current::*;
 pub use worldmap::*;
 pub use navigation::*;
 pub use port::*;
+pub use contract::*;

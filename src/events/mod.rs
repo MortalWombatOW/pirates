@@ -37,3 +37,19 @@ pub struct TradeExecutedEvent {
     /// True if buying from port, false if selling to port.
     pub is_buy: bool,
 }
+
+/// Event emitted when a player accepts a contract.
+#[derive(Event, Debug)]
+pub struct ContractAcceptedEvent {
+    /// The contract entity that was accepted.
+    pub contract_entity: Entity,
+}
+
+/// Event emitted when a contract is completed.
+#[derive(Event, Debug)]
+pub struct ContractCompletedEvent {
+    /// The contract entity that was completed.
+    pub contract_entity: Entity,
+    /// Gold reward given.
+    pub reward_gold: u32,
+}

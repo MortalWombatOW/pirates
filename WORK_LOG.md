@@ -629,3 +629,36 @@ Implemented the trading system connecting port inventory to player cargo.
 - [x] 4.3.3: Implement sell goods
 - [x] 4.3.4: Implement cargo capacity check
 - [x] 4.3.5: Emit TradeExecutedEvent
+
+## 2025-12-20: Skipping Epic 4.4 (Price Dynamics)
+
+> [!NOTE]
+> **Deferred**: Epic 4.4 (Price Dynamics) is skipped for now because it depends on `WorldClock` from Epic 5.1 (World Tick). We will return to implement 4.4 after completing Phase 5.1.
+
+Proceeding to Epic 4.5 (Contracts) instead.
+
+## 2025-12-20: Epic 4.5 - Contracts
+
+Implemented the contract/quest system for jobs.
+
+### Changes
+
+- **New**: `src/components/contract.rs`
+  - `Contract` marker component
+  - `ContractType` enum (Transport, Explore, Escort, Hunt)
+  - `ContractDetails` with factory methods
+  - `AcceptedContract` marker component
+  - `ContractProgress` tracking component
+
+- **Modified**: `src/events/mod.rs`
+  - Added `ContractAcceptedEvent`, `ContractCompletedEvent`
+
+- **Modified**: `src/plugins/port_ui.rs`
+  - Added `PlayerContracts` resource
+  - Added `generate_port_contracts` system (OnEnter)
+  - Updated Contracts panel with available/active lists
+  - Added `contract_acceptance_system`
+
+### Tasks Completed
+- [x] 4.5.1-4.5.5: Contract components, generation, acceptance, tracking, completion
+- [~] 4.5.6: Contract expiry deferred (requires WorldClock from 5.1)

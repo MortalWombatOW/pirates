@@ -1,0 +1,104 @@
+use bevy::prelude::*;
+
+use super::cargo::GoodType;
+
+/// Marker component identifying an entity as a contract.
+#[derive(Component, Debug, Default)]
+pub struct Contract;
+
+/// Types of contracts available in the game.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub enum ContractType {
+    /// Deliver specific goods from origin port to destination port.
+    #[default]
+    Transport,
+    /// Visit a specific area or tile on the map.
+    Explore,
+    /// Protect a ship along a route (future implementation).
+    Escort,
+    /// Hunt down and destroy a specific enemy ship.
+    Hunt,
+}
+
+impl ContractType {
+    /// Returns a human-readable description of the contract type.
+    pub fn description(&self) -> &'static str {
+        match self {
+            ContractType::Transport => "Deliver cargo",
+            ContractType::Explore => "Explore area",
+            ContractType::Escort => "Escort ship",
+            ContractType::Hunt => "Hunt target",
+        }
+    }
+}
+
+/// Details of a specific contract.
+#[derive(Component, Debug, Clone)]
+pub struct ContractDetails {
+    /// Type of contract.
+    pub contract_type: ContractType,
+    /// Port where the contract was offered.
+    pub origin_port: Entity,
+    /// Target destination (port entity for Transport, or area center for Explore).
+    pub destination: Option<Entity>,
+    /// Gold reward upon completion.
+    pub reward_gold: u32,
+    /// Cargo requirement for Transport contracts: (good type, quantity).
+    pub cargo_required: Option<(GoodType, u32)>,
+    /// Human-readable description of the contract.
+    pub description: String,
+}
+
+impl ContractDetails {
+    /// Creates a new Transport contract.
+    pub fn transport(
+        origin: Entity,
+        destination: Entity,
+        good: GoodType,
+        quantity: u32,
+        reward: u32,
+    ) -> Self {
+        Self {
+            contract_type: ContractType::Transport,
+            origin_port: origin,
+            destination: Some(destination),
+            reward_gold: reward,
+            cargo_required: Some((good, quantity)),
+            description: format!("Deliver {} {:?} to destination", quantity, good),
+        }
+    }
+
+    /// Creates a new Explore contract (simplified - just visit a port).
+    pub fn explore(origin: Entity, target: Entity, reward: u32) -> Self {
+        Self {
+            contract_type: ContractType::Explore,
+            origin_port: origin,
+            destination: Some(target),
+            reward_gold: reward,
+            cargo_required: None,
+            description: "Visit the marked location".to_string(),
+        }
+    }
+}
+
+/// Component marking a contract as accepted by the player.
+#[derive(Component, Debug, Default)]
+pub struct AcceptedContract;
+
+/// Component for tracking contract progress.
+#[derive(Component, Debug, Clone)]
+pub struct ContractProgress {
+    /// For Transport: cargo delivered so far.
+    pub cargo_delivered: u32,
+    /// Whether the destination has been reached.
+    pub destination_reached: bool,
+}
+
+impl Default for ContractProgress {
+    fn default() -> Self {
+        Self {
+            cargo_delivered: 0,
+            destination_reached: false,
+        }
+    }
+}

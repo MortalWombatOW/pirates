@@ -3,11 +3,12 @@ use bevy_egui::{egui, EguiContexts};
 
 use crate::components::{
     cargo::{Cargo, Gold},
+    contract::{AcceptedContract, Contract, ContractDetails, ContractProgress},
     health::Health,
     port::{Inventory, Port, PortName},
     ship::{Player, Ship},
 };
-use crate::events::TradeExecutedEvent;
+use crate::events::{ContractAcceptedEvent, ContractCompletedEvent, TradeExecutedEvent};
 use crate::plugins::core::GameState;
 
 /// Plugin for the Port View UI.
@@ -19,10 +20,15 @@ impl Plugin for PortUiPlugin {
         app
             .init_resource::<CurrentPort>()
             .init_resource::<PortUiState>()
+            .init_resource::<PlayerContracts>()
             .add_event::<TradeExecutedEvent>()
+            .add_event::<ContractAcceptedEvent>()
+            .add_event::<ContractCompletedEvent>()
+            .add_systems(OnEnter(GameState::Port), generate_port_contracts)
             .add_systems(Update, (
                 port_ui_system,
                 trade_execution_system,
+                contract_acceptance_system,
             ).run_if(in_state(GameState::Port)));
     }
 }
@@ -40,6 +46,12 @@ pub struct PortUiState {
     pub selected_tab: usize,
 }
 
+/// Resource tracking player's active contracts.
+#[derive(Resource, Default)]
+pub struct PlayerContracts {
+    pub active: Vec<Entity>,
+}
+
 /// The main port UI system.
 fn port_ui_system(
     mut contexts: EguiContexts,
@@ -47,8 +59,12 @@ fn port_ui_system(
     mut ui_state: ResMut<PortUiState>,
     mut current_port: ResMut<CurrentPort>,
     mut trade_events: EventWriter<TradeExecutedEvent>,
+    mut contract_events: EventWriter<ContractAcceptedEvent>,
     port_query: Query<(Entity, &PortName, &Inventory), With<Port>>,
     player_query: Query<(&Health, Option<&Cargo>, Option<&Gold>), (With<Player>, With<Ship>)>,
+    contract_query: Query<(Entity, &ContractDetails), (With<Contract>, Without<AcceptedContract>)>,
+    active_contract_query: Query<(Entity, &ContractDetails), (With<Contract>, With<AcceptedContract>)>,
+    player_contracts: Res<PlayerContracts>,
 ) {
     // Auto-select first port if none selected (for debug/testing)
     if current_port.entity.is_none() {
@@ -113,7 +129,14 @@ fn port_ui_system(
                 ),
                 1 => render_tavern_panel(ui),
                 2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h)),
-                3 => render_contracts_panel(ui),
+                3 => render_contracts_panel(
+                    ui,
+                    port_entity,
+                    &contract_query,
+                    &active_contract_query,
+                    &player_contracts,
+                    &mut contract_events,
+                ),
                 _ => {}
             }
         });
@@ -270,6 +293,153 @@ fn trade_execution_system(
     }
 }
 
+/// Generates contracts for ports when entering port state.
+fn generate_port_contracts(
+    mut commands: Commands,
+    port_query: Query<Entity, With<Port>>,
+    existing_contracts: Query<Entity, With<Contract>>,
+) {
+    use crate::components::cargo::GoodType;
+    use rand::Rng;
+    
+    // Don't regenerate if contracts exist
+    if existing_contracts.iter().count() > 0 {
+        return;
+    }
+    
+    let mut rng = rand::thread_rng();
+    let ports: Vec<Entity> = port_query.iter().collect();
+    
+    if ports.len() < 2 {
+        warn!("Not enough ports to generate contracts");
+        return;
+    }
+    
+    // Generate 2-4 contracts per port
+    for &origin_port in &ports {
+        let num_contracts = rng.gen_range(2..=4);
+        
+        for _ in 0..num_contracts {
+            // Pick a random destination different from origin
+            let dest_port = loop {
+                let idx = rng.gen_range(0..ports.len());
+                if ports[idx] != origin_port {
+                    break ports[idx];
+                }
+            };
+            
+            // Random good type
+            let good = match rng.gen_range(0..6) {
+                0 => GoodType::Rum,
+                1 => GoodType::Sugar,
+                2 => GoodType::Spices,
+                3 => GoodType::Timber,
+                4 => GoodType::Cloth,
+                _ => GoodType::Weapons,
+            };
+            
+            let quantity = rng.gen_range(5..=20);
+            let reward = quantity * rng.gen_range(15..=30);
+            
+            commands.spawn((
+                Contract,
+                ContractDetails::transport(origin_port, dest_port, good, quantity, reward),
+            ));
+        }
+    }
+    
+    info!("Generated contracts for {} ports", ports.len());
+}
+
+/// Renders the Contracts panel.
+fn render_contracts_panel(
+    ui: &mut egui::Ui,
+    current_port: Option<Entity>,
+    available_query: &Query<(Entity, &ContractDetails), (With<Contract>, Without<AcceptedContract>)>,
+    active_query: &Query<(Entity, &ContractDetails), (With<Contract>, With<AcceptedContract>)>,
+    player_contracts: &PlayerContracts,
+    contract_events: &mut EventWriter<ContractAcceptedEvent>,
+) {
+    ui.heading("Contracts");
+    ui.label("Accept jobs for gold and reputation.");
+    ui.add_space(10.0);
+    
+    // Show active contracts first
+    if !player_contracts.active.is_empty() {
+        ui.group(|ui| {
+            ui.strong("📋 Active Contracts");
+            ui.add_space(5.0);
+            
+            for (entity, details) in active_query.iter() {
+                if player_contracts.active.contains(&entity) {
+                    ui.horizontal(|ui| {
+                        ui.label(format!("• {} - 💰{}", details.description, details.reward_gold));
+                    });
+                }
+            }
+        });
+        ui.add_space(10.0);
+    }
+    
+    // Show available contracts at this port
+    ui.strong("📜 Available Contracts");
+    ui.add_space(5.0);
+    
+    let Some(port_entity) = current_port else {
+        ui.label("No port selected.");
+        return;
+    };
+    
+    let mut contracts_at_port = 0;
+    egui::Grid::new("contracts_grid")
+        .num_columns(3)
+        .striped(true)
+        .min_col_width(100.0)
+        .show(ui, |ui| {
+            ui.strong("Description");
+            ui.strong("Reward");
+            ui.strong("Action");
+            ui.end_row();
+            
+            for (entity, details) in available_query.iter() {
+                if details.origin_port == port_entity {
+                    contracts_at_port += 1;
+                    ui.label(&details.description);
+                    ui.label(format!("💰{}", details.reward_gold));
+                    if ui.button("Accept").clicked() {
+                        contract_events.send(ContractAcceptedEvent {
+                            contract_entity: entity,
+                        });
+                    }
+                    ui.end_row();
+                }
+            }
+        });
+    
+    if contracts_at_port == 0 {
+        ui.label("No contracts available at this port.");
+    }
+}
+
+/// System that handles contract acceptance.
+fn contract_acceptance_system(
+    mut commands: Commands,
+    mut events: EventReader<ContractAcceptedEvent>,
+    mut player_contracts: ResMut<PlayerContracts>,
+) {
+    for event in events.read() {
+        // Add AcceptedContract marker and progress tracking
+        commands.entity(event.contract_entity).insert((
+            AcceptedContract,
+            ContractProgress::default(),
+        ));
+        
+        player_contracts.active.push(event.contract_entity);
+        
+        info!("Contract {:?} accepted!", event.contract_entity);
+    }
+}
+
 /// Renders the Tavern panel (placeholder for Epic 6.1).
 fn render_tavern_panel(ui: &mut egui::Ui) {
     ui.heading("Tavern");
@@ -342,19 +512,4 @@ fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
         ui.label("⚠ No ship data available");
         ui.weak("(Player ship not found)");
     }
-}
-
-/// Renders the Contracts panel (placeholder for Epic 4.5).
-fn render_contracts_panel(ui: &mut egui::Ui) {
-    ui.heading("Contracts");
-    ui.label("Accept jobs for gold and reputation.");
-    ui.add_space(20.0);
-    
-    ui.vertical_centered(|ui| {
-        ui.label("📜");
-        ui.add_space(10.0);
-        ui.label("No contracts available at this port.");
-        ui.add_space(5.0);
-        ui.weak("(Contract system coming in Epic 4.5)");
-    });
 }
