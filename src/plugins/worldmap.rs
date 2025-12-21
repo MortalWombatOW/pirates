@@ -86,8 +86,8 @@ pub struct EncounterSpatialHash {
     pub hash: SpatialHash<Entity>,
 }
 
-/// Encounter detection radius in world units (2 tiles = 128 units)
-const ENCOUNTER_RADIUS: f32 = 128.0;
+/// Encounter detection radius in world units (4 tiles = 256 units)
+const ENCOUNTER_RADIUS: f32 = 256.0;
 
 /// Cooldown to prevent rapid encounter re-triggering.
 #[derive(Resource, Default)]
@@ -395,19 +395,12 @@ fn spawn_high_seas_ai_ships(
         return;
     }
     
-    // Spawn AI ships at random navigable locations
-    let factions = [FactionId::Pirates, FactionId::NationA, FactionId::NationB, FactionId::NationC];
-    
     for i in 0..num_ships {
         let (tile_x, tile_y) = navigable_tiles[rng.gen_range(0..navigable_tiles.len())];
         let world_pos = tile_to_world(IVec2::new(tile_x as i32, tile_y as i32), map_data.width, map_data.height);
         
-        // Random faction (50% pirates, 50% split among nations)
-        let faction = if rng.gen_bool(0.5) {
-            FactionId::Pirates
-        } else {
-            factions[rng.gen_range(1..factions.len())]
-        };
+        // All ships are Pirates for now (until reputation system in Phase 5)
+        let faction = FactionId::Pirates;
         
         commands.spawn((
             Name::new(format!("High Seas AI Ship {}", i)),
