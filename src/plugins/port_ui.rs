@@ -8,8 +8,9 @@ use crate::components::{
     port::{Inventory, Port, PortName},
     ship::{Player, Ship},
 };
-use crate::events::{ContractAcceptedEvent, ContractCompletedEvent, TradeExecutedEvent};
+use crate::events::{ContractAcceptedEvent, ContractCompletedEvent, TradeExecutedEvent, RepairRequestEvent, RepairType};
 use crate::plugins::core::GameState;
+use crate::systems::repair::{repair_execution_system, calculate_repair_cost};
 
 /// Plugin for the Port View UI.
 /// Displays when the player is docked at a port.
@@ -24,11 +25,13 @@ impl Plugin for PortUiPlugin {
             .add_event::<TradeExecutedEvent>()
             .add_event::<ContractAcceptedEvent>()
             .add_event::<ContractCompletedEvent>()
+            .add_event::<RepairRequestEvent>()
             .add_systems(OnEnter(GameState::Port), generate_port_contracts)
             .add_systems(Update, (
                 port_ui_system,
                 trade_execution_system,
                 contract_acceptance_system,
+                repair_execution_system,
             ).run_if(in_state(GameState::Port)));
     }
 }
@@ -60,6 +63,7 @@ fn port_ui_system(
     mut current_port: ResMut<CurrentPort>,
     mut trade_events: EventWriter<TradeExecutedEvent>,
     mut contract_events: EventWriter<ContractAcceptedEvent>,
+    mut repair_events: EventWriter<RepairRequestEvent>,
     port_query: Query<(Entity, &PortName, &Inventory), With<Port>>,
     player_query: Query<(&Health, Option<&Cargo>, Option<&Gold>), (With<Player>, With<Ship>)>,
     contract_query: Query<(Entity, &ContractDetails), (With<Contract>, Without<AcceptedContract>)>,
@@ -128,7 +132,7 @@ fn port_ui_system(
                     &mut trade_events,
                 ),
                 1 => render_tavern_panel(ui),
-                2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h)),
+                2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h), player_gold, &mut repair_events),
                 3 => render_contracts_panel(
                     ui,
                     port_entity,
@@ -456,7 +460,12 @@ fn render_tavern_panel(ui: &mut egui::Ui) {
 }
 
 /// Renders the Docks panel with ship repair options.
-fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
+fn render_docks_panel(
+    ui: &mut egui::Ui,
+    health: Option<&Health>,
+    player_gold: u32,
+    repair_events: &mut EventWriter<RepairRequestEvent>,
+) {
     ui.heading("Docks");
     ui.label("Repair and upgrade your ship.");
     ui.add_space(10.0);
@@ -467,6 +476,8 @@ fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
             ui.add_space(5.0);
             
             // Sails
+            let sails_damage = health.sails_max - health.sails;
+            let sails_cost = calculate_repair_cost(RepairType::Sails, sails_damage);
             let sails_pct = health.sails / health.sails_max;
             ui.horizontal(|ui| {
                 ui.label("Sails:");
@@ -474,13 +485,18 @@ fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
                     .text(format!("{:.0}/{:.0}", health.sails, health.sails_max))
                     .fill(if sails_pct > 0.5 { egui::Color32::from_rgb(100, 180, 100) } else { egui::Color32::from_rgb(200, 150, 50) })
                 );
-                if sails_pct < 1.0 && ui.small_button("Repair").clicked() {
-                    info!("Repair sails clicked");
-                    // TODO: Implement in Epic 4.6
+                if sails_pct < 1.0 {
+                    let can_afford = player_gold >= sails_cost;
+                    let button_text = format!("Repair ({}g)", sails_cost);
+                    if ui.add_enabled(can_afford, egui::Button::new(button_text).small()).clicked() {
+                        repair_events.send(RepairRequestEvent { repair_type: RepairType::Sails });
+                    }
                 }
             });
             
             // Rudder
+            let rudder_damage = health.rudder_max - health.rudder;
+            let rudder_cost = calculate_repair_cost(RepairType::Rudder, rudder_damage);
             let rudder_pct = health.rudder / health.rudder_max;
             ui.horizontal(|ui| {
                 ui.label("Rudder:");
@@ -488,13 +504,18 @@ fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
                     .text(format!("{:.0}/{:.0}", health.rudder, health.rudder_max))
                     .fill(if rudder_pct > 0.5 { egui::Color32::from_rgb(100, 180, 100) } else { egui::Color32::from_rgb(200, 150, 50) })
                 );
-                if rudder_pct < 1.0 && ui.small_button("Repair").clicked() {
-                    info!("Repair rudder clicked");
-                    // TODO: Implement in Epic 4.6
+                if rudder_pct < 1.0 {
+                    let can_afford = player_gold >= rudder_cost;
+                    let button_text = format!("Repair ({}g)", rudder_cost);
+                    if ui.add_enabled(can_afford, egui::Button::new(button_text).small()).clicked() {
+                        repair_events.send(RepairRequestEvent { repair_type: RepairType::Rudder });
+                    }
                 }
             });
             
             // Hull
+            let hull_damage = health.hull_max - health.hull;
+            let hull_cost = calculate_repair_cost(RepairType::Hull, hull_damage);
             let hull_pct = health.hull / health.hull_max;
             ui.horizontal(|ui| {
                 ui.label("Hull:");
@@ -502,9 +523,12 @@ fn render_docks_panel(ui: &mut egui::Ui, health: Option<&Health>) {
                     .text(format!("{:.0}/{:.0}", health.hull, health.hull_max))
                     .fill(if hull_pct > 0.5 { egui::Color32::from_rgb(100, 180, 100) } else { egui::Color32::from_rgb(180, 80, 80) })
                 );
-                if hull_pct < 1.0 && ui.small_button("Repair").clicked() {
-                    info!("Repair hull clicked");
-                    // TODO: Implement in Epic 4.6
+                if hull_pct < 1.0 {
+                    let can_afford = player_gold >= hull_cost;
+                    let button_text = format!("Repair ({}g)", hull_cost);
+                    if ui.add_enabled(can_afford, egui::Button::new(button_text).small()).clicked() {
+                        repair_events.send(RepairRequestEvent { repair_type: RepairType::Hull });
+                    }
                 }
             });
         });

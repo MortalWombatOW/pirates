@@ -306,11 +306,11 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 4.6.1 | Create `RepairSystem` | 4.2.4, 2.2.2, 2.2.4 | Repairs cost gold. |
-| 4.6.2 | Implement repair sails | 4.6.1 | Restore `sails` HP. |
-| 4.6.3 | Implement repair rudder | 4.6.1 | Restore `rudder` HP. |
-| 4.6.4 | Implement repair hull | 4.6.1 | Restore `hull` HP, remove `WaterIntake`. |
-| 4.6.5 | Display repair costs | 4.6.1, 4.2.4 | UI shows cost per component. |
+| [x] 4.6.1 | Create `RepairSystem` | 4.2.4, 2.2.2, 2.2.4 | Repairs cost gold. |
+| [x] 4.6.2 | Implement repair sails | 4.6.1 | Restore `sails` HP. |
+| [x] 4.6.3 | Implement repair rudder | 4.6.1 | Restore `rudder` HP. |
+| [x] 4.6.4 | Implement repair hull | 4.6.1 | Restore `hull` HP, remove `WaterIntake`. |
+| [x] 4.6.5 | Display repair costs | 4.6.1, 4.2.4 | UI shows cost per component. |
 
 ---
 

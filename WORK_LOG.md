@@ -788,3 +788,33 @@ All 4 tasks completed:
 All 6 tasks completed:
 - 4.5.1-4.5.5: Previously completed
 - 4.5.6: Contract expiry ✅
+
+## 2025-12-21: Epic 4.6 Ship Repair - COMPLETE
+
+### Changes Made
+- **[NEW]** `src/systems/repair.rs`:
+  - `repair_execution_system` handling sails, rudder, hull repairs
+  - `calculate_repair_cost()` function with configurable costs per HP
+  - Sails: 1g/HP, Rudder: 1.5g/HP, Hull: 2g/HP
+  - Hull repair removes `WaterIntake` component
+  - 4 unit tests for cost calculation
+- **[MODIFIED]** `src/events/mod.rs`:
+  - Added `RepairType` enum (Sails, Rudder, Hull)
+  - Added `RepairRequestEvent`
+- **[MODIFIED]** `src/systems/mod.rs`: Exported `repair` module
+- **[MODIFIED]** `src/plugins/port_ui.rs`:
+  - Added `repair_events` EventWriter to `port_ui_system`
+  - Updated `render_docks_panel` to display repair costs
+  - Repair buttons show cost and enabled/disabled based on gold
+  - Emits `RepairRequestEvent` on button click
+
+### Tasks Completed
+- 4.6.1: Create RepairSystem ✅
+- 4.6.2: Implement repair sails ✅
+- 4.6.3: Implement repair rudder ✅
+- 4.6.4: Implement repair hull ✅
+- 4.6.5: Display repair costs ✅
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test systems::repair`: 4/4 tests passed

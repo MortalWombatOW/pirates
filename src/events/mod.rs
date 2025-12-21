@@ -62,3 +62,18 @@ pub struct ContractExpiredEvent {
     /// Whether this was an accepted contract (affects player negatively).
     pub was_accepted: bool,
 }
+
+/// Type of ship component to repair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepairType {
+    Sails,
+    Rudder,
+    Hull,
+}
+
+/// Event emitted when the player requests a ship repair.
+#[derive(Event, Debug)]
+pub struct RepairRequestEvent {
+    /// Which component to repair.
+    pub repair_type: RepairType,
+}

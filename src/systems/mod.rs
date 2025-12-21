@@ -8,6 +8,7 @@ pub mod navigation;
 pub mod world_tick;
 pub mod economy;
 pub mod contract;
+pub mod repair;
 
 pub use ship::*;
 pub use movement::*;
@@ -19,3 +20,4 @@ pub use navigation::*;
 pub use world_tick::*;
 pub use economy::*;
 pub use contract::*;
+pub use repair::*;
