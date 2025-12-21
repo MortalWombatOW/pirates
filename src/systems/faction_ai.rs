@@ -6,7 +6,8 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use crate::resources::{FactionRegistry, WorldClock};
-use crate::components::{FactionId, Faction, Port};
+use crate::components::{FactionId, Faction, Port, Ship, AI, Health};
+use crate::plugins::worldmap::HighSeasAI;
 
 /// Runs faction simulation logic once per in-game hour.
 /// 
@@ -57,7 +58,6 @@ fn run_faction_tick(
         );
     }
 
-    // TODO(5.2.5): Spawn ships if gold permits and routes need fulfillment
     // TODO(5.2.6): Check for hostile player in territory, respond with ships
 }
 
@@ -66,6 +66,12 @@ const MAX_ROUTES_PER_FACTION: usize = 5;
 
 /// Cost in gold to establish a new trade route.
 const ROUTE_ESTABLISHMENT_COST: u32 = 500;
+
+/// Cost in gold to commission a new ship.
+const SHIP_COMMISSION_COST: u32 = 1000;
+
+/// Maximum ships a faction can own.
+const MAX_SHIPS_PER_FACTION: u32 = 20;
 
 /// Generates trade routes between ports belonging to the same faction.
 /// 
@@ -148,6 +154,97 @@ pub fn trade_route_generation_system(
             if state.trade_routes.len() >= MAX_ROUTES_PER_FACTION {
                 break;
             }
+        }
+    }
+}
+
+/// Spawns ships for factions that have trade routes but insufficient ships.
+/// 
+/// This system runs once per in-game day and:
+/// - Checks each faction's ship count vs route count
+/// - Spawns ships at faction ports if gold permits
+/// - Each route needs at least one ship to be fulfilled
+pub fn faction_ship_spawning_system(
+    world_clock: Res<WorldClock>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut faction_registry: ResMut<FactionRegistry>,
+    port_query: Query<(Entity, &Transform, &Faction), With<Port>>,
+) {
+    // Run once per day at hour 6 (after midnight route generation)
+    if world_clock.tick != 0 || world_clock.hour != 6 {
+        return;
+    }
+
+    // Group port transforms by faction
+    let mut port_positions_by_faction: HashMap<FactionId, Vec<Vec2>> = HashMap::new();
+    for (_, transform, faction) in &port_query {
+        port_positions_by_faction
+            .entry(faction.0)
+            .or_default()
+            .push(transform.translation.truncate());
+    }
+
+    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
+
+    // For each faction, spawn ships if needed
+    for (faction_id, state) in faction_registry.factions.iter_mut() {
+        // Skip Pirates - they spawn differently (raiding, not trading)
+        if *faction_id == FactionId::Pirates {
+            continue;
+        }
+
+        // Skip if no ports or no routes
+        let Some(port_positions) = port_positions_by_faction.get(faction_id) else {
+            continue;
+        };
+        if state.trade_routes.is_empty() {
+            continue;
+        }
+
+        // Calculate needed ships: at least 1 per route
+        let needed_ships = state.trade_routes.len() as u32;
+        
+        // Spawn ships until we have enough or run out of gold/capacity
+        while state.ships < needed_ships 
+            && state.ships < MAX_SHIPS_PER_FACTION 
+            && state.gold >= SHIP_COMMISSION_COST 
+        {
+            // Choose a random port to spawn at
+            use rand::Rng;
+            let spawn_pos = port_positions[rand::thread_rng().gen_range(0..port_positions.len())];
+            
+            // Offset slightly from port center
+            let offset = Vec2::new(
+                rand::thread_rng().gen_range(-100.0..100.0),
+                rand::thread_rng().gen_range(-100.0..100.0),
+            );
+            let final_pos = spawn_pos + offset;
+
+            // Spawn the ship
+            commands.spawn((
+                Name::new(format!("{:?} Merchant Ship", faction_id)),
+                Ship,
+                AI,
+                Faction(*faction_id),
+                HighSeasAI,
+                Health::default(),
+                Sprite {
+                    image: texture_handle.clone(),
+                    custom_size: Some(Vec2::splat(48.0)),
+                    flip_y: true,
+                    ..default()
+                },
+                Transform::from_xyz(final_pos.x, final_pos.y, 1.0),
+            ));
+
+            state.ships += 1;
+            state.gold = state.gold.saturating_sub(SHIP_COMMISSION_COST);
+
+            info!(
+                "Faction {:?} commissioned new ship (total: {}, gold remaining: {})",
+                faction_id, state.ships, state.gold
+            );
         }
     }
 }
