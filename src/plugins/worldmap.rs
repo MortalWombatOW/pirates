@@ -11,6 +11,7 @@ use crate::systems::{
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
+use crate::events::CombatTriggeredEvent;
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -27,14 +28,22 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
             .init_resource::<EncounterSpatialHash>()
+            .init_resource::<EncounterCooldown>()
+            .add_event::<CombatTriggeredEvent>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
-            .add_systems(OnEnter(GameState::HighSeas), (spawn_tilemap_from_map_data, spawn_high_seas_player, spawn_high_seas_ai_ships))
+            .add_systems(OnEnter(GameState::HighSeas), (
+                spawn_tilemap_from_map_data, 
+                spawn_high_seas_player, 
+                spawn_high_seas_ai_ships,
+                reset_encounter_cooldown,
+            ))
             .add_systems(Update, (
                 fog_of_war_update_system,
                 update_fog_tilemap_system,
                 fog_of_war_ai_visibility_system,
                 rebuild_encounter_spatial_hash,
                 encounter_detection_system.after(rebuild_encounter_spatial_hash),
+                handle_combat_trigger_system.after(encounter_detection_system),
                 click_to_navigate_system,
                 pathfinding_system.after(click_to_navigate_system),
                 navigation_movement_system.after(pathfinding_system),
@@ -78,6 +87,13 @@ pub struct EncounterSpatialHash {
 
 /// Encounter detection radius in world units (2 tiles = 128 units)
 const ENCOUNTER_RADIUS: f32 = 128.0;
+
+/// Cooldown to prevent rapid encounter re-triggering.
+#[derive(Resource, Default)]
+pub struct EncounterCooldown {
+    /// If true, an encounter is being processed and no new ones should trigger.
+    pub active: bool,
+}
 
 /// Creates a procedural tileset texture with colors for each tile type.
 /// 
@@ -450,13 +466,19 @@ fn rebuild_encounter_spatial_hash(
     }
 }
 
-/// Detects when the player is near AI ships and logs the encounter.
-/// Actual combat triggering is implemented in task 3.6.5.
+/// Detects when the player is near hostile AI ships and triggers combat.
 fn encounter_detection_system(
     encounter_hash: Res<EncounterSpatialHash>,
+    encounter_cooldown: Res<EncounterCooldown>,
     player_query: Query<&Transform, (With<Player>, With<HighSeasPlayer>)>,
-    ai_query: Query<(&Transform, &Faction, Option<&Name>), With<HighSeasAI>>,
+    ai_query: Query<(Entity, &Transform, &Faction, Option<&Name>), With<HighSeasAI>>,
+    mut combat_events: EventWriter<CombatTriggeredEvent>,
 ) {
+    // Don't trigger new encounters while one is being processed
+    if encounter_cooldown.active {
+        return;
+    }
+    
     let Ok(player_transform) = player_query.get_single() else {
         return;
     };
@@ -464,20 +486,62 @@ fn encounter_detection_system(
     let player_pos = player_transform.translation.truncate();
     let nearby_ships = encounter_hash.hash.query(player_pos, ENCOUNTER_RADIUS);
     
-    for &entity in &nearby_ships {
-        if let Ok((ai_transform, faction, name)) = ai_query.get(*entity) {
+    for &entity_ref in &nearby_ships {
+        let entity = *entity_ref;
+        if let Ok((_, ai_transform, faction, name)) = ai_query.get(entity) {
             let ai_pos = ai_transform.translation.truncate();
             let distance = player_pos.distance(ai_pos);
             
             // Double-check distance (spatial hash is approximate)
             if distance <= ENCOUNTER_RADIUS {
-                let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
-                info!(
-                    "Encounter detected! {} ({:?}) at distance {:.0}",
-                    ship_name, faction.0, distance
-                );
-                // TODO (3.6.5): Emit CombatTriggeredEvent here
+                // Hostility check (3.6.4): Pirates are always hostile
+                let is_hostile = matches!(faction.0, FactionId::Pirates);
+                
+                if is_hostile {
+                    let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
+                    info!(
+                        "Hostile encounter! {} ({:?}) at distance {:.0} - triggering combat!",
+                        ship_name, faction.0, distance
+                    );
+                    
+                    // Emit combat triggered event (3.6.5)
+                    combat_events.send(CombatTriggeredEvent {
+                        enemy_entity: entity,
+                        enemy_faction: faction.0,
+                    });
+                    
+                    // Only trigger one encounter at a time
+                    return;
+                }
             }
         }
     }
+}
+
+/// Handles combat trigger events by transitioning to Combat state.
+fn handle_combat_trigger_system(
+    mut combat_events: EventReader<CombatTriggeredEvent>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut encounter_cooldown: ResMut<EncounterCooldown>,
+) {
+    for event in combat_events.read() {
+        info!(
+            "Combat triggered by {:?} faction ship! Transitioning to Combat state.",
+            event.enemy_faction
+        );
+        
+        // Set cooldown to prevent re-triggering
+        encounter_cooldown.active = true;
+        
+        // Transition to combat state (3.6.6)
+        next_state.set(GameState::Combat);
+        
+        // Only handle one event per frame
+        break;
+    }
+}
+
+/// Resets the encounter cooldown when entering HighSeas state.
+fn reset_encounter_cooldown(mut cooldown: ResMut<EncounterCooldown>) {
+    cooldown.active = false;
 }

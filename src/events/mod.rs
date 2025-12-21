@@ -15,3 +15,12 @@ pub struct CombatEndedEvent {
     /// True if player won (all enemies destroyed), false if fled.
     pub victory: bool,
 }
+
+/// Event emitted when a hostile encounter is triggered on the High Seas.
+#[derive(Event, Debug)]
+pub struct CombatTriggeredEvent {
+    /// The enemy entity that triggered the encounter.
+    pub enemy_entity: Entity,
+    /// The faction of the enemy.
+    pub enemy_faction: crate::components::FactionId,
+}

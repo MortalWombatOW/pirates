@@ -530,3 +530,14 @@ Created the EncounterSystem for detecting player proximity to AI ships.
 - Created `rebuild_encounter_spatial_hash` system to update positions each frame
 - Created `encounter_detection_system` to log when player is within 128 units of AI ships
 - Integrated systems into WorldMapPlugin Update schedule
+
+## 2025-12-20: Tasks 3.6.4-3.6.6 - Encounter Combat Flow
+
+Completed the encounter-to-combat system.
+
+**Changes:**
+- Added `CombatTriggeredEvent` to `events/mod.rs`
+- Added hostility check: Pirates always hostile (3.6.4)
+- Updated `encounter_detection_system` to emit `CombatTriggeredEvent` (3.6.5)
+- Added `handle_combat_trigger_system` to transition to Combat state (3.6.6)
+- Added `EncounterCooldown` resource to prevent rapid re-triggering
