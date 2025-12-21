@@ -33,3 +33,18 @@
 ## 5. UI & Rendering
 * **Debug UI**: Use `bevy_egui` for all debug tools.
 * **Camera**: Use `Camera2d` component. Panning/Zooming logic must handle resolution scaling.
+
+## 6. Faction AI System
+* **Schedule**: `FactionRegistry` is a global resource, NOT a component. Faction AI systems run on `FixedUpdate` for deterministic simulation.
+* **Hourly Ticks**: `faction_ai_system` uses `WorldClock.tick == 0` to run once per in-game hour, not every frame.
+* **Daily Events**: Route generation runs at midnight (`hour == 0`), ship spawning at hour 6. This sequencing ensures routes exist before ships spawn.
+* **Threat Detection**: `faction_threat_response_system` runs on `Update` (not `FixedUpdate`) because it's proximity-based and needs immediate response, not deterministic replay.
+* **Hostility Threshold**: Factions are hostile when `player_reputation < -50`. Pirates start at `-100` (always hostile).
+
+## 7. Order Execution System
+* **No Change Detection**: `order_execution_system` intentionally does NOT use `Changed<OrderQueue>` because:
+  1. It must check if navigation completed (path becomes empty)
+  2. Order state mutates internally (e.g., `outbound` flag toggles)
+* **Navigation Integration**: Orders set `Destination` component, which triggers `pathfinding_system`. Ships need both `OrderQueue` AND navigation components.
+* **Port Entity References**: `TradeRoute` orders store port `Entity` IDs. If a port is despawned (leaving HighSeas), routes become invalid and are cleaned up.
+* **Order Cycling**: Repeating orders (TradeRoute, Patrol) pop themselves and push a modified copy to implement loops.
