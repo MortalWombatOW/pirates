@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
-use crate::resources::Wind;
-use crate::systems::wind_system;
+use crate::resources::{Wind, WorldClock};
+use crate::systems::{wind_system, world_tick_system};
 use leafwing_input_manager::prelude::*;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -21,6 +21,7 @@ impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
             .init_resource::<Wind>()
+            .init_resource::<WorldClock>()
             .add_systems(Startup, spawn_camera)
             .add_systems(Update, (
                 debug_state_transitions,
@@ -29,7 +30,8 @@ impl Plugin for CorePlugin {
                 camera_follow.run_if(in_state(GameState::Combat).or(in_state(GameState::HighSeas))),
                 draw_ocean_grid,
                 wind_system,
-            ));
+            ))
+            .add_systems(FixedUpdate, world_tick_system);
     }
 }
 

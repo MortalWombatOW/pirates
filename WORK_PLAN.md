@@ -323,9 +323,9 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 5.1.1 | Define `WorldClock` resource | 1.1.3 | Resource with `day`, `hour`, `tick`. |
-| 5.1.2 | Create `WorldTickSystem` | 5.1.1 | Runs on `FixedUpdate`, increments clock. |
-| 5.1.3 | Display time on HUD | 5.1.1, 1.4.1 | Shows "Day X, Hour Y". |
+| [x] 5.1.1 | Define `WorldClock` resource | 1.1.3 | Resource with `day`, `hour`, `tick`. |
+| [x] 5.1.2 | Create `WorldTickSystem` | 5.1.1 | Runs on `FixedUpdate`, increments clock. |
+| [x] 5.1.3 | Display time on HUD | 5.1.1, 1.4.1 | Shows "Day X, Hour Y". |
 
 ### Epic 5.2: Faction AI
 

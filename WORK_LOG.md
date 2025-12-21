@@ -662,3 +662,25 @@ Implemented the contract/quest system for jobs.
 ### Tasks Completed
 - [x] 4.5.1-4.5.5: Contract components, generation, acceptance, tracking, completion
 - [~] 4.5.6: Contract expiry deferred (requires WorldClock from 5.1)
+
+## 2025-12-20: Epic 5.1 World Tick (5.1.1, 5.1.2, 5.1.3)
+
+### Changes Made
+- **[NEW]** `src/resources/world_clock.rs`: `WorldClock` resource with `day`, `hour`, `tick` fields
+  - `advance()` method for tick progression
+  - `formatted_time()` for HUD display
+  - 6 unit tests for clock behavior
+- **[NEW]** `src/systems/world_tick.rs`: `world_tick_system` running on `FixedUpdate`
+- **[MODIFIED]** `src/plugins/core.rs`: Added `WorldClock` resource init and `world_tick_system` registration
+- **[MODIFIED]** `src/plugins/debug_ui.rs`: Added "World Clock" section showing "Day X, Hour Y"
+- **[MODIFIED]** `src/resources/mod.rs`: Exported `world_clock` module
+- **[MODIFIED]** `src/systems/mod.rs`: Exported `world_tick` module
+
+### Design Notes
+- Clock runs unconditionally across all game states
+- At 60Hz FixedUpdate: 1 hour ≈ 1 second, 1 day ≈ 24 seconds
+- `TICKS_PER_HOUR = 60` constant controls time scaling
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test resources::world_clock`: 6/6 tests passed
