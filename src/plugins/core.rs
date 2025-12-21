@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
 use crate::resources::{Wind, WorldClock, FactionRegistry};
-use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, faction_ai_system, GlobalDemand};
+use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, faction_ai_system, trade_route_generation_system, GlobalDemand};
 use crate::events::ContractExpiredEvent;
 use leafwing_input_manager::prelude::*;
 
@@ -41,6 +41,7 @@ impl Plugin for CorePlugin {
                 goods_decay_system.after(world_tick_system),
                 contract_expiry_system.after(world_tick_system),
                 faction_ai_system.after(world_tick_system),
+                trade_route_generation_system.after(faction_ai_system),
             ));
     }
 }
