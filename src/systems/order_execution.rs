@@ -219,3 +219,70 @@ fn execute_scout(
         commands.entity(entity).insert(Destination { target });
     }
 }
+
+/// System that calculates simple paths for AI ships.
+/// 
+/// Unlike player pathfinding, AI ships use direct line navigation
+/// since they are visual-only in High Seas (no collision with land).
+pub fn ai_pathfinding_system(
+    mut commands: Commands,
+    query: Query<
+        (Entity, &Destination),
+        (With<AI>, With<Ship>, With<HighSeasAI>, Changed<Destination>),
+    >,
+) {
+    for (entity, destination) in &query {
+        // AI ships navigate directly to destination (no pathfinding)
+        // This is simpler and sufficient for visual-only High Seas ships
+        let waypoints = vec![destination.target];
+        commands.entity(entity).insert(NavigationPath { waypoints });
+    }
+}
+
+/// System that moves AI ships along their navigation paths.
+/// 
+/// AI ships move at a fixed speed toward their waypoints.
+pub fn ai_movement_system(
+    mut commands: Commands,
+    mut query: Query<
+        (Entity, &mut Transform, &mut NavigationPath),
+        (With<AI>, With<Ship>, With<HighSeasAI>),
+    >,
+    time: Res<Time>,
+) {
+    const AI_SHIP_SPEED: f32 = 150.0;
+    
+    for (entity, mut transform, mut path) in &mut query {
+        let Some(next_waypoint) = path.next_waypoint() else {
+            // Path complete - remove navigation components
+            commands.entity(entity).remove::<NavigationPath>();
+            commands.entity(entity).remove::<Destination>();
+            continue;
+        };
+        
+        let current_pos = transform.translation.truncate();
+        let direction = next_waypoint - current_pos;
+        let distance = direction.length();
+        
+        // Waypoint reached threshold
+        if distance < 32.0 {
+            path.pop_waypoint();
+            continue;
+        }
+        
+        let direction_normalized = direction.normalize();
+        
+        // Move toward waypoint
+        let movement = direction_normalized * AI_SHIP_SPEED * time.delta_secs();
+        transform.translation.x += movement.x;
+        transform.translation.y += movement.y;
+        
+        // Rotate to face direction of movement
+        let target_angle = direction_normalized.y.atan2(direction_normalized.x) - std::f32::consts::FRAC_PI_2;
+        let target_rotation = Quat::from_rotation_z(target_angle);
+        
+        // Smooth rotation
+        let rotation_speed = 2.0;
+        transform.rotation = transform.rotation.slerp(target_rotation, rotation_speed * time.delta_secs());
+    }
+}
