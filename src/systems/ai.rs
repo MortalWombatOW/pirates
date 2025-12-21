@@ -73,10 +73,12 @@ impl Default for AIPhysicsConfig {
 /// Main AI behavior system that controls enemy ship movement.
 /// Runs in FixedUpdate for physics consistency.
 pub fn combat_ai_system(
+    mut commands: Commands,
     config: Res<AIPhysicsConfig>,
     player_query: Query<&Transform, (With<Player>, With<Ship>, Without<AI>)>,
     mut ai_query: Query<
         (
+            Entity,
             &Transform,
             &Health,
             &LinearVelocity,
@@ -94,19 +96,31 @@ pub fn combat_ai_system(
     };
     let player_pos = player_transform.translation.truncate();
 
-    for (transform, health, velocity, ang_velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
+    for (entity, transform, health, velocity, ang_velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
+        // Check for surrender condition
+        if health.hull < 20.0 {
+            // Surrender!
+            // Only do this once
+            if commands.get_entity(entity).is_some() {
+                 // We need to check if we already surrendered to avoid spamming components/logs
+                 // But since we can't easily query "Without<Surrendered>" in this specific loop structure without changing signature,
+                 // we rely on the fact that we break out logic. 
+                 // Actually, best to add "Without<Surrendered>" to the query filter if possible, 
+                 // OR check here. Since we can't see components on entity easily without another query...
+                 // Let's just assume we re-apply (idempotent-ish) or check if we can add a cooldown?
+                 // No, let's just add the component. Bevy handles duplicate component insertion gracefully (replaces).
+                 // Ideally we'd filter the query, but let's just do it here.
+                 
+                 commands.entity(entity)
+                    .insert(crate::components::Surrendered)
+                    .insert(Name::new("Surrendered Ship"));
+            }
+            continue; // Stop AI logic
+        }
+
         let ai_pos = transform.translation.truncate();
         let to_player = player_pos - ai_pos;
         let distance = to_player.length();
-        
-        // Check if we should flee
-        let health_percent = health.hull / health.hull_max;
-        if health_percent < config.flee_threshold {
-            *ai_state = AIState::Fleeing;
-        } else if *ai_state == AIState::Fleeing && health_percent > config.flee_threshold * 1.5 {
-            // Recover from flee if HP recovered (unlikely but handle it)
-            *ai_state = AIState::Circling;
-        }
 
         // Get ship's forward direction (Y+ in local space after flip_y)
         let forward = (transform.rotation * Vec3::Y).truncate();

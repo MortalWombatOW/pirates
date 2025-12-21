@@ -33,12 +33,14 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<EncounterSpatialHash>()
             .init_resource::<EncounterCooldown>()
             .init_resource::<EncounteredEnemy>()
+            .init_resource::<crate::resources::PlayerFleet>()
             .add_event::<CombatTriggeredEvent>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
             .add_systems(OnEnter(GameState::HighSeas), (
                 spawn_tilemap_from_map_data, 
                 spawn_high_seas_player, 
                 spawn_high_seas_ai_ships,
+                spawn_player_fleet,
                 spawn_port_entities,
                 reset_encounter_cooldown,
             ))
@@ -623,5 +625,53 @@ fn despawn_port_entities(
         commands.entity(entity).despawn_recursive();
     }
     info!("Despawned {} port entities", count);
+}
+
+/// System to spawn the player's fleet when entering HighSeas.
+pub fn spawn_player_fleet(
+    mut commands: Commands,
+    player_fleet: Res<crate::resources::PlayerFleet>,
+    // We need the player entity for the Escort order
+    player_query: Query<(Entity, &Transform), With<crate::components::Player>>,
+    asset_server: Res<AssetServer>,
+) {
+    let Ok((player_entity, player_transform)) = player_query.get_single() else {
+        return;
+    };
+    let player_pos = player_transform.translation.truncate();
+
+    for (i, ship_data) in player_fleet.ships.iter().enumerate() {
+        // Spawn fleet ships in a formation behind the player
+        let offset = Vec2::new(30.0 * (i as f32 + 1.0), -30.0 * (i as f32 + 1.0));
+        let spawn_pos = player_pos + offset;
+        
+        // Load sprite (default if path fails, though assume valid for now)
+        let texture_handle = asset_server.load(&ship_data.sprite_path);
+
+        commands.spawn((
+            Name::new(format!("Fleet Ship: {}", ship_data.name)),
+            crate::components::Ship,
+            crate::components::AI,
+            crate::components::PlayerOwned,
+            HighSeasAI,
+            crate::components::Health {
+                hull: ship_data.hull_health,
+                hull_max: ship_data.max_hull_health,
+                ..default()
+            },
+            Sprite {
+                image: texture_handle,
+                custom_size: Some(Vec2::splat(48.0)), // Consistent size
+                flip_y: true,
+                ..default()
+            },
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 1.0),
+            // Default order: Escort the player
+            crate::components::OrderQueue::with_order(crate::components::Order::Escort {
+                target: player_entity,
+                follow_distance: 60.0 + (i as f32 * 20.0), // Staggered follow distance
+            }),
+        ));
+    }
 }
 

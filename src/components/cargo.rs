@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 /// Types of goods that can be traded in the game.
 /// Each good has different economic properties (see `GoodsTrait`).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Reflect)]
 pub enum GoodType {
     #[default]
     Rum,
@@ -16,7 +16,7 @@ pub enum GoodType {
 }
 
 /// Traits that modify how goods behave in the economy.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
 pub enum GoodsTrait {
     /// Loses value over time.
     Perishable,
@@ -42,7 +42,7 @@ impl GoodType {
 
 /// Represents the cargo hold of a ship.
 /// Contains goods and tracks capacity limits.
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct Cargo {
     /// Map of goods to quantities currently held.
     pub goods: HashMap<GoodType, u32>,
@@ -115,7 +115,7 @@ impl Default for Cargo {
 }
 
 /// Represents the gold (currency) held by an entity.
-#[derive(Component, Debug, Clone, Copy, Default)]
+#[derive(Component, Debug, Clone, Copy, Default, Reflect)]
 pub struct Gold(pub u32);
 
 impl Gold {

@@ -13,6 +13,14 @@ pub struct Player;
 #[derive(Component, Debug, Default)]
 pub struct AI;
 
+/// Marker component for ships owned by the player but controlled by AI (fleet members).
+#[derive(Component, Debug, Default)]
+pub struct PlayerOwned;
+
+/// Marker component for ships that have surrendered in combat.
+#[derive(Component, Debug, Default)]
+pub struct Surrendered;
+
 /// Faction identifier for ships and ports.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
 pub enum FactionId {

@@ -367,9 +367,9 @@ pub fn spawn_test_current_zone(mut commands: Commands) {
     ));
 }
 
-/// System that detects combat victory when all AI ships are destroyed.
+/// System that detects combat victory when all AI ships are destroyed or surrendered.
 pub fn combat_victory_system(
-    ai_ships: Query<Entity, (With<Ship>, With<AI>)>,
+    ai_ships: Query<(Entity, Option<&Surrendered>), (With<Ship>, With<AI>)>,
     player_ships: Query<Entity, (With<Ship>, With<Player>)>,
     mut combat_ended_events: EventWriter<crate::events::CombatEndedEvent>,
 ) {
@@ -378,20 +378,48 @@ pub fn combat_victory_system(
         return;
     }
     
-    // Victory when all AI ships are destroyed
+    // Victory when all AI ships are destroyed OR surrendered
     if ai_ships.is_empty() {
-        info!("All enemies destroyed!");
+        // Technically this is victory if no enemies existed, but usually we spawn some
+        // Let's assume victory if empty to be safe
+        info!("No enemies present - Victory!");
+        combat_ended_events.send(crate::events::CombatEndedEvent { victory: true });
+        return;
+    }
+
+    // Check if any active combatants remain
+    let active_enemies = ai_ships.iter().filter(|(_, surrendered)| surrendered.is_none()).count();
+    
+    if active_enemies == 0 {
+        info!("All enemies destroyed or surrendered!");
         combat_ended_events.send(crate::events::CombatEndedEvent { victory: true });
     }
 }
 
-/// System that handles combat victory by transitioning to HighSeas state.
+/// System that handles combat victory by capturing surrendered ships and transitioning state.
 pub fn handle_combat_victory_system(
+    mut commands: Commands,
     mut combat_ended_events: EventReader<crate::events::CombatEndedEvent>,
     mut next_state: ResMut<NextState<crate::plugins::core::GameState>>,
+    surrendered_ships: Query<(&Health, &Name, Option<&Cargo>), (With<Ship>, With<Surrendered>)>,
+    mut player_fleet: ResMut<PlayerFleet>,
 ) {
     for event in combat_ended_events.read() {
         if event.victory {
+            // Process surrendered ships
+            for (health, name, cargo) in &surrendered_ships {
+                let ship_data = ShipData {
+                    sprite_path: "sprites/ships/round_ship_small.png".to_string(), // Todo: preserve actual sprite
+                    hull_health: health.hull,
+                    max_hull_health: 100.0, // Hardcoded for now, should read from component
+                    cargo: cargo.cloned(),
+                    name: name.as_str().to_string(),
+                };
+                
+                info!("Captured ship: {}", ship_data.name);
+                player_fleet.ships.push(ship_data);
+            }
+
             info!("Combat victory! Transitioning to HighSeas state.");
             next_state.set(crate::plugins::core::GameState::HighSeas);
         }
