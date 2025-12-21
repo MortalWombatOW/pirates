@@ -287,9 +287,10 @@
 | [x] 5.3.2 | Define `OrderQueue` component | 5.3.1 | Queue of `Order`. |
 | [x] 5.3.3 | Create `OrderExecutionSystem` | 5.3.2 | Reads orders, drives ship navigation. |
 | [x] 5.3.4 | Implement `TradeRoute` order | 5.3.3 | Ship navigates from A to B, trades, repeats. |
-| [ ] 5.3.5 | Implement `Patrol` order | 5.3.3 | Ship moves around area, engages hostiles. |
-| [ ] 5.3.6 | Implement `Escort` order | 5.3.3 | Ship follows target entity. |
-| [ ] 5.3.7 | Implement `Scout` order | 5.3.3 | Ship explores area, reports intel. |
+| [ ] 5.3.5 | Evaluate AI pathfinding with caching | 5.3.4 | Plan how AI ships use A* pathfinding with route caching (e.g., trade routes reused). |
+| [ ] 5.3.6 | Implement `Patrol` order | 5.3.3 | Ship moves around area, engages hostiles. |
+| [ ] 5.3.7 | Implement `Escort` order | 5.3.3 | Ship follows target entity. |
+| [ ] 5.3.8 | Implement `Scout` order | 5.3.3 | Ship explores area, reports intel. |
 
 ### Epic 5.4: Player Fleet Management
 | ID | Task | Dependencies | Acceptance Criteria |
