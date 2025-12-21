@@ -6,8 +6,8 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use crate::resources::{FactionRegistry, WorldClock};
-use crate::components::{FactionId, Faction, Port, Ship, AI, Health};
-use crate::plugins::worldmap::HighSeasAI;
+use crate::components::{FactionId, Faction, Port, Ship, AI, Health, Player};
+use crate::plugins::worldmap::{HighSeasAI, HighSeasPlayer};
 
 /// Runs faction simulation logic once per in-game hour.
 /// 
@@ -57,8 +57,6 @@ fn run_faction_tick(
             state.trade_routes.len()
         );
     }
-
-    // TODO(5.2.6): Check for hostile player in territory, respond with ships
 }
 
 /// Maximum number of trade routes a faction can maintain.
@@ -72,6 +70,15 @@ const SHIP_COMMISSION_COST: u32 = 1000;
 
 /// Maximum ships a faction can own.
 const MAX_SHIPS_PER_FACTION: u32 = 20;
+
+/// Distance in world units that triggers a faction threat response.
+const THREAT_DETECTION_RADIUS: f32 = 1000.0;
+
+/// Cost in gold to deploy an interceptor ship.
+const INTERCEPTOR_COST: u32 = 500;
+
+/// Maximum interceptors a faction can deploy per threat response.
+const MAX_INTERCEPTORS_PER_RESPONSE: u32 = 3;
 
 /// Generates trade routes between ports belonging to the same faction.
 /// 
@@ -245,6 +252,135 @@ pub fn faction_ship_spawning_system(
                 "Faction {:?} commissioned new ship (total: {}, gold remaining: {})",
                 faction_id, state.ships, state.gold
             );
+        }
+    }
+}
+
+/// Tracks cooldown for faction threat responses to prevent spam.
+#[derive(Resource, Default)]
+pub struct ThreatResponseCooldown {
+    /// Map of faction -> ticks until they can respond again.
+    pub cooldowns: HashMap<FactionId, u32>,
+}
+
+/// Cooldown duration in ticks (roughly 10 in-game hours at 60Hz FixedUpdate).
+const THREAT_COOLDOWN_TICKS: u32 = 600;
+
+/// Spawns interceptor ships when the player approaches hostile faction territory.
+/// 
+/// This system checks if the player is within THREAT_DETECTION_RADIUS of any
+/// hostile faction's ports, and deploys interceptor ships in response.
+pub fn faction_threat_response_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut faction_registry: ResMut<FactionRegistry>,
+    mut cooldowns: ResMut<ThreatResponseCooldown>,
+    player_query: Query<&Transform, (With<Player>, With<HighSeasPlayer>)>,
+    port_query: Query<(&Transform, &Faction), With<Port>>,
+) {
+    // Early-exit if no player in High Seas
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    let player_pos = player_transform.translation.truncate();
+
+    // Decrement all cooldowns each tick
+    for cooldown in cooldowns.cooldowns.values_mut() {
+        *cooldown = cooldown.saturating_sub(1);
+    }
+
+    // Group ports by faction with their positions
+    let mut port_positions_by_faction: HashMap<FactionId, Vec<Vec2>> = HashMap::new();
+    for (transform, faction) in &port_query {
+        port_positions_by_faction
+            .entry(faction.0)
+            .or_default()
+            .push(transform.translation.truncate());
+    }
+
+    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
+
+    // Check each faction for threat response
+    for (faction_id, port_positions) in &port_positions_by_faction {
+        // Check if faction is hostile to player
+        if !faction_registry.is_hostile(*faction_id) {
+            continue;
+        }
+
+        // Check if on cooldown
+        if cooldowns.cooldowns.get(faction_id).copied().unwrap_or(0) > 0 {
+            continue;
+        }
+
+        // Check if player is near any of this faction's ports
+        let player_near_port = port_positions.iter().any(|port_pos| {
+            player_pos.distance(*port_pos) < THREAT_DETECTION_RADIUS
+        });
+
+        if !player_near_port {
+            continue;
+        }
+
+        // Get mutable reference to state for spawning
+        let Some(state) = faction_registry.get_mut(*faction_id) else {
+            continue;
+        };
+
+        // Find the closest port to spawn interceptors
+        let closest_port = port_positions
+            .iter()
+            .min_by(|a, b| {
+                player_pos.distance(**a)
+                    .partial_cmp(&player_pos.distance(**b))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+        let Some(spawn_base) = closest_port else {
+            continue;
+        };
+
+        // Spawn interceptors
+        use rand::Rng;
+        let mut spawned = 0;
+        while spawned < MAX_INTERCEPTORS_PER_RESPONSE 
+            && state.gold >= INTERCEPTOR_COST 
+            && state.ships < MAX_SHIPS_PER_FACTION 
+        {
+            let offset = Vec2::new(
+                rand::thread_rng().gen_range(-150.0..150.0),
+                rand::thread_rng().gen_range(-150.0..150.0),
+            );
+            let spawn_pos = *spawn_base + offset;
+
+            commands.spawn((
+                Name::new(format!("{:?} Interceptor", faction_id)),
+                Ship,
+                AI,
+                Faction(*faction_id),
+                HighSeasAI,
+                Health::default(),
+                Sprite {
+                    image: texture_handle.clone(),
+                    custom_size: Some(Vec2::splat(48.0)),
+                    flip_y: true,
+                    ..default()
+                },
+                Transform::from_xyz(spawn_pos.x, spawn_pos.y, 1.0),
+            ));
+
+            state.ships += 1;
+            state.gold = state.gold.saturating_sub(INTERCEPTOR_COST);
+            spawned += 1;
+        }
+
+        if spawned > 0 {
+            info!(
+                "Faction {:?} deployed {} interceptors to respond to player threat!",
+                faction_id, spawned
+            );
+
+            // Set cooldown
+            cooldowns.cooldowns.insert(*faction_id, THREAT_COOLDOWN_TICKS);
         }
     }
 }

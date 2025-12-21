@@ -278,7 +278,7 @@
 | [x] 5.2.3 | Create `FactionAISystem` | 5.2.1, 5.1.2 | Runs per world tick. |
 | [x] 5.2.4 | Implement trade route generation | 5.2.3 | Faction AI creates routes between ports. |
 | [x] 5.2.5 | Implement ship spawning by faction | 5.2.3, 2.8.3 | Faction spawns ships to fulfill routes. |
-| [ ] 5.2.6 | Implement threat response | 5.2.3 | Faction sends ships to combat player if hostile. |
+| [x] 5.2.6 | Implement threat response | 5.2.3 | Faction sends ships to combat player if hostile. |
 
 ### Epic 5.3: AI Ship Behavior
 | ID | Task | Dependencies | Acceptance Criteria |

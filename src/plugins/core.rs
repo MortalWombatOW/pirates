@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
 use crate::resources::{Wind, WorldClock, FactionRegistry};
-use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, faction_ai_system, trade_route_generation_system, faction_ship_spawning_system, GlobalDemand};
+use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, faction_ai_system, trade_route_generation_system, faction_ship_spawning_system, faction_threat_response_system, ThreatResponseCooldown, GlobalDemand};
 use crate::events::ContractExpiredEvent;
 use leafwing_input_manager::prelude::*;
 
@@ -24,6 +24,7 @@ impl Plugin for CorePlugin {
             .init_resource::<Wind>()
             .init_resource::<WorldClock>()
             .init_resource::<GlobalDemand>()
+            .init_resource::<ThreatResponseCooldown>()
             .insert_resource(FactionRegistry::new())
             .add_event::<ContractExpiredEvent>()
             .add_systems(Startup, spawn_camera)
@@ -34,6 +35,7 @@ impl Plugin for CorePlugin {
                 camera_follow.run_if(in_state(GameState::Combat).or(in_state(GameState::HighSeas))),
                 draw_ocean_grid,
                 wind_system,
+                faction_threat_response_system.run_if(in_state(GameState::HighSeas)),
             ))
             .add_systems(FixedUpdate, (
                 world_tick_system,
