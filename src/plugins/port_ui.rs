@@ -298,10 +298,12 @@ fn trade_execution_system(
 }
 
 /// Generates contracts for ports when entering port state.
+/// Each contract receives an expiry time based on the current WorldClock.
 fn generate_port_contracts(
     mut commands: Commands,
     port_query: Query<Entity, With<Port>>,
     existing_contracts: Query<Entity, With<Contract>>,
+    world_clock: Res<crate::resources::WorldClock>,
 ) {
     use crate::components::cargo::GoodType;
     use rand::Rng;
@@ -311,6 +313,7 @@ fn generate_port_contracts(
         return;
     }
     
+    let current_tick = world_clock.total_ticks();
     let mut rng = rand::thread_rng();
     let ports: Vec<Entity> = port_query.iter().collect();
     
@@ -347,12 +350,17 @@ fn generate_port_contracts(
             
             commands.spawn((
                 Contract,
-                ContractDetails::transport(origin_port, dest_port, good, quantity, reward),
+                ContractDetails::transport_with_expiry(
+                    origin_port, dest_port, good, quantity, reward, current_tick
+                ),
             ));
         }
     }
     
-    info!("Generated contracts for {} ports", ports.len());
+    info!("Generated {} contracts with expiry for {} ports", 
+        ports.len() * 3, // approximate count
+        ports.len()
+    );
 }
 
 /// Renders the Contracts panel.
