@@ -8,6 +8,7 @@ pub mod worldmap;
 pub mod navigation;
 pub mod port;
 pub mod contract;
+pub mod order;
 
 pub use ship::*;
 pub use health::*;
@@ -19,3 +20,4 @@ pub use worldmap::*;
 pub use navigation::*;
 pub use port::*;
 pub use contract::*;
+pub use order::*;
