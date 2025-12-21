@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
+use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::resources::{MapData, FogOfWar};
 use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId};
 use crate::systems::{
@@ -36,6 +37,7 @@ impl Plugin for WorldMapPlugin {
                 spawn_tilemap_from_map_data, 
                 spawn_high_seas_player, 
                 spawn_high_seas_ai_ships,
+                spawn_port_entities,
                 reset_encounter_cooldown,
             ))
             .add_systems(Update, (
@@ -51,7 +53,7 @@ impl Plugin for WorldMapPlugin {
                 path_visualization_system,
                 port_arrival_system,
             ).run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player, despawn_high_seas_ai_ships));
+            .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities));
     }
 }
 
@@ -550,3 +552,62 @@ fn handle_combat_trigger_system(
 fn reset_encounter_cooldown(mut cooldown: ResMut<EncounterCooldown>) {
     cooldown.active = false;
 }
+
+/// Marker component for port entities spawned on the world map.
+#[derive(Component)]
+pub struct HighSeasPort;
+
+/// Spawns port entities at port tile locations on the map.
+/// Each port gets an Inventory with random goods, a generated name, and a faction.
+fn spawn_port_entities(
+    mut commands: Commands,
+    map_data: Res<MapData>,
+) {
+    use rand::Rng;
+    
+    let mut rng = rand::thread_rng();
+    let mut port_count = 0;
+    
+    // Find all port tiles and spawn port entities
+    for (x, y, tile_type) in map_data.iter() {
+        if tile_type.is_port() {
+            // Convert tile coordinates to world position
+            let world_pos = tile_to_world(
+                IVec2::new(x as i32, y as i32), 
+                map_data.width, 
+                map_data.height
+            );
+            
+            // Generate port name and assign random faction (not Pirates)
+            let name = generate_port_name();
+            let faction = match rng.gen_range(0..3) {
+                0 => FactionId::NationA,
+                1 => FactionId::NationB,
+                _ => FactionId::NationC,
+            };
+            
+            // Spawn the port entity using the port plugin function
+            let entity = spawn_port(&mut commands, world_pos, name.clone(), Faction(faction));
+            
+            // Add the HighSeasPort marker for cleanup
+            commands.entity(entity).insert(HighSeasPort);
+            
+            port_count += 1;
+        }
+    }
+    
+    info!("Spawned {} port entities on the map", port_count);
+}
+
+/// Despawns all port entities when leaving the High Seas state.
+fn despawn_port_entities(
+    mut commands: Commands,
+    query: Query<Entity, With<HighSeasPort>>,
+) {
+    let count = query.iter().count();
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    info!("Despawned {} port entities", count);
+}
+

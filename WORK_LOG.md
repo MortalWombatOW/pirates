@@ -551,3 +551,32 @@ Implemented encounter data transfer to combat scene.
 - Updated `handle_combat_trigger_system` to store encounter faction
 - Modified `spawn_combat_enemies` to use `EncounteredEnemy` data
 - Combat now spawns enemy with correct faction from encounter
+
+## 2025-12-20: Epic 4.1 - Port Entity
+
+Implemented the Port entity components and spawning system for Phase 4 (Ports & Economy).
+
+### Changes
+
+- **New**: `src/components/port.rs`
+  - `Port` marker component
+  - `PortName` component for display names
+  - `Inventory` component with `InventoryItem` for goods, quantities, prices
+  - Helper methods for buying/selling operations
+
+- **New**: `src/plugins/port.rs`
+  - `PortPlugin` structure
+  - `spawn_port()` function to create port entities
+  - `generate_random_inventory()` with base prices and randomized stock
+  - `generate_port_name()` with thematic pirate-era names
+
+- **Modified**: `src/plugins/worldmap.rs`
+  - Added `spawn_port_entities` system on `OnEnter(HighSeas)`
+  - Added `despawn_port_entities` system on `OnExit(HighSeas)`
+  - Ports spawn at port tile locations with random faction assignment
+
+### Tasks Completed
+- [x] 4.1.1: Define `Port` marker component
+- [x] 4.1.2: Define `Inventory` component
+- [x] 4.1.3: Create `spawn_port` function
+- [x] 4.1.4: Generate initial inventory for ports

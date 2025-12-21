@@ -256,10 +256,10 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 4.1.1 | Define `Port` marker component | 1.1.3 | Component exists. |
-| 4.1.2 | Define `Inventory` component | 1.1.3 | Component with goods, quantities, prices. |
-| 4.1.3 | Create `spawn_port` function | 4.1.1, 4.1.2 | Spawns port entity with inventory. |
-| 4.1.4 | Generate initial inventory for ports | 4.1.3, 3.2.5 | Each port has random starting goods. |
+| [x] 4.1.1 | Define `Port` marker component | 1.1.3 | Component exists. |
+| [x] 4.1.2 | Define `Inventory` component | 1.1.3 | Component with goods, quantities, prices. |
+| [x] 4.1.3 | Create `spawn_port` function | 4.1.1, 4.1.2 | Spawns port entity with inventory. |
+| [x] 4.1.4 | Generate initial inventory for ports | 4.1.3, 3.2.5 | Each port has random starting goods. |
 
 ### Epic 4.2: Port UI
 
