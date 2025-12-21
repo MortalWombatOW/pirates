@@ -580,3 +580,27 @@ Implemented the Port entity components and spawning system for Phase 4 (Ports & 
 - [x] 4.1.2: Define `Inventory` component
 - [x] 4.1.3: Create `spawn_port` function
 - [x] 4.1.4: Generate initial inventory for ports
+
+## 2025-12-20: Epic 4.2 - Port UI
+
+Implemented the Port View UI with tabbed panel layout using `bevy_egui`.
+
+### Changes
+
+- **New**: `src/plugins/port_ui.rs`
+  - `PortUiPlugin` with `CurrentPort` and `PortUiState` resources
+  - Tabbed layout: Market, Tavern, Docks, Contracts
+  - Market panel shows goods from port `Inventory` with Buy/Sell buttons
+  - Docks panel shows ship HP with progress bars and repair buttons
+  - Tavern/Contracts panels with placeholders for future epics
+  - Depart button to transition back to HighSeas
+
+- **Modified**: `main.rs` - added `PortUiPlugin`
+
+### Tasks Completed
+- [x] 4.2.1: Create Port View layout
+- [x] 4.2.2: Implement Market panel
+- [x] 4.2.3: Implement Tavern panel
+- [x] 4.2.4: Implement Docks panel
+- [x] 4.2.5: Implement Contracts panel
+- [x] 4.2.6: Implement Depart button

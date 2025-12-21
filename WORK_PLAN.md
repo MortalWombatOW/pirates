@@ -265,12 +265,12 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 4.2.1 | Create Port View layout | 1.4.1, 1.2.2 | UI displays when in `PortState`. |
-| 4.2.2 | Implement Market panel | 4.2.1 | Shows goods, prices, buy/sell buttons. |
-| 4.2.3 | Implement Tavern panel | 4.2.1 | Shows intel options, rumors. |
-| 4.2.4 | Implement Docks panel | 4.2.1 | Shows ship HP, repair options. |
-| 4.2.5 | Implement Contracts panel | 4.2.1 | Shows available contracts. |
-| 4.2.6 | Implement Depart button | 4.2.1 | Transitions to `HighSeasState`. |
+| [x] 4.2.1 | Create Port View layout | 1.4.1, 1.2.2 | UI displays when in `PortState`. |
+| [x] 4.2.2 | Implement Market panel | 4.2.1 | Shows goods, prices, buy/sell buttons. |
+| [x] 4.2.3 | Implement Tavern panel | 4.2.1 | Shows intel options, rumors. |
+| [x] 4.2.4 | Implement Docks panel | 4.2.1 | Shows ship HP, repair options. |
+| [x] 4.2.5 | Implement Contracts panel | 4.2.1 | Shows available contracts. |
+| [x] 4.2.6 | Implement Depart button | 4.2.1 | Transitions to `HighSeasState`. |
 
 ### Epic 4.3: Trading
 
