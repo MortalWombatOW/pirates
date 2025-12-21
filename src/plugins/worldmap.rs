@@ -8,7 +8,7 @@ use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId};
 use crate::systems::{
     fog_of_war_update_system, update_fog_tilemap_system, FogTile,
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
-    path_visualization_system, port_arrival_system,
+    path_visualization_system, port_arrival_system, order_execution_system,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
@@ -48,7 +48,8 @@ impl Plugin for WorldMapPlugin {
                 encounter_detection_system.after(rebuild_encounter_spatial_hash),
                 handle_combat_trigger_system.after(encounter_detection_system),
                 click_to_navigate_system,
-                pathfinding_system.after(click_to_navigate_system),
+                order_execution_system,
+                pathfinding_system.after(click_to_navigate_system).after(order_execution_system),
                 navigation_movement_system.after(pathfinding_system),
                 path_visualization_system,
                 port_arrival_system,

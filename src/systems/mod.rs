@@ -10,6 +10,7 @@ pub mod economy;
 pub mod contract;
 pub mod repair;
 pub mod faction_ai;
+pub mod order_execution;
 
 pub use ship::*;
 pub use movement::*;
@@ -23,3 +24,4 @@ pub use economy::*;
 pub use contract::*;
 pub use repair::*;
 pub use faction_ai::*;
+pub use order_execution::*;

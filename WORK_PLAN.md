@@ -285,7 +285,7 @@
 |---|---|---|---|
 | [x] 5.3.1 | Define `Order` enum | 1.1.3 | `TradeRoute`, `Patrol`, `Escort`, `Scout`. |
 | [x] 5.3.2 | Define `OrderQueue` component | 5.3.1 | Queue of `Order`. |
-| [ ] 5.3.3 | Create `OrderExecutionSystem` | 5.3.2 | Reads orders, drives ship navigation. |
+| [x] 5.3.3 | Create `OrderExecutionSystem` | 5.3.2 | Reads orders, drives ship navigation. |
 | [ ] 5.3.4 | Implement `TradeRoute` order | 5.3.3 | Ship navigates from A to B, trades, repeats. |
 | [ ] 5.3.5 | Implement `Patrol` order | 5.3.3 | Ship moves around area, engages hostiles. |
 | [ ] 5.3.6 | Implement `Escort` order | 5.3.3 | Ship follows target entity. |
