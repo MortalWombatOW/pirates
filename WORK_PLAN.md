@@ -300,7 +300,7 @@
 | [x] 4.5.3 | Implement contract acceptance | 4.5.1, 4.2.5 | Player accepts, contract added to active list. |
 | [x] 4.5.4 | Implement contract tracking | 4.5.3 | Track progress (cargo delivered, area explored). |
 | [x] 4.5.5 | Implement contract completion | 4.5.4 | On conditions met, reward paid, `ContractCompletedEvent`. |
-| [~] 4.5.6 | Implement contract expiry | 4.5.1 | Deferred: requires WorldClock (Epic 5.1). |
+| [x] 4.5.6 | Implement contract expiry | 4.5.1, 5.1.1 | Contracts expire after time limit. |
 
 ### Epic 4.6: Ship Repair
 

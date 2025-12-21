@@ -757,3 +757,34 @@ All 4 tasks completed:
 - 4.4.2: Supply-based pricing ✅
 - 4.4.3: Demand-based pricing ✅
 - 4.4.4: Perishable goods decay ✅
+
+## 2025-12-21: Task 4.5.6 - Implement contract expiry
+
+### Changes Made
+- **[MODIFIED]** `src/components/contract.rs`:
+  - Added `expiry_tick: Option<u32>` field to `ContractDetails`
+  - Added `DEFAULT_DURATION_TICKS` constant (2 days = 2880 ticks)
+  - Added `transport_with_expiry()` and `explore_with_expiry()` constructors
+  - Added `is_expired()` method
+- **[NEW]** `src/systems/contract.rs`: `contract_expiry_system` with 3 unit tests
+- **[MODIFIED]** `src/events/mod.rs`: Added `ContractExpiredEvent`
+- **[MODIFIED]** `src/systems/mod.rs`: Exported `contract` module
+- **[MODIFIED]** `src/plugins/core.rs`: Registered event and system on `FixedUpdate`
+
+### Expiry Mechanics
+- Contracts can have optional `expiry_tick`
+- System checks against `WorldClock::total_ticks()` each tick
+- Expired contracts emit `ContractExpiredEvent` and are despawned
+- Default duration: 2 in-game days (~48 real seconds at 60Hz)
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test systems::contract`: 3/3 tests passed
+
+---
+
+## Epic 4.5 Contracts - COMPLETE
+
+All 6 tasks completed:
+- 4.5.1-4.5.5: Previously completed
+- 4.5.6: Contract expiry ✅

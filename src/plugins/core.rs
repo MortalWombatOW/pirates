@@ -2,7 +2,8 @@ use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
 use crate::resources::{Wind, WorldClock};
-use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, GlobalDemand};
+use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, GlobalDemand};
+use crate::events::ContractExpiredEvent;
 use leafwing_input_manager::prelude::*;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash)]
@@ -23,6 +24,7 @@ impl Plugin for CorePlugin {
             .init_resource::<Wind>()
             .init_resource::<WorldClock>()
             .init_resource::<GlobalDemand>()
+            .add_event::<ContractExpiredEvent>()
             .add_systems(Startup, spawn_camera)
             .add_systems(Update, (
                 debug_state_transitions,
@@ -36,6 +38,7 @@ impl Plugin for CorePlugin {
                 world_tick_system,
                 price_calculation_system.after(world_tick_system),
                 goods_decay_system.after(world_tick_system),
+                contract_expiry_system.after(world_tick_system),
             ));
     }
 }

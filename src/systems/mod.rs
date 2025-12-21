@@ -7,6 +7,7 @@ pub mod wind;
 pub mod navigation;
 pub mod world_tick;
 pub mod economy;
+pub mod contract;
 
 pub use ship::*;
 pub use movement::*;
@@ -17,3 +18,4 @@ pub use wind::*;
 pub use navigation::*;
 pub use world_tick::*;
 pub use economy::*;
+pub use contract::*;

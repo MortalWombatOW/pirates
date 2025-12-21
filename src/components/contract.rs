@@ -47,9 +47,14 @@ pub struct ContractDetails {
     pub cargo_required: Option<(GoodType, u32)>,
     /// Human-readable description of the contract.
     pub description: String,
+    /// World tick at which this contract expires (None = never expires).
+    pub expiry_tick: Option<u32>,
 }
 
 impl ContractDetails {
+    /// Default contract duration in ticks (2 in-game days = 2 * 24 * 60 ticks).
+    pub const DEFAULT_DURATION_TICKS: u32 = 2 * 24 * 60;
+
     /// Creates a new Transport contract.
     pub fn transport(
         origin: Entity,
@@ -65,7 +70,22 @@ impl ContractDetails {
             reward_gold: reward,
             cargo_required: Some((good, quantity)),
             description: format!("Deliver {} {:?} to destination", quantity, good),
+            expiry_tick: None, // Set by system when created with WorldClock
         }
+    }
+
+    /// Creates a new Transport contract with expiry.
+    pub fn transport_with_expiry(
+        origin: Entity,
+        destination: Entity,
+        good: GoodType,
+        quantity: u32,
+        reward: u32,
+        current_tick: u32,
+    ) -> Self {
+        let mut contract = Self::transport(origin, destination, good, quantity, reward);
+        contract.expiry_tick = Some(current_tick + Self::DEFAULT_DURATION_TICKS);
+        contract
     }
 
     /// Creates a new Explore contract (simplified - just visit a port).
@@ -77,6 +97,28 @@ impl ContractDetails {
             reward_gold: reward,
             cargo_required: None,
             description: "Visit the marked location".to_string(),
+            expiry_tick: None, // Set by system when created with WorldClock
+        }
+    }
+
+    /// Creates a new Explore contract with expiry.
+    pub fn explore_with_expiry(
+        origin: Entity,
+        target: Entity,
+        reward: u32,
+        current_tick: u32,
+    ) -> Self {
+        let mut contract = Self::explore(origin, target, reward);
+        contract.expiry_tick = Some(current_tick + Self::DEFAULT_DURATION_TICKS);
+        contract
+    }
+
+    /// Returns true if this contract has expired.
+    pub fn is_expired(&self, current_tick: u32) -> bool {
+        if let Some(expiry) = self.expiry_tick {
+            current_tick >= expiry
+        } else {
+            false // No expiry = never expires
         }
     }
 }

@@ -53,3 +53,12 @@ pub struct ContractCompletedEvent {
     /// Gold reward given.
     pub reward_gold: u32,
 }
+
+/// Event emitted when a contract expires (time limit reached).
+#[derive(Event, Debug)]
+pub struct ContractExpiredEvent {
+    /// The contract entity that expired.
+    pub contract_entity: Entity,
+    /// Whether this was an accepted contract (affects player negatively).
+    pub was_accepted: bool,
+}
