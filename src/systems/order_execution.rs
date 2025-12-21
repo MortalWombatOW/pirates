@@ -21,6 +21,7 @@ pub fn order_execution_system(
         (With<AI>, With<Ship>, With<HighSeasAI>),
     >,
     port_query: Query<&Transform, With<Port>>,
+    map_data: Res<MapData>,
 ) {
     for (entity, transform, mut order_queue, nav_path) in &mut ai_query {
         // Skip if ship is currently navigating (has remaining waypoints)
@@ -59,6 +60,7 @@ pub fn order_execution_system(
                     *radius,
                     *waypoint_index,
                     &mut order_queue,
+                    &map_data,
                 );
             }
             Order::Escort { target, follow_distance } => {
@@ -136,6 +138,7 @@ fn execute_trade_route(
 /// Executes Patrol order logic.
 /// 
 /// Ship moves between random waypoints within the patrol radius.
+/// Verifies that generated waypoints are navigable water tiles.
 fn execute_patrol(
     commands: &mut Commands,
     entity: Entity,
@@ -144,25 +147,52 @@ fn execute_patrol(
     radius: f32,
     waypoint_index: u32,
     order_queue: &mut OrderQueue,
+    map_data: &MapData,
 ) {
     // Generate waypoint based on index (deterministic-ish based on index)
-    let angle = (waypoint_index as f32 * 2.4) % std::f32::consts::TAU;
-    let dist = radius * 0.3 + (waypoint_index as f32 * 0.7) % (radius * 0.7);
-    let target = center + Vec2::new(angle.cos() * dist, angle.sin() * dist);
+    // Try multiple offsets to find a navigable point
+    let mut target = None;
+    let current_idx = waypoint_index;
     
+    // Try up to 5 times to find a valid spot
+    for i in 0..5 {
+        let try_idx = current_idx + i as u32;
+        let angle = (try_idx as f32 * 2.4) % std::f32::consts::TAU;
+        let dist = radius * 0.3 + (try_idx as f32 * 0.7) % (radius * 0.7);
+        let candidate = center + Vec2::new(angle.cos() * dist, angle.sin() * dist);
+        
+        // Check navigability
+        let tile_pos = world_to_tile(candidate, map_data.width, map_data.height);
+        if map_data.is_navigable(tile_pos.x as u32, tile_pos.y as u32) {
+            target = Some((candidate, try_idx));
+            break;
+        }
+    }
+    
+    let Some((target_pos, valid_idx)) = target else {
+        // No valid target found in attempts - just increment and wait next frame
+        order_queue.pop();
+        order_queue.push(Order::Patrol {
+            center,
+            radius,
+            waypoint_index: waypoint_index + 1,
+        });
+        return;
+    };
+
     // Check if arrived at waypoint
     let ship_pos = ship_transform.translation.truncate();
-    if ship_pos.distance(target) < 50.0 {
+    if ship_pos.distance(target_pos) < 50.0 {
         // Move to next waypoint
         order_queue.pop();
         order_queue.push(Order::Patrol {
             center,
             radius,
-            waypoint_index: waypoint_index.wrapping_add(1),
+            waypoint_index: valid_idx.wrapping_add(1),
         });
     } else {
         // Navigate to waypoint
-        commands.entity(entity).insert(Destination { target });
+        commands.entity(entity).insert(Destination { target: target_pos });
     }
 }
 
@@ -201,7 +231,7 @@ fn execute_scout(
     // Check if arrived at target
     let ship_pos = ship_transform.translation.truncate();
     if ship_pos.distance(target) < 50.0 {
-        if progress >= 1.0 {
+         if progress >= 1.0 {
             // Scouting complete
             order_queue.pop();
             debug!("Scout order complete");

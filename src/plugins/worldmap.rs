@@ -4,7 +4,7 @@ use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
 use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::resources::{MapData, FogOfWar, RouteCache};
-use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId};
+use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue};
 use crate::systems::{
     fog_of_war_update_system, update_fog_tilemap_system, FogTile,
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
@@ -427,6 +427,11 @@ fn spawn_high_seas_ai_ships(
                 ..default()
             },
             Transform::from_xyz(world_pos.x, world_pos.y, 1.0), // Same layer as player
+            OrderQueue::with_order(Order::Patrol {
+                center: world_pos,
+                radius: 1500.0, // Approx 23 tiles
+                waypoint_index: 0,
+            }),
         ));
     }
     
