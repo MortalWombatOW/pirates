@@ -1,13 +1,12 @@
 # Pirates (Working Title)
 
-> A deterministic, data-driven 2D roguelike built with Rust and Bevy.
+> A old-timey naval roguelike inspired by flash games and Our Flag Means Death built with Rust and Bevy.
 
-![Banner Image Placeholder](assets/banner.png)
 
 ## 1. Project Overview
 
 ### The Hook
-Sid Meier's *Pirates!* meets *FTL: Faster Than Light*, built on a modern, high-performance Entity-Component-System (ECS) architecture.
+Reminicient of old flash games, built on a modern, high-performance Entity-Component-System (ECS) architecture.
 
 ### The Vision
 "Pirates" is a generative open-world naval roguelike. The player captains a single ship in a living, simulated archipelago. The goal is to build notoriety through plunder, trade, or naval dominance, eventually triggering a world-altering "Supernatural Shift" leading to an endgame against ghostly armadas.
@@ -15,9 +14,9 @@ Sid Meier's *Pirates!* meets *FTL: Faster Than Light*, built on a modern, high-p
 The game prioritizes deep simulation over scripted narratives. Factions, economies, and weather systems interact deterministically to create emergent gameplay stories.
 
 ### The Vibe
-* **Visuals:** Crisp, high-readability pixel art. Hand-drawn maps feel. UI looks like ink on parchment.
+* **Visuals:** Hand-drawn maps feel. UI looks like ink on parchment.
 * **Audio:** creaking wood, snapping sails, roaring cannons, and a dynamic sea shanty soundtrack that shifts based on the current state (sailing, combat, port).
-* **Game Feel:** Weighty naval combat. Ships have inertia; turning takes time; wind direction matters. It's not an arcade twin-stick shooter—it's a tactical sailing game.
+* **Game Feel:** Weighty naval combat. Ships have inertia; turning takes time; wind direction matters. 
 
 ## 2. Core Pillars
 

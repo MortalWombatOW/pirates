@@ -273,8 +273,8 @@
 ### Epic 5.2: Faction AI
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 5.2.1 | Define `FactionRegistry` resource | 1.1.3 | Holds state for each faction. |
-| [ ] 5.2.2 | Define `FactionState` struct | 5.2.1 | Gold, ships, reputation, trade routes. |
+| [x] 5.2.1 | Define `FactionRegistry` resource | 1.1.3 | Holds state for each faction. |
+| [x] 5.2.2 | Define `FactionState` struct | 5.2.1 | Gold, ships, reputation, trade routes. |
 | [ ] 5.2.3 | Create `FactionAISystem` | 5.2.1, 5.1.2 | Runs per world tick. |
 | [ ] 5.2.4 | Implement trade route generation | 5.2.3 | Faction AI creates routes between ports. |
 | [ ] 5.2.5 | Implement ship spawning by faction | 5.2.3, 2.8.3 | Faction spawns ships to fulfill routes. |
