@@ -684,3 +684,18 @@ Implemented the contract/quest system for jobs.
 ### Verification
 - `cargo check`: PASSED
 - `cargo test resources::world_clock`: 6/6 tests passed
+
+## 2025-12-21: Task 4.4.1 - Create PriceCalculationSystem
+
+### Changes Made
+- **[NEW]** `src/systems/economy.rs`: `price_calculation_system` with supply-based pricing
+  - Low stock increases prices, high stock decreases prices
+  - Price formula: `base_price * (supply_ratio ^ -sensitivity)`
+  - Configurable via `price_config` module constants
+  - 5 unit tests for price behavior
+- **[MODIFIED]** `src/systems/mod.rs`: Exported `economy` module
+- **[MODIFIED]** `src/plugins/core.rs`: Added `price_calculation_system` to `FixedUpdate` after `world_tick_system`
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test systems::economy`: 5/5 tests passed
