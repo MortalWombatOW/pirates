@@ -10,6 +10,7 @@ use crate::systems::{
     path_visualization_system, port_arrival_system,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
+use crate::utils::spatial_hash::SpatialHash;
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -25,12 +26,15 @@ impl Plugin for WorldMapPlugin {
             // Initialize resources
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
+            .init_resource::<EncounterSpatialHash>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
             .add_systems(OnEnter(GameState::HighSeas), (spawn_tilemap_from_map_data, spawn_high_seas_player, spawn_high_seas_ai_ships))
             .add_systems(Update, (
                 fog_of_war_update_system,
                 update_fog_tilemap_system,
                 fog_of_war_ai_visibility_system,
+                rebuild_encounter_spatial_hash,
+                encounter_detection_system.after(rebuild_encounter_spatial_hash),
                 click_to_navigate_system,
                 pathfinding_system.after(click_to_navigate_system),
                 navigation_movement_system.after(pathfinding_system),
@@ -64,6 +68,16 @@ pub struct HighSeasAI;
 /// Resource holding the procedurally generated tileset image handle
 #[derive(Resource)]
 pub struct TilesetHandle(pub Handle<Image>);
+
+/// Resource holding a spatial hash of AI ship positions for encounter detection.
+/// Rebuilt each frame to reflect current positions.
+#[derive(Resource, Default)]
+pub struct EncounterSpatialHash {
+    pub hash: SpatialHash<Entity>,
+}
+
+/// Encounter detection radius in world units (2 tiles = 128 units)
+const ENCOUNTER_RADIUS: f32 = 128.0;
 
 /// Creates a procedural tileset texture with colors for each tile type.
 /// 
@@ -418,6 +432,52 @@ fn fog_of_war_ai_visibility_system(
             *visibility = Visibility::Inherited;
         } else {
             *visibility = Visibility::Hidden;
+        }
+    }
+}
+
+/// Rebuilds the encounter spatial hash from current AI ship positions.
+/// Runs each frame to keep positions current.
+fn rebuild_encounter_spatial_hash(
+    mut encounter_hash: ResMut<EncounterSpatialHash>,
+    ai_query: Query<(Entity, &Transform), With<HighSeasAI>>,
+) {
+    encounter_hash.hash.clear();
+    
+    for (entity, transform) in &ai_query {
+        let pos = transform.translation.truncate();
+        encounter_hash.hash.insert(pos, entity);
+    }
+}
+
+/// Detects when the player is near AI ships and logs the encounter.
+/// Actual combat triggering is implemented in task 3.6.5.
+fn encounter_detection_system(
+    encounter_hash: Res<EncounterSpatialHash>,
+    player_query: Query<&Transform, (With<Player>, With<HighSeasPlayer>)>,
+    ai_query: Query<(&Transform, &Faction, Option<&Name>), With<HighSeasAI>>,
+) {
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    
+    let player_pos = player_transform.translation.truncate();
+    let nearby_ships = encounter_hash.hash.query(player_pos, ENCOUNTER_RADIUS);
+    
+    for &entity in &nearby_ships {
+        if let Ok((ai_transform, faction, name)) = ai_query.get(*entity) {
+            let ai_pos = ai_transform.translation.truncate();
+            let distance = player_pos.distance(ai_pos);
+            
+            // Double-check distance (spatial hash is approximate)
+            if distance <= ENCOUNTER_RADIUS {
+                let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
+                info!(
+                    "Encounter detected! {} ({:?}) at distance {:.0}",
+                    ship_name, faction.0, distance
+                );
+                // TODO (3.6.5): Emit CombatTriggeredEvent here
+            }
         }
     }
 }

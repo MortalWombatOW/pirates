@@ -239,7 +239,7 @@
 |---|---|---|---|
 | [x] 3.6.1 | Create `SpatialHash` utility | 1.1.3 | Utility for efficient proximity queries. |
 | [x] 3.6.2 | Spawn AI ships on map (world simulation placeholder) | 2.8.3 | AI ships exist on world map. |
-| 3.6.3 | Create `EncounterSystem` | 3.6.1, 3.6.2 | Checks if player near AI ship. |
+| [x] 3.6.3 | Create `EncounterSystem` | 3.6.1, 3.6.2 | Checks if player near AI ship. |
 | 3.6.4 | Determine hostility based on faction reputation | 3.6.3, 2.8.2 | Pirates always hostile, others based on rep. |
 | 3.6.5 | Emit `CombatTriggeredEvent` | 3.6.4 | Event sent when hostile encounter. |
 | 3.6.6 | Transition to `CombatState` on encounter | 3.6.5, 1.2.2 | State changes to `Combat`. |

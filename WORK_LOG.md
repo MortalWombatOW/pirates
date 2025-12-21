@@ -520,3 +520,13 @@ Enhanced AI ship behavior on the High Seas map:
 - Increased AI ship count from 5-10 to 50 for better visibility
 - Added `fog_of_war_ai_visibility_system` to hide AI ships in unexplored tiles
 - Ships now only appear when the player has explored their location
+
+## 2025-12-20: Task 3.6.3 - EncounterSystem
+
+Created the EncounterSystem for detecting player proximity to AI ships.
+
+**Changes:**
+- Added `EncounterSpatialHash` resource using `SpatialHash<Entity>`
+- Created `rebuild_encounter_spatial_hash` system to update positions each frame
+- Created `encounter_detection_system` to log when player is within 128 units of AI ships
+- Integrated systems into WorldMapPlugin Update schedule
