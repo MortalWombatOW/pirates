@@ -699,3 +699,61 @@ Implemented the contract/quest system for jobs.
 ### Verification
 - `cargo check`: PASSED
 - `cargo test systems::economy`: 5/5 tests passed
+
+## 2025-12-21: Task 4.4.2 - Adjust prices based on supply
+
+**Status**: Already implemented as part of 4.4.1.
+
+The `calculate_supply_price` function directly implements supply-based pricing:
+- Low stock → supply_ratio small → multiplier large → higher price
+- High stock → supply_ratio large → multiplier small → lower price
+
+Verified by existing tests: `test_low_supply_increases_price`, `test_high_supply_decreases_price`
+
+## 2025-12-21: Task 4.4.3 - Adjust prices based on demand (global)
+
+### Changes Made
+- **[MODIFIED]** `src/systems/economy.rs`:
+  - Added `GlobalDemand` resource tracking demand per good type
+  - Updated `calculate_price` to include demand multiplier
+  - Added `DEMAND_SENSITIVITY` constant (0.5)
+  - Added 3 new tests for demand-based pricing
+- **[MODIFIED]** `src/plugins/core.rs`: Initialize `GlobalDemand` resource
+
+### Price Formula
+```
+price = base_price * supply_multiplier * demand_multiplier
+demand_multiplier = global_demand ^ demand_sensitivity
+```
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test systems::economy`: 8/8 tests passed
+
+## 2025-12-21: Task 4.4.4 - Implement goods decay (perishables)
+
+### Changes Made
+- **[MODIFIED]** `src/systems/economy.rs`:
+  - Added `PERISHABLE_DECAY_RATE` constant (0.0001 per tick)
+  - Added `goods_decay_system` for perishable goods decay
+  - System reduces quantity of perishable goods over time
+- **[MODIFIED]** `src/plugins/core.rs`: Added `goods_decay_system` to `FixedUpdate`
+
+### Decay Mechanics
+- Goods with `GoodsTrait::Perishable` (Rum, Sugar) decay
+- ~0.6% lost per hour, ~14% per day at 60Hz tick rate
+- Reduces quantity, not price directly
+
+### Verification
+- `cargo check`: PASSED
+- `cargo test systems::economy`: 8/8 tests passed
+
+---
+
+## Epic 4.4 Price Dynamics - COMPLETE
+
+All 4 tasks completed:
+- 4.4.1: PriceCalculationSystem ✅
+- 4.4.2: Supply-based pricing ✅
+- 4.4.3: Demand-based pricing ✅
+- 4.4.4: Perishable goods decay ✅

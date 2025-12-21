@@ -287,9 +287,9 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 4.4.1 | Create `PriceCalculationSystem` | 4.1.2 | Runs on world tick. |
-| 4.4.2 | Adjust prices based on supply | 4.4.1 | Low stock = higher price. |
-| 4.4.3 | Adjust prices based on demand (global) | 4.4.1 | High demand goods = higher price everywhere. |
-| 4.4.4 | Implement goods decay (perishables) | 4.4.1, 2.2.3 | Perishable goods lose value over time. |
+| [x] 4.4.2 | Adjust prices based on supply | 4.4.1 | Low stock = higher price. |
+| [x] 4.4.3 | Adjust prices based on demand (global) | 4.4.1 | High demand goods = higher price everywhere. |
+| [x] 4.4.4 | Implement goods decay (perishables) | 4.4.1, 2.2.3 | Perishable goods lose value over time. |
 
 ### Epic 4.5: Contracts
 
