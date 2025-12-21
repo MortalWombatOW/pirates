@@ -318,6 +318,8 @@ fn spawn_high_seas_player(
     asset_server: Res<AssetServer>,
     _map_data: Res<MapData>,
 ) {
+    use crate::components::{Cargo, Gold};
+    
     info!("Spawning player for High Seas...");
     
     // Spawn at map center
@@ -333,6 +335,8 @@ fn spawn_high_seas_player(
         HighSeasPlayer,
         Vision { radius: 10.0 }, // Sight radius in tiles
         Health::default(), // Required by camera follow
+        Cargo::new(100),   // Trading capacity
+        Gold(100),         // Starting gold
         Sprite {
             image: texture_handle,
             custom_size: Some(Vec2::splat(64.0)),

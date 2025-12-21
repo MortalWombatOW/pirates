@@ -276,11 +276,11 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| 4.3.1 | Create `MarketSystem` | 4.2.2, 2.2.3, 2.2.4 | Handles buy/sell logic. |
-| 4.3.2 | Implement buy goods | 4.3.1 | Player gold decreases, cargo increases. |
-| 4.3.3 | Implement sell goods | 4.3.1 | Player cargo decreases, gold increases. |
-| 4.3.4 | Implement cargo capacity check | 4.3.2 | Cannot buy if cargo full. |
-| 4.3.5 | Emit `TradeExecutedEvent` | 4.3.1 | Event for audio/logging. |
+| [x] 4.3.1 | Create `MarketSystem` | 4.2.2, 2.2.3, 2.2.4 | Handles buy/sell logic. |
+| [x] 4.3.2 | Implement buy goods | 4.3.1 | Player gold decreases, cargo increases. |
+| [x] 4.3.3 | Implement sell goods | 4.3.1 | Player cargo decreases, gold increases. |
+| [x] 4.3.4 | Implement cargo capacity check | 4.3.2 | Cannot buy if cargo full. |
+| [x] 4.3.5 | Emit `TradeExecutedEvent` | 4.3.1 | Event for audio/logging. |
 
 ### Epic 4.4: Price Dynamics
 

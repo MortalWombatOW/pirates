@@ -2,10 +2,12 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
 use crate::components::{
+    cargo::{Cargo, Gold},
     health::Health,
     port::{Inventory, Port, PortName},
     ship::{Player, Ship},
 };
+use crate::events::TradeExecutedEvent;
 use crate::plugins::core::GameState;
 
 /// Plugin for the Port View UI.
@@ -17,7 +19,11 @@ impl Plugin for PortUiPlugin {
         app
             .init_resource::<CurrentPort>()
             .init_resource::<PortUiState>()
-            .add_systems(Update, port_ui_system.run_if(in_state(GameState::Port)));
+            .add_event::<TradeExecutedEvent>()
+            .add_systems(Update, (
+                port_ui_system,
+                trade_execution_system,
+            ).run_if(in_state(GameState::Port)));
     }
 }
 
@@ -39,15 +45,29 @@ fn port_ui_system(
     mut contexts: EguiContexts,
     mut next_state: ResMut<NextState<GameState>>,
     mut ui_state: ResMut<PortUiState>,
-    current_port: Res<CurrentPort>,
-    port_query: Query<(&PortName, &Inventory), With<Port>>,
-    player_query: Query<&Health, (With<Player>, With<Ship>)>,
+    mut current_port: ResMut<CurrentPort>,
+    mut trade_events: EventWriter<TradeExecutedEvent>,
+    port_query: Query<(Entity, &PortName, &Inventory), With<Port>>,
+    player_query: Query<(&Health, Option<&Cargo>, Option<&Gold>), (With<Player>, With<Ship>)>,
 ) {
+    // Auto-select first port if none selected (for debug/testing)
+    if current_port.entity.is_none() {
+        if let Some((entity, _, _)) = port_query.iter().next() {
+            current_port.entity = Some(entity);
+        }
+    }
+    
     // Get port data if available
     let port_data = current_port.entity.and_then(|e| port_query.get(e).ok());
     let port_name = port_data
-        .map(|(name, _)| name.0.as_str())
+        .map(|(_, name, _)| name.0.as_str())
         .unwrap_or("Unknown Port");
+    let port_entity = port_data.map(|(e, _, _)| e);
+    
+    // Get player data
+    let player_data = player_query.get_single().ok();
+    let player_gold = player_data.and_then(|(_, _, g)| g.map(|g| g.0)).unwrap_or(0);
+    let player_cargo = player_data.and_then(|(_, c, _)| c);
     
     // Central panel for the port UI
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
@@ -58,6 +78,10 @@ fn port_ui_system(
                 if ui.button("⛵ Depart").clicked() {
                     info!("Departing from port...");
                     next_state.set(GameState::HighSeas);
+                }
+                ui.label(format!("💰 {} gold", player_gold));
+                if let Some(cargo) = player_cargo {
+                    ui.label(format!("📦 {}/{}", cargo.total_units(), cargo.capacity));
                 }
             });
         });
@@ -79,9 +103,16 @@ fn port_ui_system(
         // Tab content
         egui::ScrollArea::vertical().show(ui, |ui| {
             match ui_state.selected_tab {
-                0 => render_market_panel(ui, port_data.map(|(_, inv)| inv)),
+                0 => render_market_panel(
+                    ui, 
+                    port_entity,
+                    port_data.map(|(_, _, inv)| inv),
+                    player_gold,
+                    player_cargo,
+                    &mut trade_events,
+                ),
                 1 => render_tavern_panel(ui),
-                2 => render_docks_panel(ui, player_query.get_single().ok()),
+                2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h)),
                 3 => render_contracts_panel(ui),
                 _ => {}
             }
@@ -90,24 +121,32 @@ fn port_ui_system(
 }
 
 /// Renders the Market panel with goods for buying/selling.
-fn render_market_panel(ui: &mut egui::Ui, inventory: Option<&Inventory>) {
+fn render_market_panel(
+    ui: &mut egui::Ui, 
+    port_entity: Option<Entity>,
+    inventory: Option<&Inventory>,
+    player_gold: u32,
+    player_cargo: Option<&Cargo>,
+    trade_events: &mut EventWriter<TradeExecutedEvent>,
+) {
     ui.heading("Market");
     ui.label("Buy and sell goods at this port.");
     ui.add_space(10.0);
     
-    if let Some(inventory) = inventory {
+    if let (Some(port_entity), Some(inventory)) = (port_entity, inventory) {
         if inventory.goods.is_empty() {
             ui.label("No goods available at this market.");
         } else {
             // Table header
             egui::Grid::new("market_grid")
-                .num_columns(4)
+                .num_columns(5)
                 .striped(true)
-                .min_col_width(80.0)
+                .min_col_width(60.0)
                 .show(ui, |ui| {
                     ui.strong("Good");
                     ui.strong("Stock");
                     ui.strong("Price");
+                    ui.strong("You Have");
                     ui.strong("Actions");
                     ui.end_row();
                     
@@ -119,14 +158,37 @@ fn render_market_panel(ui: &mut egui::Ui, inventory: Option<&Inventory>) {
                         ui.label(format!("{:?}", good_type));
                         ui.label(format!("{}", item.quantity));
                         ui.label(format!("{:.0}g", item.price));
+                        
+                        // Show player's quantity of this good
+                        let player_qty = player_cargo
+                            .map(|c| c.get(*good_type))
+                            .unwrap_or(0);
+                        ui.label(format!("{}", player_qty));
+                        
+                        // Buy/Sell buttons
                         ui.horizontal(|ui| {
-                            if ui.small_button("Buy").clicked() {
-                                info!("Buy {:?} clicked", good_type);
-                                // TODO: Implement in Epic 4.3
+                            let price = item.price as u32;
+                            let can_buy = item.quantity > 0 
+                                && player_gold >= price
+                                && player_cargo.map(|c| !c.is_full()).unwrap_or(false);
+                            
+                            if ui.add_enabled(can_buy, egui::Button::new("Buy")).clicked() {
+                                trade_events.send(TradeExecutedEvent {
+                                    port_entity,
+                                    good_type: *good_type,
+                                    quantity: 1,
+                                    is_buy: true,
+                                });
                             }
-                            if ui.small_button("Sell").clicked() {
-                                info!("Sell {:?} clicked", good_type);
-                                // TODO: Implement in Epic 4.3
+                            
+                            let can_sell = player_qty > 0;
+                            if ui.add_enabled(can_sell, egui::Button::new("Sell")).clicked() {
+                                trade_events.send(TradeExecutedEvent {
+                                    port_entity,
+                                    good_type: *good_type,
+                                    quantity: 1,
+                                    is_buy: false,
+                                });
                             }
                         });
                         ui.end_row();
@@ -134,39 +196,77 @@ fn render_market_panel(ui: &mut egui::Ui, inventory: Option<&Inventory>) {
                 });
         }
     } else {
-        // No current port - show sample inventory for testing
-        ui.label("⚠ Debug Mode: No port selected");
-        ui.add_space(10.0);
+        ui.label("⚠ No port data available");
+        ui.weak("(Enter port from High Seas to trade)");
+    }
+}
+
+/// System that executes trades based on TradeExecutedEvent.
+fn trade_execution_system(
+    mut trade_events: EventReader<TradeExecutedEvent>,
+    mut port_query: Query<&mut Inventory, With<Port>>,
+    mut player_query: Query<(&mut Cargo, &mut Gold), (With<Player>, With<Ship>)>,
+) {
+    for event in trade_events.read() {
+        let Ok(mut inventory) = port_query.get_mut(event.port_entity) else {
+            warn!("Trade failed: Port entity {:?} not found", event.port_entity);
+            continue;
+        };
         
-        egui::Grid::new("market_grid_sample")
-            .num_columns(4)
-            .striped(true)
-            .min_col_width(80.0)
-            .show(ui, |ui| {
-                ui.strong("Good");
-                ui.strong("Stock");
-                ui.strong("Price");
-                ui.strong("Actions");
-                ui.end_row();
-                
-                // Sample goods for visual testing
-                let sample_goods = [
-                    ("Rum", 75, 15),
-                    ("Sugar", 120, 8),
-                    ("Spices", 30, 25),
-                ];
-                
-                for (name, qty, price) in sample_goods {
-                    ui.label(name);
-                    ui.label(format!("{}", qty));
-                    ui.label(format!("{}g", price));
-                    ui.horizontal(|ui| {
-                        let _ = ui.small_button("Buy");
-                        let _ = ui.small_button("Sell");
-                    });
-                    ui.end_row();
-                }
-            });
+        let Ok((mut cargo, mut gold)) = player_query.get_single_mut() else {
+            warn!("Trade failed: Player not found");
+            continue;
+        };
+        
+        if event.is_buy {
+            // Buying: Player pays gold, receives goods
+            let Some(item) = inventory.get_good(&event.good_type) else {
+                warn!("Trade failed: Good {:?} not in port inventory", event.good_type);
+                continue;
+            };
+            
+            let price = item.price as u32;
+            let available = item.quantity;
+            let qty = event.quantity.min(available);
+            
+            if qty == 0 {
+                warn!("Trade failed: No stock available");
+                continue;
+            }
+            
+            let total_cost = price * qty;
+            if !gold.spend(total_cost) {
+                info!("Trade failed: Insufficient gold ({} < {})", gold.0, total_cost);
+                continue;
+            }
+            
+            // Check cargo capacity
+            let added = cargo.add(event.good_type, qty);
+            if added < qty {
+                // Refund for goods that didn't fit
+                let refund = (qty - added) * price;
+                gold.add(refund);
+            }
+            
+            // Remove from port inventory
+            let _ = inventory.buy(&event.good_type, added);
+            
+            info!("Bought {} {:?} for {} gold", added, event.good_type, added * price);
+        } else {
+            // Selling: Player gives goods, receives gold
+            let removed = cargo.remove(event.good_type, event.quantity);
+            if removed == 0 {
+                warn!("Trade failed: No {:?} in cargo", event.good_type);
+                continue;
+            }
+            
+            // Sell at 80% of port's buy price
+            let sell_modifier = 0.8;
+            let revenue = inventory.sell(event.good_type, removed, sell_modifier) as u32;
+            gold.add(revenue);
+            
+            info!("Sold {} {:?} for {} gold", removed, event.good_type, revenue);
+        }
     }
 }
 

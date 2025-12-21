@@ -604,3 +604,28 @@ Implemented the Port View UI with tabbed panel layout using `bevy_egui`.
 - [x] 4.2.4: Implement Docks panel
 - [x] 4.2.5: Implement Contracts panel
 - [x] 4.2.6: Implement Depart button
+
+## 2025-12-20: Epic 4.3 - Trading
+
+Implemented the trading system connecting port inventory to player cargo.
+
+### Changes
+
+- **Modified**: `src/events/mod.rs`
+  - Added `TradeExecutedEvent` for buy/sell transactions
+
+- **Modified**: `src/plugins/port_ui.rs`
+  - Market panel now shows player gold and cargo capacity in header
+  - Buy/Sell buttons validate gold/stock/capacity before enabling
+  - Added `trade_execution_system` to process `TradeExecutedEvent`
+  - Auto-selects first available port for testing
+
+- **Modified**: `src/plugins/worldmap.rs`
+  - Added `Cargo` and `Gold` components to High Seas player spawn
+
+### Tasks Completed
+- [x] 4.3.1: Create MarketSystem
+- [x] 4.3.2: Implement buy goods
+- [x] 4.3.3: Implement sell goods
+- [x] 4.3.4: Implement cargo capacity check
+- [x] 4.3.5: Emit TradeExecutedEvent
