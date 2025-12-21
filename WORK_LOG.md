@@ -818,3 +818,13 @@ All 6 tasks completed:
 ### Verification
 - `cargo check`: PASSED
 - `cargo test systems::repair`: 4/4 tests passed
+
+## 2025-12-21: Protocol Evolution
+
+**Changes**:
+- **MANIFESTO.md**: Added "Task Splitting" directive. Complex tasks in `WORK_PLAN.md` must be split into atomic sub-tasks (e.g., 5.3.5a, 5.3.5b) before implementation.
+- **INVARIANTS.md**: Added "Simulation Layers" section. Explicitly defined the separation between visual-only High Seas entities (no physics, cached pathfinding) and physical Combat entities (Avian physics, colliders).
+
+**Reasoning**:
+- **Task Splitting**: Reduces context load and allows for clearer progress tracking on complex features.
+- **Simulation Layers**: Prevents confusion about which systems apply to which game state, ensuring performance (physics only where needed) and correctness.

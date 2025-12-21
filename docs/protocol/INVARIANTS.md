@@ -23,6 +23,9 @@
 * **Timestep**: Physics runs on `FixedUpdate` (60Hz deterministic).
 * **Anisotropic Drag**: Ships do NOT use isotropic `LinearDamping`. They use custom force calculations to simulate "Keel Effect" (high lateral drag, low forward drag).
 * **Input Buffering**: `leafwing` inputs update in `Update`. To prevent missed inputs in `FixedUpdate`, inputs must be buffered into a `ShipInputBuffer` resource.
+* **Simulation Layers**:
+    * **Combat**: Uses `FixedUpdate`, `avian2d` physics, and colliders. Real-time deterministic simulation.
+    * **High Seas**: Visual representation only. NO physics colliders. AI uses `RouteCache` and `Theta*` to pathfind around land, but moves via simple transform interpolation. Segregate these logic layers via `HighSeasAI` vs `CombatAI` marker components.
 
 ## 4. Documentation Standards
 * **Temporal Contamination**: Comments must never describe *changes*.

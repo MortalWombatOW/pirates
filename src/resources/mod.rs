@@ -11,3 +11,6 @@ pub use map_data::*;
 pub use fog_of_war::*;
 pub use wind::*;
 pub use world_clock::*;
+
+pub mod route_cache;
+pub use route_cache::*;

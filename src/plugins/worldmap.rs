@@ -3,7 +3,7 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy_ecs_tilemap::prelude::*;
 use crate::plugins::core::GameState;
 use crate::plugins::port::{spawn_port, generate_port_name};
-use crate::resources::{MapData, FogOfWar};
+use crate::resources::{MapData, FogOfWar, RouteCache};
 use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId};
 use crate::systems::{
     fog_of_war_update_system, update_fog_tilemap_system, FogTile,
@@ -29,6 +29,7 @@ impl Plugin for WorldMapPlugin {
             // Initialize resources
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
+            .init_resource::<RouteCache>()
             .init_resource::<EncounterSpatialHash>()
             .init_resource::<EncounterCooldown>()
             .init_resource::<EncounteredEnemy>()

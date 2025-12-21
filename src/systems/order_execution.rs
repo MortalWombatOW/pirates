@@ -220,22 +220,64 @@ fn execute_scout(
     }
 }
 
+use crate::resources::{RouteCache, MapData};
+use crate::utils::pathfinding::{find_path, tile_to_world, world_to_tile};
+
 /// System that calculates simple paths for AI ships.
 /// 
-/// Unlike player pathfinding, AI ships use direct line navigation
-/// since they are visual-only in High Seas (no collision with land).
+/// Uses cached Theta* pathfinding to navigate around land.
 pub fn ai_pathfinding_system(
     mut commands: Commands,
-    query: Query<
-        (Entity, &Destination),
+    mut query: Query<
+        (Entity, &Transform, &Destination),
         (With<AI>, With<Ship>, With<HighSeasAI>, Changed<Destination>),
     >,
+    mut route_cache: ResMut<RouteCache>,
+    map_data: Res<MapData>,
 ) {
-    for (entity, destination) in &query {
-        // AI ships navigate directly to destination (no pathfinding)
-        // This is simpler and sufficient for visual-only High Seas ships
-        let waypoints = vec![destination.target];
-        commands.entity(entity).insert(NavigationPath { waypoints });
+    for (entity, transform, destination) in &mut query {
+        let start_pos = transform.translation.truncate();
+        let target_pos = destination.target;
+        
+        // Convert to tile coordinates
+        let start_tile = world_to_tile(start_pos, map_data.width, map_data.height);
+        let goal_tile = world_to_tile(target_pos, map_data.width, map_data.height);
+        
+        // Check cache first
+        let tile_path = if let Some(cached) = route_cache.get(start_tile, goal_tile) {
+            Some(cached.clone())
+        } else {
+            // Cache miss - compute path
+            if let Some(path) = find_path(start_tile, goal_tile, &map_data) {
+                // Store in cache
+                route_cache.insert(start_tile, goal_tile, path.clone());
+                Some(path)
+            } else {
+                warn!("AI Pathfinding: No path found from {:?} to {:?}", start_tile, goal_tile);
+                None
+            }
+        };
+        
+        if let Some(path) = tile_path {
+            // Convert tile path to world waypoints
+            // Skip the first point (start) as we are already there
+            let waypoints: Vec<Vec2> = path.iter()
+                .skip(1) 
+                .map(|&p| tile_to_world(p, map_data.width, map_data.height))
+                .collect();
+            
+            // If path is empty (start == goal), rely on movement system to handle proximity
+            let final_waypoints = if waypoints.is_empty() {
+                vec![target_pos]
+            } else {
+                waypoints
+            };
+            
+            commands.entity(entity).insert(NavigationPath { waypoints: final_waypoints });
+        } else {
+            // Fallback: Direct line if pathfinding failed (shouldn't happen on valid map)
+            commands.entity(entity).insert(NavigationPath { waypoints: vec![target_pos] });
+        }
     }
 }
 

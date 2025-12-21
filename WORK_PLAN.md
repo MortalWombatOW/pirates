@@ -287,7 +287,10 @@
 | [x] 5.3.2 | Define `OrderQueue` component | 5.3.1 | Queue of `Order`. |
 | [x] 5.3.3 | Create `OrderExecutionSystem` | 5.3.2 | Reads orders, drives ship navigation. |
 | [x] 5.3.4 | Implement `TradeRoute` order | 5.3.3 | Ship navigates from A to B, trades, repeats. |
-| [ ] 5.3.5 | Evaluate AI pathfinding with caching | 5.3.4 | Plan how AI ships use A* pathfinding with route caching (e.g., trade routes reused). |
+| [x] 5.3.5 | Evaluate AI pathfinding with caching | 5.3.4 | Plan how AI ships use A* pathfinding with route caching (e.g., trade routes reused). |
+| [x] 5.3.5a | Define `RouteCache` resource | 5.3.5 | Resource `HashMap<(IVec2, IVec2), Vec<IVec2>>`. |
+| [x] 5.3.5b | Integrate `RouteCache` into `ai_pathfinding_system` | 5.3.5a | Use cache for AI navigation, fall back to Theta*. |
+| [x] 5.3.5c | Register `RouteCache` in `WorldMapPlugin` | 5.3.5a | Initialize resource. |
 | [ ] 5.3.6 | Implement `Patrol` order | 5.3.3 | Ship moves around area, engages hostiles. |
 | [ ] 5.3.7 | Implement `Escort` order | 5.3.3 | Ship follows target entity. |
 | [ ] 5.3.8 | Implement `Scout` order | 5.3.3 | Ship explores area, reports intel. |
