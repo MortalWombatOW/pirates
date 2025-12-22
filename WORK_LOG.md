@@ -956,3 +956,21 @@ All 6 tasks completed:
   - Paper: `vec3(0.93, 0.88, 0.78)`
   - Ink: `vec3(0.15, 0.12, 0.10)`
 - Contrast is boosted (`pow(gray, 1.2)`) to simulate the sharpness of drawn ink.
+
+## 2025-12-22: Task 8.1.2 - Post-Processing Application
+
+**Summary**: Applied the Ink and Parchment shader to the game camera using a full Render Graph implementation.
+
+### Files Created/Modified
+- `src/plugins/graphics.rs`: Created `GraphicsPlugin` which sets up the `PostProcessNode` in the render graph.
+- `src/plugins/core.rs`: Added `InkParchmentSettings` to the main camera spawn.
+- `src/main.rs`: Registered `GraphicsPlugin`.
+- `docs/protocol/INVARIANTS.md`: Added section on Post-Processing Architecture.
+
+### Tasks Completed
+- 8.1.2: Apply shader as post-processing ✅
+
+### Implementation Details
+- Used Bevy 0.15 `ViewNode` pattern for post-processing.
+- Inserted custom node into `Core2d` graph after `Tonemapping`.
+- Settings are controlled via `InkParchmentSettings` component on the Camera2d entity.

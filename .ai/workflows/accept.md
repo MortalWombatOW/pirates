@@ -1,5 +1,5 @@
 ---
-description: A workflow for finishing a task.
+description: Officially mark work as complete and persist it. Run after /audit. Run before /next-task or /sync.
 ---
 
 

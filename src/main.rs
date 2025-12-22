@@ -7,22 +7,17 @@ use pirates::plugins::debug_ui::DebugUiPlugin;
 use pirates::plugins::physics::PhysicsPlugin;
 use pirates::plugins::combat::CombatPlugin;
 use pirates::plugins::worldmap::WorldMapPlugin;
+use pirates::plugins::port::PortPlugin;
 use pirates::plugins::port_ui::PortUiPlugin;
 use pirates::plugins::fleet_ui::FleetUiPlugin;
 use pirates::plugins::companion::CompanionPlugin;
 use pirates::plugins::main_menu::MainMenuPlugin;
 use pirates::plugins::save::PersistencePlugin;
+use pirates::plugins::graphics::GraphicsPlugin;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Pirates".into(),
-                ..default()
-            }),
-            ..default()
-        }))
-        .add_plugins(EguiPlugin)
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(TilemapPlugin)
         .add_plugins(CorePlugin)
         .add_plugins(InputPlugin)
@@ -30,11 +25,13 @@ fn main() {
         .add_plugins(PhysicsPlugin)
         .add_plugins(CombatPlugin)
         .add_plugins(WorldMapPlugin)
-        .add_plugins(CompanionPlugin)
+        .add_plugins(PortPlugin)
         .add_plugins(PortUiPlugin)
         .add_plugins(FleetUiPlugin)
+        .add_plugins(CompanionPlugin)
         .add_plugins(MainMenuPlugin)
         .add_plugins(PersistencePlugin)
+        .add_plugins(GraphicsPlugin)
         .run();
 }
 

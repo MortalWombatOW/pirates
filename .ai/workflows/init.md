@@ -1,5 +1,5 @@
 ---
-description: 
+description: Load the complete mental model of the project. Run at the start of a session. Run before /next-task or /architect.
 ---
 
 # Workflow: Init

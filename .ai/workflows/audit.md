@@ -1,5 +1,5 @@
 ---
-description: 
+description: Comprehensive code review to ensure technical quality and product alignment. Run after /forge. Run before /accept (if passed) or /forge (if failed).
 ---
 
 # Workflow: Audit

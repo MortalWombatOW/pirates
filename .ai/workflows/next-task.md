@@ -1,5 +1,5 @@
 ---
-description: Picking up the next task from the work plan.
+description: Identify and lock the next unit of work. Run after /init or /accept. Run before /forge.
 ---
 
 # Workflow: Next Task

@@ -1,5 +1,5 @@
 ---
-description: Optimize assistant instructions through structured analysis.
+description: Analyze and improve the project's internal documentation and rules. Run when needed.
 ---
 
 # Workflow: Optimize

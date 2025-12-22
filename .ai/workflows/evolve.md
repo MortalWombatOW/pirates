@@ -1,5 +1,5 @@
 ---
-description: 
+description: Improve the agent's behavior and the project's rules based on friction or errors. Run when needed.
 ---
 
 # Workflow: Evolve

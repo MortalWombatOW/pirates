@@ -1,5 +1,5 @@
 ---
-description: 
+description: Ensure the documentation accurately reflects the codebase. Run after /accept or before ending a session.
 ---
 
 # Workflow: Sync

@@ -16,7 +16,7 @@
     // Correct
     fn update_health(query: Query<&Health, Changed<Health>>) { ... }
     ```
-* **Commands vs Mutation**: Prefer direct component mutation over `Commands` for performance. Use `Commands` only for structural changes (spawn/despawn/insert/remove).
+* **Commands vs Mutation**: Prefer direct component mutation over `Commands` for performance. Use `Commands` only for entity spawning/despawning or structural changes (adding/removing components).
 * **System Sets**: All systems must be registered to a plugin. Use `Update` for logic and `FixedUpdate` for physics/simulation.
 
 ## 3. Physics & Simulation
@@ -172,3 +172,9 @@
 * **Autosave Triggers**: `OnEnter(GameState::Port)` and `OnEnter(GameState::HighSeas)` → saves to "autosave"
 * **Main Menu Continue**: Checks for `autosave.sav` at startup; shows "Continue" button if found
 * **Event-Based Load**: Main menu uses `LoadGameEvent` + exclusive system pattern since `World::load` requires `&mut World`
+
+## 17. Post-Processing Architecture
+* **ViewNode Pattern**: Full-screen post-processing effects use the `ViewNode` pattern in the Render Graph.
+* **ExtractComponent**: Settings are attached to the Camera as components (e.g., `InkParchmentSettings`) and extracted to the Render World via `ExtractComponentPlugin`.
+* **Render Pipeline**: Custom `RenderPipeline` handles the shader application.
+* **Core2d Graph**: The post-processing node is inserted into the `Core2d` graph between `Tonemapping` and `EndMainPassPostProcessing`.

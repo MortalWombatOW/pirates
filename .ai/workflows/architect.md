@@ -1,5 +1,5 @@
 ---
-description: 
+description: Convert requirements into atomic tasks. Run after /init. Run before /forge.
 ---
 
 # Workflow: Architect
