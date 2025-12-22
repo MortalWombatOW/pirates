@@ -35,3 +35,11 @@ pub struct PlayerFleet {
     /// List of ships owned by the player (excluding the flagship).
     pub ships: Vec<ShipData>,
 }
+
+/// Resource mapping PlayerFleet indices to spawned Entity IDs.
+/// Populated when entering HighSeas, cleared when leaving.
+#[derive(Resource, Default)]
+pub struct FleetEntities {
+    /// Spawned entities corresponding to PlayerFleet.ships by index.
+    pub entities: Vec<Entity>,
+}

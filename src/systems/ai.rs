@@ -99,15 +99,11 @@ pub fn combat_ai_system(
     for (entity, transform, health, velocity, ang_velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
         // Check for surrender condition
         if health.hull < 20.0 {
-            // Surrender!
-            // Only do this once
-                 // Ensure idempotency: checking for existing component would be ideal,
-                 // but re-inserting is safe in Bevy (replaces).
-                 commands.entity(entity)
-                    .insert(crate::components::Surrendered)
-                    .insert(Name::new("Surrendered Ship"));
-            }
-            continue; // Stop AI logic
+            // Surrender - insert marker and stop AI logic
+            commands.entity(entity)
+                .insert(crate::components::Surrendered)
+                .insert(Name::new("Surrendered Ship"));
+            continue;
         }
 
         let ai_pos = transform.translation.truncate();
