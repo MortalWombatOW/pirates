@@ -45,6 +45,7 @@ impl Plugin for WorldMapPlugin {
                 spawn_player_fleet,
                 spawn_port_entities,
                 reset_encounter_cooldown,
+                show_tilemap,
             ))
             .add_systems(Update, (
                 fog_of_war_update_system,
@@ -64,6 +65,7 @@ impl Plugin for WorldMapPlugin {
                 port_arrival_system,
                 contract_delegation_system,
             ).run_if(in_state(GameState::HighSeas)))
+            .add_systems(OnEnter(GameState::Combat), hide_tilemap)
             .add_systems(OnExit(GameState::HighSeas), (despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities, clear_fleet_entities));
     }
 }
@@ -393,6 +395,24 @@ pub fn despawn_tilemap(
     }
 
     info!("Tilemaps despawned");
+}
+
+/// Hides the world map and fog tilemaps (used when entering Combat).
+fn hide_tilemap(
+    mut tilemap_query: Query<&mut Visibility, Or<(With<WorldMap>, With<FogMap>)>>,
+) {
+    for mut visibility in &mut tilemap_query {
+        *visibility = Visibility::Hidden;
+    }
+}
+
+/// Shows the world map and fog tilemaps (used when entering HighSeas).
+fn show_tilemap(
+    mut tilemap_query: Query<&mut Visibility, Or<(With<WorldMap>, With<FogMap>)>>,
+) {
+    for mut visibility in &mut tilemap_query {
+        *visibility = Visibility::Inherited;
+    }
 }
 
 /// Spawns AI ships on the High Seas map at random navigable locations.
