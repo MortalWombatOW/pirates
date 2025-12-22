@@ -131,7 +131,7 @@ fn create_tileset_texture(
     mut images: ResMut<Assets<Image>>,
 ) {
     const TILE_SIZE: u32 = 64;
-    const NUM_TILES: u32 = 6; // Added 1 for Fog/Parchment
+    const NUM_TILES: u32 = 6; // Includes Fog/Parchment tile
     const TEXTURE_WIDTH: u32 = TILE_SIZE * NUM_TILES;
     const TEXTURE_HEIGHT: u32 = TILE_SIZE;
 

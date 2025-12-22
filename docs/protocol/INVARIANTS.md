@@ -83,3 +83,11 @@
   * `intel_visualization_system` runs on `Update` in HighSeas state - visual only, no physics.
 * **Intel Type Distribution**: Generated tavern intel uses weighted probabilities: Rumor 40%, MapReveal 20%, ShipRoute 20%, TreasureLocation 10%, FleetPosition 10%. This balances gameplay value with cost.
 * **Transient Entity Pattern**: Intel entities are spawned with `IntelExpiry` for automatic cleanup. The default TTL is 1 in-game day (~24 real seconds). This prevents entity accumulation from repeated port visits.
+
+## 11. World Map Tilemap Persistence
+* **Tilemap Lifecycle**: The world map and fog tilemaps are spawned once on first `OnEnter(HighSeas)` and persist across state transitions. They are NOT despawned when leaving HighSeas.
+  * Rationale: Respawning 512x512 tiles on every state transition causes fog of war state to be lost (all tiles reset to opaque).
+* **Visibility Toggle**: Use `hide_tilemap` and `show_tilemap` systems to toggle visibility:
+  * `OnEnter(Combat)` → Hide tilemaps
+  * `OnEnter(HighSeas)` → Show tilemaps
+* **Spawn Guard**: `spawn_tilemap_from_map_data` checks if `WorldMap` entity already exists and early-exits if so. This prevents duplicate tilemaps on re-entry to HighSeas.
