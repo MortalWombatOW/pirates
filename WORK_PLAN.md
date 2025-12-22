@@ -306,7 +306,7 @@
 ### Epic 5.5: Scale Testing
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 5.5.1 | Spawn 1000 AI ships | 5.2.5 | 1000 ships exist in simulation. |
+| [x] 5.5.1 | Spawn 1000 AI ships | 5.2.5 | 1000 ships exist in simulation. |
 | [ ] 5.5.2 | Profile frame rate | 5.5.1 | Game runs > 30 FPS with 1000 ships. |
 | [ ] 5.5.3 | Optimize with spatial hashing | 5.5.2, 3.6.1 | Reduce O(n²) checks. |
 | [ ] 5.5.4 | Optimize with LOD (hide distant ships) | 5.5.2 | Only render ships near camera. |

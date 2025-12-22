@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy_egui::{egui, EguiContexts};
 use crate::plugins::core::GameState;
-use crate::resources::{Wind, WorldClock};
+use crate::resources::{Wind, WorldClock, MapData};
+use crate::components::{Ship, AI, Health, Order, OrderQueue, FactionId, Faction};
+use crate::plugins::worldmap::HighSeasAI;
+use crate::utils::pathfinding::tile_to_world;
 
 pub struct DebugUiPlugin;
 
@@ -12,7 +15,10 @@ impl Plugin for DebugUiPlugin {
             app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         }
         
-        app.add_systems(Update, debug_panel);
+        app.add_systems(Update, (
+            debug_panel,
+            spawn_scale_test_ships.run_if(in_state(GameState::HighSeas)),
+        ));
     }
 }
 
@@ -23,6 +29,7 @@ fn debug_panel(
     diagnostics: Res<DiagnosticsStore>,
     wind: Option<Res<Wind>>,
     world_clock: Res<WorldClock>,
+    ship_query: Query<Entity, With<Ship>>,
 ) {
     egui::Window::new("Debug Panel").show(contexts.ctx_mut(), |ui| {
         ui.label(format!("Current State: {:?}", state.get()));
@@ -33,6 +40,9 @@ fn debug_panel(
         {
             ui.label(format!("FPS: {:.1}", fps));
         }
+
+        // Ship count for scale testing
+        ui.label(format!("Ships: {}", ship_query.iter().count()));
 
         // World Clock display
         ui.separator();
@@ -69,5 +79,86 @@ fn debug_panel(
         if ui.button("Game Over").clicked() {
             next_state.set(GameState::GameOver);
         }
+
+        // Scale test info
+        if state.get() == &GameState::HighSeas {
+            ui.separator();
+            ui.weak("Press 'B' to spawn 1000 ships for scale testing");
+        }
     });
+}
+
+/// Debug system: spawns 1000 AI ships for scale testing.
+/// 
+/// Triggered by pressing 'B' key in HighSeas state.
+/// Ships spawn on navigable water tiles with Idle orders.
+fn spawn_scale_test_ships(
+    mut commands: Commands,
+    input: Res<ButtonInput<KeyCode>>,
+    asset_server: Res<AssetServer>,
+    map_data: Res<MapData>,
+    ship_query: Query<Entity, With<Ship>>,
+) {
+    if !input.just_pressed(KeyCode::KeyB) {
+        return;
+    }
+
+    const SHIPS_TO_SPAWN: usize = 1000;
+
+    // Collect all navigable tile positions
+    let water_tiles: Vec<(u32, u32)> = map_data.iter()
+        .filter(|(_, _, tile)| tile.is_navigable())
+        .map(|(x, y, _)| (x, y))
+        .collect();
+
+    if water_tiles.is_empty() {
+        warn!("No navigable tiles found for scale test!");
+        return;
+    }
+
+    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
+    let map_width = map_data.width;
+    let map_height = map_data.height;
+
+    // Sample from water tiles for ship positions
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    
+    for _ in 0..SHIPS_TO_SPAWN {
+        // Random tile from water tiles
+        let idx = rng.gen_range(0..water_tiles.len());
+        let (tile_x, tile_y) = water_tiles[idx];
+        
+        // Convert to world position with small random offset
+        let base_pos = tile_to_world(
+            IVec2::new(tile_x as i32, tile_y as i32),
+            map_width,
+            map_height,
+        );
+        let offset = Vec2::new(
+            rng.gen_range(-8.0..8.0),
+            rng.gen_range(-8.0..8.0),
+        );
+        let spawn_pos = base_pos + offset;
+
+        commands.spawn((
+            Name::new("Scale Test Ship"),
+            Ship,
+            AI,
+            Faction(FactionId::Pirates), // Neutral faction for testing
+            HighSeasAI,
+            Health::default(),
+            OrderQueue::with_order(Order::Idle),
+            Sprite {
+                image: texture_handle.clone(),
+                custom_size: Some(Vec2::splat(32.0)), // Smaller for density
+                flip_y: true,
+                ..default()
+            },
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 1.0),
+        ));
+    }
+
+    let total_ships = ship_query.iter().count() + SHIPS_TO_SPAWN;
+    info!("Scale test: Spawned {} ships (total: {})", SHIPS_TO_SPAWN, total_ships);
 }
