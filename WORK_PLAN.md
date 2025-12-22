@@ -321,7 +321,7 @@
 | [x] 6.1.2 | Create `IntelAcquiredEvent` | 6.1.1 | Event with intel data. |
 | [x] 6.1.3 | Create `IntelSystem` | 6.1.2, 3.3.1 | Adds revealed data to map on acquisition. |
 | [x] 6.1.4 | Implement intel expiry | 6.1.1, 5.1.2 | Transient intel removed after TTL. |
-| [ ] 6.1.5 | Implement tavern intel purchase | 6.1.2, 4.2.3 | Player buys intel at tavern. |
+| [x] 6.1.5 | Implement tavern intel purchase | 6.1.2, 4.2.3 | Player buys intel at tavern. |
 | [ ] 6.1.6 | Visualize intel on map (icons, routes) | 6.1.3 | Ship routes shown as lines, etc. |
 
 ### Epic 6.2: Companions
@@ -372,6 +372,7 @@
 | [ ] 7.4.3 | Implement load game | 7.4.1 | World reconstructed from save file. |
 | [ ] 7.4.4 | Implement autosave | 7.4.2 | Auto-triggers on state transitions. |
 | [ ] 7.4.5 | Add Save/Load to main menu | 7.4.2, 7.4.3, 4.2.1 | UI buttons work. |
+| [ ] 7.4.6 | Generate save presets to make feature testing easier | 7.4.2, 7.4.3 | 
 
 ---
 
