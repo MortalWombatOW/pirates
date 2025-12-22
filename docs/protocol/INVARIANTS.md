@@ -51,3 +51,19 @@
 * **Navigation Integration**: Orders set `Destination` component, which triggers `pathfinding_system`. Ships need both `OrderQueue` AND navigation components.
 * **Port Entity References**: `TradeRoute` orders store port `Entity` IDs. If a port is despawned (leaving HighSeas), routes become invalid and are cleaned up.
 * **Order Cycling**: Repeating orders (TradeRoute, Patrol) pop themselves and push a modified copy to implement loops.
+
+## 8. Entity Persistence Patterns
+* **Companion Resources**: When a persistent `Resource` (e.g., `PlayerFleet`) stores data that becomes spawned entities, create a **companion resource** (e.g., `FleetEntities`) to map indices to `Entity` IDs.
+  * Populate the companion resource in the `OnEnter` system that spawns entities.
+  * Clear the companion resource in the `OnExit` system.
+  * This pattern enables UI/systems to associate persistent data indices with live entities.
+* **Example**:
+    ```rust
+    // Persistent data
+    #[derive(Resource, Default)]
+    pub struct PlayerFleet { pub ships: Vec<ShipData> }
+
+    // Entity tracking (transient)
+    #[derive(Resource, Default)]
+    pub struct FleetEntities { pub entities: Vec<Entity> }
+    ```

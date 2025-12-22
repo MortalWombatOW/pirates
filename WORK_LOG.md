@@ -828,3 +828,14 @@ All 6 tasks completed:
 **Reasoning**:
 - **Task Splitting**: Reduces context load and allows for clearer progress tracking on complex features.
 - **Simulation Layers**: Prevents confusion about which systems apply to which game state, ensuring performance (physics only where needed) and correctness.
+
+## 2025-12-21: Protocol Evolution - Entity Persistence Patterns
+
+**Friction Point**:
+- When implementing Ship Capture (5.4.1), the agent created `PlayerFleet` to persist ship data but forgot to create a companion resource to track spawned entity IDs. This made it impossible to link Fleet UI selections to the live entities.
+
+**Mutation Applied**:
+- **INVARIANTS.md Section 8**: Added "Entity Persistence Patterns" rule. When a persistent resource spawns transient entities, a companion resource must map indices to Entity IDs.
+
+**Example**:
+- `PlayerFleet` (persistent) + `FleetEntities` (transient).
