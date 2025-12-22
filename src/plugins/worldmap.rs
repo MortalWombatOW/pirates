@@ -10,6 +10,7 @@ use crate::systems::{
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
     path_visualization_system, port_arrival_system, order_execution_system,
     ai_pathfinding_system, ai_movement_system, contract_delegation_system,
+    intel_visualization_system,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
@@ -59,6 +60,7 @@ impl Plugin for WorldMapPlugin {
                 navigation_movement_system.after(pathfinding_system),
                 ai_movement_system.after(ai_pathfinding_system),
                 path_visualization_system,
+                intel_visualization_system,
                 port_arrival_system,
                 contract_delegation_system,
             ).run_if(in_state(GameState::HighSeas)))

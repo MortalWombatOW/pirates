@@ -322,7 +322,7 @@
 | [x] 6.1.3 | Create `IntelSystem` | 6.1.2, 3.3.1 | Adds revealed data to map on acquisition. |
 | [x] 6.1.4 | Implement intel expiry | 6.1.1, 5.1.2 | Transient intel removed after TTL. |
 | [x] 6.1.5 | Implement tavern intel purchase | 6.1.2, 4.2.3 | Player buys intel at tavern. |
-| [ ] 6.1.6 | Visualize intel on map (icons, routes) | 6.1.3 | Ship routes shown as lines, etc. |
+| [x] 6.1.6 | Visualize intel on map (icons, routes) | 6.1.3 | Ship routes shown as lines, etc. |
 
 ### Epic 6.2: Companions
 | ID | Task | Dependencies | Acceptance Criteria |
