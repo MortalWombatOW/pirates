@@ -46,7 +46,8 @@ impl Plugin for CorePlugin {
                 faction_ai_system.after(world_tick_system),
                 trade_route_generation_system.after(faction_ai_system),
                 faction_ship_spawning_system.after(trade_route_generation_system),
-            ));
+            ))
+            .add_systems(OnEnter(GameState::GameOver), save_profile_on_death);
     }
 }
 
@@ -158,4 +159,16 @@ fn init_meta_profile(mut commands: Commands) {
     );
     commands.insert_resource(profile);
 }
+
+/// Saves the MetaProfile to disk when the player dies.
+/// Increments death counter and saves the current state.
+fn save_profile_on_death(mut profile: ResMut<crate::resources::MetaProfile>) {
+    profile.deaths += 1;
+    info!("Player died! Total deaths: {}", profile.deaths);
+    
+    if let Err(e) = profile.save_to_file() {
+        error!("Failed to save profile on death: {}", e);
+    }
+}
+
 

@@ -144,4 +144,35 @@ impl MetaProfile {
             path
         })
     }
+
+    /// Saves the profile to the default save location.
+    ///
+    /// Creates the save directory if it doesn't exist.
+    pub fn save_to_file(&self) -> Result<(), String> {
+        let Some(path) = Self::get_save_path() else {
+            return Err("Could not determine save directory".to_string());
+        };
+
+        // Ensure save directory exists
+        if let Some(dir) = Self::get_save_dir() {
+            if !dir.exists() {
+                if let Err(e) = std::fs::create_dir_all(&dir) {
+                    return Err(format!("Failed to create save directory: {}", e));
+                }
+                info!("Created save directory: {:?}", dir);
+            }
+        }
+
+        // Serialize and write
+        match serde_json::to_string_pretty(self) {
+            Ok(json) => match std::fs::write(&path, json) {
+                Ok(()) => {
+                    info!("Saved profile to {:?}", path);
+                    Ok(())
+                }
+                Err(e) => Err(format!("Failed to write profile file: {}", e)),
+            },
+            Err(e) => Err(format!("Failed to serialize profile: {}", e)),
+        }
+    }
 }

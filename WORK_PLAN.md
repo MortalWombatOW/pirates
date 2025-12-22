@@ -345,7 +345,7 @@
 |---|---|---|---|
 | [x] 7.1.1 | Define `MetaProfile` resource | 1.1.3 | Stats, unlocks, legacy wrecks. |
 | [x] 7.1.2 | Load `MetaProfile` on app start | 7.1.1 | Loaded from file or created fresh. |
-| [ ] 7.1.3 | Save `MetaProfile` on death/quit | 7.1.1 | Written to file. |
+| [x] 7.1.3 | Save `MetaProfile` on death/quit | 7.1.1 | Written to file. |
 | [ ] 7.1.4 | Define player stats (Charisma, Navigation, Logistics) | 7.1.1 | Stats affect game systems. |
 | [ ] 7.1.5 | Implement stat progression (XP or milestones) | 7.1.4 | Stats increase over runs. |
 
