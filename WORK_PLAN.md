@@ -335,7 +335,7 @@
 | [x] 6.2.6 | Implement Quartermaster ability | 6.2.2, 4.3.1 | Auto-trades based on market intel. |
 | [x] 6.2.7 | Implement Navigator ability | 6.2.2, 3.5.6 | Auto-routes efficient paths. |
 | [x] 6.2.8 | Implement Lookout ability | 6.2.2, 3.3.5 | Increases vision radius. |
-| [ ] 6.2.9 | Implement Gunner ability | 6.2.2, 2.4.3 | Reduces cannon cooldown. |
+| [x] 6.2.9 | Implement Gunner ability | 6.2.2, 2.4.3 | Reduces cannon cooldown. |
 
 ---
 

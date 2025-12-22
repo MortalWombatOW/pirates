@@ -10,6 +10,6 @@ pub struct Vision {
 
 impl Default for Vision {
     fn default() -> Self {
-        Self { radius: 8.0 }
+        Self { radius: 50.0 }
     }
 }

@@ -5,12 +5,14 @@ use crate::resources::*;
 use crate::systems::movement::ShipInputBuffer;
 
 /// System that handles cannon firing based on buffered input.
+/// Gunner companion provides -30% cannon cooldown.
 pub fn cannon_firing_system(
     mut commands: Commands,
     mut cannon_state: ResMut<CannonState>,
     input_buffer: Res<ShipInputBuffer>,
     time: Res<Time>,
     query: Query<(Entity, &Transform, &LinearVelocity), (With<Ship>, With<Player>)>,
+    companion_query: Query<&crate::components::companion::CompanionRole>,
     asset_server: Res<AssetServer>,
 ) {
     // Tick cooldown
@@ -66,7 +68,11 @@ pub fn cannon_firing_system(
                 ));
             }
 
-            cannon_state.cooldown_remaining = cannon_state.base_cooldown;
+            // Check if player has a Gunner companion (provides -30% cooldown reduction)
+            let has_gunner = companion_query.iter().any(|role| *role == crate::components::companion::CompanionRole::Gunner);
+            let gunner_bonus = if has_gunner { 0.7 } else { 1.0 };
+            
+            cannon_state.cooldown_remaining = cannon_state.base_cooldown * gunner_bonus;
             
             // CONSUME the sticky input from the buffer
             // We use a separate mutable variable to clear it
