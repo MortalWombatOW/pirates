@@ -19,7 +19,7 @@ pub struct ShipData {
 impl Default for ShipData {
     fn default() -> Self {
         Self {
-            sprite_path: "sprites/ships/round_ship_small.png".to_string(),
+            sprite_path: "sprites/ships/enemy.png".to_string(),
             hull_health: 100.0,
             max_hull_health: 100.0,
             cargo: None,
