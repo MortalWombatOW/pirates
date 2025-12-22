@@ -398,7 +398,7 @@
 | [ ] 8.2.5 | Add scroll/dagger decorations to UI | 8.2.4 | Decorative elements on panels. |
 | [ ] 8.2.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
 | [ ] 8.2.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
-| 
+| [ ] 8.2.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
 
 ---
 

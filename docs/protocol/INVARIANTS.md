@@ -102,3 +102,17 @@
   * Navigator → `navigation_movement_system` (Update, HighSeas)
   * Lookout → `fog_of_war_update_system` (Update, HighSeas)
   * Gunner → `cannon_firing_system` (FixedUpdate, Combat)
+
+## 13. MetaProfile Persistence
+* **File Location**: Platform-specific via `dirs::data_dir()`:
+  * macOS: `~/Library/Application Support/pirates/profile.json`
+  * Linux: `~/.local/share/pirates/profile.json`
+  * Windows: `%APPDATA%/pirates/profile.json`
+* **Load/Save Lifecycle**:
+  * Load: `init_meta_profile` in `CorePlugin` Startup schedule
+  * Save: `save_profile_on_death` on `OnEnter(GameState::GameOver)`
+* **Stat Progression**: Milestone-based (not XP):
+  * Charisma: +1 per 2 completed runs (max +4)
+  * Navigation: +1 per 5000 lifetime gold (max +4)
+  * Logistics: +1 per 3 captured ships (max +4)
+  * All stats cap at level 5 (base 1 + 4 from milestones)
