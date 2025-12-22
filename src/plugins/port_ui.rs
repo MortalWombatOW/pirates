@@ -8,7 +8,7 @@ use crate::components::{
     port::{Inventory, Port, PortName},
     ship::{Player, Ship},
 };
-use crate::events::{ContractAcceptedEvent, ContractCompletedEvent, TradeExecutedEvent, RepairRequestEvent, RepairType};
+use crate::events::{ContractAcceptedEvent, ContractCompletedEvent, TradeExecutedEvent, RepairRequestEvent, RepairType, IntelAcquiredEvent};
 use crate::plugins::core::GameState;
 use crate::systems::repair::{repair_execution_system, calculate_repair_cost};
 
@@ -26,6 +26,7 @@ impl Plugin for PortUiPlugin {
             .add_event::<ContractAcceptedEvent>()
             .add_event::<ContractCompletedEvent>()
             .add_event::<RepairRequestEvent>()
+            .add_event::<IntelAcquiredEvent>()
             .add_systems(OnEnter(GameState::Port), generate_port_contracts)
             .add_systems(Update, (
                 port_ui_system,

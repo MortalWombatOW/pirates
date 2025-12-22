@@ -318,7 +318,7 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 6.1.1 | Define `Intel` entity and components | 1.1.3 | `Intel`, `IntelType`, `MapData`, `Expiry`. |
-| [ ] 6.1.2 | Create `IntelAcquiredEvent` | 6.1.1 | Event with intel data. |
+| [x] 6.1.2 | Create `IntelAcquiredEvent` | 6.1.1 | Event with intel data. |
 | [ ] 6.1.3 | Create `IntelSystem` | 6.1.2, 3.3.1 | Adds revealed data to map on acquisition. |
 | [ ] 6.1.4 | Implement intel expiry | 6.1.1, 5.1.2 | Transient intel removed after TTL. |
 | [ ] 6.1.5 | Implement tavern intel purchase | 6.1.2, 4.2.3 | Player buys intel at tavern. |

@@ -77,3 +77,14 @@ pub struct RepairRequestEvent {
     /// Which component to repair.
     pub repair_type: RepairType,
 }
+
+/// Event emitted when intel is acquired by the player.
+#[derive(Event, Debug)]
+pub struct IntelAcquiredEvent {
+    /// The intel entity that was acquired.
+    pub intel_entity: Entity,
+    /// The type of intel acquired.
+    pub intel_type: crate::components::intel::IntelType,
+    /// Source port where intel was acquired (if from tavern).
+    pub source_port: Option<Entity>,
+}
