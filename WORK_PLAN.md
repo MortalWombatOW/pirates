@@ -347,7 +347,7 @@
 | [x] 7.1.2 | Load `MetaProfile` on app start | 7.1.1 | Loaded from file or created fresh. |
 | [x] 7.1.3 | Save `MetaProfile` on death/quit | 7.1.1 | Written to file. |
 | [x] 7.1.4 | Define player stats (Charisma, Navigation, Logistics) | 7.1.1 | Stats affect game systems. |
-| [ ] 7.1.5 | Implement stat progression (XP or milestones) | 7.1.4 | Stats increase over runs. |
+| [x] 7.1.5 | Implement stat progression (XP or milestones) | 7.1.4 | Stats increase over runs. |
 
 ### Epic 7.2: Archetypes
 | ID | Task | Dependencies | Acceptance Criteria |
@@ -398,6 +398,7 @@
 | [ ] 8.2.5 | Add scroll/dagger decorations to UI | 8.2.4 | Decorative elements on panels. |
 | [ ] 8.2.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
 | [ ] 8.2.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
+| 
 
 ---
 

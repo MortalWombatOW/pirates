@@ -40,6 +40,48 @@ impl Default for MetaProfile {
     }
 }
 
+impl MetaProfile {
+    /// Recalculates player stats based on lifetime milestones.
+    ///
+    /// Stat gains are milestone-based:
+    /// - Charisma: Increases with completed runs (1 per 2 runs, max +4)
+    /// - Navigation: Increases with lifetime gold (1 per 5000 gold, max +4)
+    /// - Logistics: Increases with lifetime captures (1 per 3 ships, max +4)
+    ///
+    /// All stats cap at level 5 (base 1 + 4 from milestones).
+    pub fn recalculate_stats(&mut self) {
+        // Charisma: social skill from completing runs
+        let charisma_bonus = (self.runs_completed / 2).min(4) as u8;
+        self.stats.charisma = 1 + charisma_bonus;
+
+        // Navigation: sailing skill from earning gold (exploration)
+        let navigation_bonus = ((self.lifetime_gold / 5000) as u32).min(4) as u8;
+        self.stats.navigation = 1 + navigation_bonus;
+
+        // Logistics: fleet management from capturing ships
+        let logistics_bonus = (self.lifetime_captures / 3).min(4) as u8;
+        self.stats.logistics = 1 + logistics_bonus;
+    }
+
+    /// Adds gold to lifetime total and triggers stat recalculation.
+    pub fn add_lifetime_gold(&mut self, amount: u64) {
+        self.lifetime_gold += amount;
+        self.recalculate_stats();
+    }
+
+    /// Increments capture count and triggers stat recalculation.
+    pub fn add_capture(&mut self) {
+        self.lifetime_captures += 1;
+        self.recalculate_stats();
+    }
+
+    /// Increments completed runs and triggers stat recalculation.
+    pub fn complete_run(&mut self) {
+        self.runs_completed += 1;
+        self.recalculate_stats();
+    }
+}
+
 /// Player stats that persist and grow across runs.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerStats {
