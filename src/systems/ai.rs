@@ -101,16 +101,8 @@ pub fn combat_ai_system(
         if health.hull < 20.0 {
             // Surrender!
             // Only do this once
-            if commands.get_entity(entity).is_some() {
-                 // We need to check if we already surrendered to avoid spamming components/logs
-                 // But since we can't easily query "Without<Surrendered>" in this specific loop structure without changing signature,
-                 // we rely on the fact that we break out logic. 
-                 // Actually, best to add "Without<Surrendered>" to the query filter if possible, 
-                 // OR check here. Since we can't see components on entity easily without another query...
-                 // Let's just assume we re-apply (idempotent-ish) or check if we can add a cooldown?
-                 // No, let's just add the component. Bevy handles duplicate component insertion gracefully (replaces).
-                 // Ideally we'd filter the query, but let's just do it here.
-                 
+                 // Ensure idempotency: checking for existing component would be ideal,
+                 // but re-inserting is safe in Bevy (replaces).
                  commands.entity(entity)
                     .insert(crate::components::Surrendered)
                     .insert(Name::new("Surrendered Ship"));
