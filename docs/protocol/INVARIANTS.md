@@ -74,3 +74,12 @@
   * Trade-off: Gamified abstraction acceptable for MVP. Full simulation can be added in a future pass.
 * **Player Cut**: The `AssignedShip` component stores `player_cut` (default 70%). The remaining 30% represents "fleet overhead" and is not explicitly tracked—it's simply not awarded.
 * **Schedule**: `contract_delegation_system` runs on `Update` (not `FixedUpdate`) because it's proximity-based and needs immediate response, similar to threat detection.
+
+## 10. Intel System
+* **Duplicate `tile_to_world`**: `intel_visualization_system` contains its own `tile_to_world` function instead of importing from `utils::pathfinding`. This avoids circular module imports and keeps the system self-contained.
+* **Schedule Split**: 
+  * `intel_acquisition_system` runs on `Update` in Port state - processes purchase events immediately.
+  * `intel_expiry_system` runs on `FixedUpdate` - tied to `WorldClock` ticks for deterministic timing.
+  * `intel_visualization_system` runs on `Update` in HighSeas state - visual only, no physics.
+* **Intel Type Distribution**: Generated tavern intel uses weighted probabilities: Rumor 40%, MapReveal 20%, ShipRoute 20%, TreasureLocation 10%, FleetPosition 10%. This balances gameplay value with cost.
+* **Transient Entity Pattern**: Intel entities are spawned with `IntelExpiry` for automatic cleanup. The default TTL is 1 in-game day (~24 real seconds). This prevents entity accumulation from repeated port visits.
