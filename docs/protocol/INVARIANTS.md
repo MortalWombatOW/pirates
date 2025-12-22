@@ -91,3 +91,14 @@
   * `OnEnter(Combat)` → Hide tilemaps
   * `OnEnter(HighSeas)` → Show tilemaps
 * **Spawn Guard**: `spawn_tilemap_from_map_data` checks if `WorldMap` entity already exists and early-exits if so. This prevents duplicate tilemaps on re-entry to HighSeas.
+
+## 12. Companion Ability Pattern
+* **Global Query Pattern**: Companion abilities query ALL `CompanionRole` components globally, not just those "assigned" to the player. This simplifies implementation since companions are player-owned persistent entities.
+* **Bonus Values**:
+  * Navigator: +25% sailing speed (`base_speed * 1.25`)
+  * Lookout: +50% vision radius (`vision.radius * 1.5`)
+  * Gunner: -30% cannon cooldown (`base_cooldown * 0.7`)
+* **Schedule Placement**: Abilities integrate into existing systems rather than creating new ones:
+  * Navigator → `navigation_movement_system` (Update, HighSeas)
+  * Lookout → `fog_of_war_update_system` (Update, HighSeas)
+  * Gunner → `cannon_firing_system` (FixedUpdate, Combat)
