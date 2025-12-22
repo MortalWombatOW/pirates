@@ -2,23 +2,28 @@ use bevy::prelude::*;
 
 /// Marker component that identifies an entity as a ship.
 /// This is the primary marker for all vessels in the game, both player and AI-controlled.
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Ship;
 
 /// Marker component that identifies an entity as the player's ship.
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Player;
 
 /// Marker component that identifies an entity as AI-controlled.
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct AI;
 
 /// Marker component for ships owned by the player but controlled by AI (fleet members).
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct PlayerOwned;
 
 /// Marker component for ships that have surrendered in combat.
-#[derive(Component, Debug, Default)]
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Surrendered;
 
 /// Faction identifier for ships and ports.
@@ -33,6 +38,7 @@ pub enum FactionId {
 
 /// Component that assigns a faction to an entity.
 #[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Faction(pub FactionId);
 
 /// Ship class determines base stats and visual appearance.

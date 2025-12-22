@@ -1,14 +1,16 @@
 use bevy::prelude::*;
 
 /// Component indicating the player's desired destination on the world map.
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Destination {
     /// Target position in world coordinates.
     pub target: Vec2,
 }
 
 /// Component holding the calculated path waypoints for navigation.
-#[derive(Component, Debug, Clone, Default)]
+#[derive(Component, Debug, Clone, Default, Reflect)]
+#[reflect(Component)]
 pub struct NavigationPath {
     /// List of waypoints from current position to destination.
     /// First element is the next waypoint to move toward.

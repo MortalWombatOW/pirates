@@ -119,7 +119,7 @@ pub fn contract_delegation_system(
             commands.entity(contract_entity).despawn_recursive();
             
             // Set ship back to idle
-            if let Ok(mut ship) = ship_query.get_mut(assigned.ship_entity) {
+            if let Ok(ship) = ship_query.get_mut(assigned.ship_entity) {
                 commands.entity(ship.0).insert(OrderQueue::with_order(Order::Idle));
             }
         } else if needs_order && !progress.destination_reached {

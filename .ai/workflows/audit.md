@@ -2,10 +2,6 @@
 description: 
 ---
 
----
-description: 
----
-
 # Workflow: Audit
 
 **Goal**: Comprehensive code review to ensure technical quality and product alignment.

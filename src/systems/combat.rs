@@ -436,7 +436,6 @@ pub fn combat_victory_system(
 
 /// System that handles combat victory by capturing surrendered ships and transitioning state.
 pub fn handle_combat_victory_system(
-    mut commands: Commands,
     mut combat_ended_events: EventReader<crate::events::CombatEndedEvent>,
     mut next_state: ResMut<NextState<crate::plugins::core::GameState>>,
     surrendered_ships: Query<(&Health, &Name, Option<&Cargo>), (With<Ship>, With<Surrendered>)>,

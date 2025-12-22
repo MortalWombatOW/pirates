@@ -16,6 +16,7 @@ impl Default for TargetComponent {
 
 /// Component applied to cannonball projectiles.
 #[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Projectile {
     pub damage: f32,
     pub target: TargetComponent,

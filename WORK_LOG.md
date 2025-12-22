@@ -38,14 +38,14 @@
     - Real-time FPS counter using `FrameTimeDiagnosticsPlugin`.
     - Buttons to trigger transitions between all game states (`MainMenu`, `Port`, `HighSeas`, `Combat`, `GameOver`).
 - Verified implementation with `cargo check`.
-41: 
-42: ### Epic 2.1: Physics Setup [COMPLETED]
-43: - Integrated `avian2d` (0.2) physics engine.
-44: - Created `PhysicsPlugin` and registered it in `main.rs`.
-45: - Configured `FixedUpdate` frequency to 60Hz for deterministic physics.
-46: - Set `Gravity` to zero for top-down perspective.
-47: - Implemented `spawn_test_physics_entity` to verify physics behavior in `Combat` state.
-48: - Verified compilation with `cargo check`.
+
+### Epic 2.1: Physics Setup [COMPLETED]
+- Integrated `avian2d` (0.2) physics engine.
+- Created `PhysicsPlugin` and registered it in `main.rs`.
+- Configured `FixedUpdate` frequency to 60Hz for deterministic physics.
+- Set `Gravity` to zero for top-down perspective.
+- Implemented `spawn_test_physics_entity` to verify physics behavior in `Combat` state.
+- Verified compilation with `cargo check`.
 
 ### Bug Fix: Test Entity Not Visible in Combat View
 - **Issue**: Test physics entity was spawning but not visible when entering Combat state.
@@ -941,3 +941,18 @@ All 6 tasks completed:
 ### Verification
 - `cargo check`: PASSED
 
+## 2025-12-22: Task 8.1.1 - Ink and Parchment Shader
+
+**Summary**: Created the WGSL shader for the game's signature visual style.
+
+### Files Created
+- `assets/shaders/ink_parchment.wgsl`: Post-processing shader that converts the scene to grayscale and maps luminance to "Ink" (dark brown) and "Parchment" (cream) colors.
+
+### Tasks Completed
+- 8.1.1: Create "Ink and Parchment" shader ✅
+
+### Notes
+- The shader uses a hardcoded palette:
+  - Paper: `vec3(0.93, 0.88, 0.78)`
+  - Ink: `vec3(0.15, 0.12, 0.10)`
+- Contrast is boosted (`pow(gray, 1.2)`) to simulate the sharpness of drawn ink.

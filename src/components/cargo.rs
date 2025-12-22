@@ -43,6 +43,7 @@ impl GoodType {
 /// Represents the cargo hold of a ship.
 /// Contains goods and tracks capacity limits.
 #[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Cargo {
     /// Map of goods to quantities currently held.
     pub goods: HashMap<GoodType, u32>,
@@ -116,6 +117,7 @@ impl Default for Cargo {
 
 /// Represents the gold (currency) held by an entity.
 #[derive(Component, Debug, Clone, Copy, Default, Reflect)]
+#[reflect(Component)]
 pub struct Gold(pub u32);
 
 impl Gold {

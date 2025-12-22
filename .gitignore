@@ -1,3 +1,9 @@
 /target
 .DS_Store
 kenney_pirate-pack/PNG/Default size/.DS_Store
+.agent
+.claude
+.gemini
+
+# Python cache if you run the script locally
+__pycache__/

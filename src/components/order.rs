@@ -62,11 +62,12 @@ impl Default for Order {
 }
 
 /// Component that holds a queue of orders for an AI ship.
-/// 
+///
 /// The ship processes orders from the front of the queue. When an order
 /// completes, it is removed and the next order begins. Repeating orders
 /// (like TradeRoute) re-add themselves to the back of the queue.
 #[derive(Component, Debug, Default, Clone, Reflect)]
+#[reflect(Component)]
 pub struct OrderQueue {
     /// The queue of pending orders. Front order is currently active.
     pub orders: VecDeque<Order>,

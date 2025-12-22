@@ -2,10 +2,6 @@
 description: 
 ---
 
----
-description: 
----
-
 # Workflow: Init
 
 **Goal**: Load the complete mental model of the project.

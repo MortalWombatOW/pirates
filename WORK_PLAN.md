@@ -369,38 +369,43 @@
 ### Epic 7.4: Save/Load
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 7.4.1 | Integrate `bevy_save` | 1.1.2 | Plugin added. |
-| [ ] 7.4.2 | Implement save game | 7.4.1 | All relevant entities/resources serialized. |
-| [ ] 7.4.3 | Implement load game | 7.4.1 | World reconstructed from save file. |
-| [ ] 7.4.4 | Implement autosave | 7.4.2 | Auto-triggers on state transitions. |
-| [ ] 7.4.5 | Add Save/Load to main menu | 7.4.2, 7.4.3, 4.2.1 | UI buttons work. |
-| [ ] 7.4.6 | Generate save presets to make feature testing easier | 7.4.2, 7.4.3 | 
+| [x] 7.4.1 | Integrate `bevy_save` | 1.1.2 | Plugin added. |
+| [x] 7.4.2 | Implement save game | 7.4.1 | All relevant entities/resources serialized. |
+| [x] 7.4.3 | Implement load game | 7.4.1 | World reconstructed from save file. |
+| [x] 7.4.4 | Implement autosave | 7.4.2 | Auto-triggers on state transitions. |
+| [x] 7.4.5 | Add Save/Load to main menu | 7.4.2, 7.4.3, 4.2.1 | UI buttons work. |
+| [x] 7.4.6 | Generate save presets to make feature testing easier | 7.4.2, 7.4.3 |
+
+### Epic 7.5: Code Cleanup
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [x] 7.5.1 | Fix all compiler warnings | 7.4.6 | `cargo check` produces zero warnings. |
 
 ---
 
 ## Phase 8: Audio & Polish
-### Epic 8.1: Audio Integration
+### Epic 8.1: Visual Polish
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 8.1.1 | Integrate `bevy_kira_audio` | 1.1.2 | Plugin added, no errors. |
-| [ ] 8.1.2 | Create `AudioPlugin` | 8.1.1 | Manages music and SFX. |
-| [ ] 8.1.3 | Implement scene-based music | 8.1.2, 1.2.2 | Different tracks for Port, High Seas, Combat. |
-| [ ] 8.1.4 | Add placeholder music tracks | 8.1.3 | MP3/OGG files in `assets/audio/music/`. |
-| [ ] 8.1.5 | Implement ambient sounds | 8.1.2 | Layered loops (waves, wind). |
-| [ ] 8.1.6 | Implement SFX triggers | 8.1.2 | Cannon fire, hit, purchase, UI click. |
-| [ ] 8.1.7 | Add placeholder SFX files | 8.1.6 | Files in `assets/audio/sfx/`. |
+| [x] 8.1.1 | Create "Ink and Parchment" shader | 1.1.2 | WGSL shader in `assets/shaders/`. |
+| [ ] 8.1.2 | Apply shader as post-processing | 8.1.1 | Entire game has parchment tint. |
+| [ ] 8.1.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |
+| [ ] 8.1.4 | Style UI panels with parchment texture | 8.1.3, 1.4.1 | Egui panels have parchment bg. |
+| [ ] 8.1.5 | Add scroll/dagger decorations to UI | 8.1.4 | Decorative elements on panels. |
+| [ ] 8.1.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
+| [ ] 8.1.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
+| [ ] 8.1.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
 
-### Epic 8.2: Visual Polish
+### Epic 8.2: Audio Integration
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 8.2.1 | Create "Ink and Parchment" shader | 1.1.2 | WGSL shader in `assets/shaders/`. |
-| [ ] 8.2.2 | Apply shader as post-processing | 8.2.1 | Entire game has parchment tint. |
-| [ ] 8.2.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |
-| [ ] 8.2.4 | Style UI panels with parchment texture | 8.2.3, 1.4.1 | Egui panels have parchment bg. |
-| [ ] 8.2.5 | Add scroll/dagger decorations to UI | 8.2.4 | Decorative elements on panels. |
-| [ ] 8.2.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
-| [ ] 8.2.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
-| [ ] 8.2.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
+| [ ] 8.2.1 | Integrate `bevy_kira_audio` | 1.1.2 | Plugin added, no errors. |
+| [ ] 8.2.2 | Create `AudioPlugin` | 8.2.1 | Manages music and SFX. |
+| [ ] 8.2.3 | Implement scene-based music | 8.2.2, 1.2.2 | Different tracks for Port, High Seas, Combat. |
+| [ ] 8.2.4 | Add placeholder music tracks | 8.2.3 | MP3/OGG files in `assets/audio/music/`. |
+| [ ] 8.2.5 | Implement ambient sounds | 8.2.2 | Layered loops (waves, wind). |
+| [ ] 8.2.6 | Implement SFX triggers | 8.2.2 | Cannon fire, hit, purchase, UI click. |
+| [ ] 8.2.7 | Add placeholder SFX files | 8.2.6 | Files in `assets/audio/sfx/`. |
 
 ---
 

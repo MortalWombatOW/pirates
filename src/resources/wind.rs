@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
 /// Resource representing the current wind conditions in the game world.
-/// 
+///
 /// Wind affects:
 /// - Navigation speed in High Seas (travel with wind = faster)
 /// - Ship movement in Combat (downwind = faster, upwind = slower)
-#[derive(Resource, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Reflect)]
+#[reflect(Resource)]
 pub struct Wind {
     /// Wind direction in radians (0 = East, PI/2 = North, etc.)
     pub direction: f32,

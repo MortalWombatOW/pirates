@@ -149,3 +149,26 @@
   * Despawns wreck entity
 * **Position Persistence**: Stored as tile coordinates (`IVec2`), converted to/from world coords using `TILE_SIZE = 16.0`
 * **Index Limitation**: `LegacyWreckMarker.wreck_index` becomes stale after ANY wreck is removed. Safe only because exploration is single-wreck proximity-based and entities despawn immediately. Do NOT batch wreck removals.
+
+## 16. Save/Load System (bevy_save)
+* **Plugin Structure**: `PersistencePlugin` wraps `bevy_save::SavePlugins` to avoid name collision with `bevy_save::SavePlugin`
+* **Save Location**: Platform-specific via `bevy_save` defaults:
+  * macOS: `~/Library/Application Support/pirates/saves/`
+  * Linux: `~/.local/share/pirates/saves/`
+  * Windows: `%APPDATA%/pirates/saves/`
+* **Reflect Requirement**: All components and resources to be saved MUST derive `Reflect` + `#[reflect(Component)]` or `#[reflect(Resource)]`.
+* **Snapshot vs MetaProfile**: Two separate persistence mechanisms:
+  * `MetaProfile` — Cross-run progression (stats, unlocks, wrecks). Uses custom JSON via `serde`.
+  * `bevy_save` — In-run game state (world entities, components). Uses MessagePack via `rmp_serde`.
+* **Pipeline Pattern**: `bevy_save` uses `Pipeline` trait. `&str` implements Pipeline by default (save name → file name).
+* **Keyboard Shortcuts**:
+  | Key | Action | Available In |
+  |-----|--------|--------------|
+  | F5 | Quicksave | HighSeas, Port |
+  | F9 | Quickload | Any state |
+  | F6 | Create "rich" preset (10k gold) | HighSeas |
+  | F7 | Create "damaged" preset (25% HP) | HighSeas |
+  | F8 | Create "advanced" preset (Day 30) | HighSeas |
+* **Autosave Triggers**: `OnEnter(GameState::Port)` and `OnEnter(GameState::HighSeas)` → saves to "autosave"
+* **Main Menu Continue**: Checks for `autosave.sav` at startup; shows "Continue" button if found
+* **Event-Based Load**: Main menu uses `LoadGameEvent` + exclusive system pattern since `World::load` requires `&mut World`

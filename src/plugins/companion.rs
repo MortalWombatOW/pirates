@@ -180,7 +180,7 @@ fn auto_trade_system(
     mut trade_events: EventWriter<TradeExecutedEvent>,
 ) {
     for event in events.read() {
-        if let Ok((player_entity, mut gold, mut cargo)) = player_query.get_single_mut() {
+        if let Ok((_, gold, cargo)) = player_query.get_single_mut() {
             if let Ok(inventory) = port_query.get(event.port_entity) {
                 // Find a good to buy.
                 // Pick a random good sold by the market.

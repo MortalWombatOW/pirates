@@ -5,18 +5,19 @@ use bevy::prelude::*;
 pub const TICKS_PER_HOUR: u32 = 60;
 
 /// Resource tracking in-game time progression.
-/// 
+///
 /// The world clock advances on each FixedUpdate tick:
 /// - `tick` increments each FixedUpdate
 /// - When tick reaches `TICKS_PER_HOUR`, hour increments
 /// - When hour reaches 24, day increments
-/// 
+///
 /// Used by:
 /// - Contract expiry (Epic 4.5.6)
 /// - Price dynamics (Epic 4.4)
 /// - Intel expiry (Epic 6.1.4)
 /// - Faction AI (Epic 5.2)
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Reflect)]
+#[reflect(Resource)]
 pub struct WorldClock {
     /// Current in-game day (1-indexed).
     pub day: u32,

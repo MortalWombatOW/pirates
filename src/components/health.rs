@@ -5,7 +5,8 @@ use bevy::prelude::*;
 /// - **Sails**: Reduce `MaxSpeed` proportionally.
 /// - **Rudder**: Reduce `TurnRate` proportionally.
 /// - **Hull**: Reduce both slightly, and add `WaterIntake` component.
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Health {
     /// Current sail hitpoints. Damage reduces max speed.
     pub sails: f32,
@@ -77,7 +78,8 @@ impl Default for Health {
 /// Represents water flooding into a damaged ship hull.
 /// Water accumulates over time based on `rate`, and `current` tracks
 /// total water taken on. High water levels could affect ship performance.
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct WaterIntake {
     /// Rate of water intake per second (affected by hull damage severity).
     pub rate: f32,

@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::resources::{PlayerFleet, FleetEntities};
-use crate::components::{OrderQueue, Order, Player, PlayerOwned, Health, Cargo};
-use crate::components::contract::{Contract, ContractDetails, AcceptedContract, AssignedShip, ContractType};
+use crate::components::{OrderQueue, Order, PlayerOwned, Health, Cargo};
+use crate::components::contract::{Contract, ContractDetails, AcceptedContract, AssignedShip};
 use crate::systems::ai::AIState;
-use crate::plugins::port_ui::PlayerContracts;
 use bevy::math::Vec2;
 
 /// Plugin for the Fleet Management UI.
@@ -46,24 +45,6 @@ pub struct AssignContractEvent {
     pub ship_entity: Entity,
 }
 
-/// Order types selectable from the UI.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum OrderType {
-    Escort,
-    Patrol,
-    Idle,
-}
-
-impl OrderType {
-    fn label(&self) -> &'static str {
-        match self {
-            OrderType::Escort => "Escort Player",
-            OrderType::Patrol => "Patrol Here",
-            OrderType::Idle => "Idle",
-        }
-    }
-}
-
 /// System to toggle the UI with 'F' key.
 fn toggle_fleet_ui_system(
     mut ui_state: ResMut<FleetUiState>,
@@ -81,32 +62,13 @@ fn fleet_ui_system(
     mut ui_state: ResMut<FleetUiState>,
     player_fleet: Res<PlayerFleet>,
     fleet_entities: Res<FleetEntities>,
-    // Queries for render_ship_list
     ship_query: Query<(Entity, Option<&Name>, &Health, Option<&Cargo>, Option<&OrderQueue>, Option<&AIState>)>,
-    order_query: Query<&OrderQueue, With<PlayerOwned>>, // Used for checking current order in list? Wait, render_ship_list does that.
-    ship_transform_query: Query<&Transform, With<PlayerOwned>>, // Used? render_ship_list used it?
-    player_query: Query<Entity, With<Player>>,
-    // Contract queries
-    player_contracts: Option<Res<PlayerContracts>>,
     contract_query: Query<(Entity, &ContractDetails, Option<&AssignedShip>), (With<Contract>, With<AcceptedContract>)>,
     companion_query: Query<(&crate::components::companion::CompanionName, &crate::components::companion::CompanionRole, Option<&crate::components::companion::AssignedTo>), With<crate::components::companion::Companion>>,
-    mut _order_events: EventWriter<AssignOrderEvent>,
-    mut contract_events: EventWriter<AssignContractEvent>,
 ) {
     if !ui_state.is_open {
         return;
     }
-
-    let player_entity = player_query.get_single().ok();
-
-    // Build list of unassigned Transport contracts
-    let unassigned_contracts: Vec<(Entity, &ContractDetails)> = contract_query
-        .iter()
-        .filter(|(_, d, assigned)| {
-            assigned.is_none() && d.contract_type == ContractType::Transport
-        })
-        .map(|(e, d, _)| (e, d))
-        .collect();
 
     egui::Window::new("Fleet Management")
         .default_width(350.0)
@@ -129,7 +91,7 @@ fn fleet_ui_system(
             // Tab content
             match ui_state.selected_tab {
                 0 => {
-                    render_ship_list(ui, &mut commands, &player_fleet, &fleet_entities, &ship_query, &mut contract_events, &contract_query);
+                    render_ship_list(ui, &mut commands, &player_fleet, &fleet_entities, &ship_query, &contract_query);
                 },
                 1 => {
                     render_companion_roster(ui, &companion_query);
@@ -146,7 +108,6 @@ fn render_ship_list(
     player_ships: &PlayerFleet,
     fleet_entities: &FleetEntities,
     ship_query: &Query<(Entity, Option<&bevy::prelude::Name>, &Health, Option<&Cargo>, Option<&OrderQueue>, Option<&AIState>)>,
-    contract_events: &mut EventWriter<AssignContractEvent>,
     contract_query: &Query<(Entity, &ContractDetails, Option<&AssignedShip>), (With<Contract>, With<AcceptedContract>)>,
 ) {
     use crate::components::order::OrderQueue;

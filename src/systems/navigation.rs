@@ -231,7 +231,6 @@ pub fn navigation_movement_system(
 pub fn path_visualization_system(
     query: Query<(&Transform, &NavigationPath, &Destination), With<Player>>,
     mut gizmos: Gizmos,
-    time: Res<Time>,
 ) {
     for (transform, path, destination) in &query {
         if path.waypoints.is_empty() {

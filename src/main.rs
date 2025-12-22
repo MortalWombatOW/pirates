@@ -11,6 +11,7 @@ use pirates::plugins::port_ui::PortUiPlugin;
 use pirates::plugins::fleet_ui::FleetUiPlugin;
 use pirates::plugins::companion::CompanionPlugin;
 use pirates::plugins::main_menu::MainMenuPlugin;
+use pirates::plugins::save::PersistencePlugin;
 
 fn main() {
     App::new()
@@ -33,6 +34,7 @@ fn main() {
         .add_plugins(PortUiPlugin)
         .add_plugins(FleetUiPlugin)
         .add_plugins(MainMenuPlugin)
+        .add_plugins(PersistencePlugin)
         .run();
 }
 

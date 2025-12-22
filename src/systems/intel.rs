@@ -215,8 +215,7 @@ fn draw_dotted_line(gizmos: &mut Gizmos, start: Vec2, end: Vec2, dash_length: f3
     
     let normalized = direction / distance;
     let gap_length = dash_length * 0.75;
-    let segment_length = dash_length + gap_length;
-    
+
     let mut current = 0.0;
     let mut draw = true;
     

@@ -19,6 +19,7 @@
 | `src/plugins/core.rs` | GameState, Camera, Window setup | Changing states (`GameState`), camera logic. |
 | `src/plugins/main_menu.rs` | Archetype selection UI | Modifying starting character selection. |
 | `src/plugins/physics.rs` | Avian2D config, Gravity | Tuning global physics settings. |
+| `src/plugins/save.rs` | PersistencePlugin, bevy_save integration | Implementing save/load functionality. |
 | `src/resources/meta_profile.rs` | MetaProfile, Archetypes, Unlocks | Changing progression or archetype configs. |
 | `src/components/ship.rs` | `Ship`, `Player`, `AI`, `ShipType` | Modifying what defines a ship entity. |
 | `src/components/cargo.rs` | `Cargo`, `Gold`, `GoodType` | Changing economy data structures. |

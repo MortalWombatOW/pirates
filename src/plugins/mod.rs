@@ -5,6 +5,7 @@ pub mod physics;
 pub mod companion;
 pub mod combat;
 pub mod main_menu;
+pub mod save;
 
 pub mod worldmap;
 pub mod port;

@@ -86,13 +86,6 @@ fn port_ui_system(
     tavern_companions: Res<crate::plugins::companion::TavernCompanions>,
     companion_query: Query<&crate::components::companion::CompanionRole, With<crate::components::companion::Companion>>,
 ) {
-    // Auto-select first port if none selected (for debug/testing)
-    if current_port.entity.is_none() {
-        if let Some((e, _, _)) = port_query.iter().next() {
-            // Can't mutate CurrentPort here easily without ResMut, but it's okay for now
-        }
-    }
-    
     // Check key input to close port view
     if contexts.ctx_mut().input(|i| i.key_pressed(egui::Key::Escape)) {
         next_state.set(GameState::HighSeas);

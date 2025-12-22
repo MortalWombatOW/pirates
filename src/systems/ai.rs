@@ -96,7 +96,7 @@ pub fn combat_ai_system(
     };
     let player_pos = player_transform.translation.truncate();
 
-    for (entity, transform, health, velocity, ang_velocity, mass, mut force, mut torque, mut ai_state) in &mut ai_query {
+    for (entity, transform, health, velocity, ang_velocity, mass, mut force, mut torque, ai_state) in &mut ai_query {
         // Check for surrender condition
         if health.hull < 20.0 {
             // Surrender - insert marker and stop AI logic
