@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::components::intel::{IntelData, IntelType, AcquiredIntel};
+use crate::components::intel::{Intel, IntelData, IntelType, IntelExpiry, AcquiredIntel};
 use crate::events::IntelAcquiredEvent;
 use crate::resources::FogOfWar;
 
@@ -82,6 +82,25 @@ pub fn intel_acquisition_system(
                 // Rumors may hint at other intel, no direct map effect
                 info!("Rumor acquired: {}", intel_data.description);
             }
+        }
+    }
+}
+
+/// System that checks for and removes expired intel.
+/// 
+/// Runs on FixedUpdate after world_tick_system.
+/// Transient intel with IntelExpiry component is despawned when TTL expires.
+pub fn intel_expiry_system(
+    mut commands: Commands,
+    world_clock: Res<crate::resources::WorldClock>,
+    intel_query: Query<(Entity, &Intel, &IntelExpiry)>,
+) {
+    let current_tick = world_clock.total_ticks();
+    
+    for (entity, _intel, expiry) in intel_query.iter() {
+        if expiry.is_expired(current_tick) {
+            debug!("Intel {:?} expired at tick {}", entity, current_tick);
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
