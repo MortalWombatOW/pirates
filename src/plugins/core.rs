@@ -27,7 +27,7 @@ impl Plugin for CorePlugin {
             .init_resource::<ThreatResponseCooldown>()
             .insert_resource(FactionRegistry::new())
             .add_event::<ContractExpiredEvent>()
-            .add_systems(Startup, spawn_camera)
+            .add_systems(Startup, (spawn_camera, init_meta_profile))
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
@@ -147,3 +147,15 @@ fn draw_ocean_grid(mut gizmos: Gizmos) {
         color,
     );
 }
+
+/// Loads the MetaProfile from disk on app start.
+/// Creates a fresh profile if no save file exists.
+fn init_meta_profile(mut commands: Commands) {
+    let profile = crate::resources::MetaProfile::load_from_file();
+    info!(
+        "MetaProfile loaded: {} runs completed, {} deaths, {} wrecks",
+        profile.runs_completed, profile.deaths, profile.legacy_wrecks.len()
+    );
+    commands.insert_resource(profile);
+}
+

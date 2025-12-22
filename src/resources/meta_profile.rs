@@ -88,3 +88,60 @@ pub struct LegacyWreck {
     /// Run number when this wreck was created.
     pub run_number: u32,
 }
+
+/// Default file name for profile storage.
+const PROFILE_FILE_NAME: &str = "profile.json";
+
+impl MetaProfile {
+    /// Loads the profile from the default save location, or returns a fresh default profile.
+    ///
+    /// Save location is platform-specific:
+    /// - macOS: ~/Library/Application Support/pirates/
+    /// - Linux: ~/.local/share/pirates/
+    /// - Windows: %APPDATA%/pirates/
+    pub fn load_from_file() -> Self {
+        let Some(path) = Self::get_save_path() else {
+            warn!("Could not determine save directory, using default profile");
+            return Self::default();
+        };
+
+        if !path.exists() {
+            info!("No existing profile found, creating fresh profile");
+            return Self::default();
+        }
+
+        match std::fs::read_to_string(&path) {
+            Ok(contents) => match serde_json::from_str(&contents) {
+                Ok(profile) => {
+                    info!("Loaded profile from {:?}", path);
+                    profile
+                }
+                Err(e) => {
+                    error!("Failed to parse profile file: {}", e);
+                    Self::default()
+                }
+            },
+            Err(e) => {
+                error!("Failed to read profile file: {}", e);
+                Self::default()
+            }
+        }
+    }
+
+    /// Returns the platform-specific path for the profile save file.
+    pub fn get_save_path() -> Option<std::path::PathBuf> {
+        dirs::data_dir().map(|mut path| {
+            path.push("pirates");
+            path.push(PROFILE_FILE_NAME);
+            path
+        })
+    }
+
+    /// Returns the platform-specific directory for profile storage.
+    pub fn get_save_dir() -> Option<std::path::PathBuf> {
+        dirs::data_dir().map(|mut path| {
+            path.push("pirates");
+            path
+        })
+    }
+}
