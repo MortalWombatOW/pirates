@@ -301,7 +301,7 @@
 | [x] 5.4.1 | Allow player to own multiple ships | 2.2.5 | Player has list of owned ships. |
 | [x] 5.4.2 | Create Fleet Management UI | 5.4.1, 1.4.1 | Shows owned ships and their orders. |
 | [x] 5.4.3 | Allow issuing orders to owned ships | 5.4.2, 5.3.2 | UI to assign `TradeRoute`, `Patrol`, etc. |
-| [ ] 5.4.4 | Implement subcontracting (delegate contract) | 5.4.3, 4.5.3 | Assign contract to owned ship for cut. |
+| [x] 5.4.4 | Implement subcontracting (delegate contract) | 5.4.3, 4.5.3 | Assign contract to owned ship for cut. |
 
 ### Epic 5.5: Scale Testing
 | ID | Task | Dependencies | Acceptance Criteria |

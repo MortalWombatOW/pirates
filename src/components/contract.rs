@@ -144,3 +144,27 @@ impl Default for ContractProgress {
         }
     }
 }
+
+/// Component marking a contract as delegated to a fleet ship.
+/// The assigned ship will autonomously fulfill the contract.
+#[derive(Component, Debug)]
+pub struct AssignedShip {
+    /// The fleet ship entity assigned to this contract.
+    pub ship_entity: Entity,
+    /// Player receives this percentage of the reward (0.0 to 1.0).
+    /// Remaining percentage represents "fleet overhead".
+    pub player_cut: f32,
+}
+
+impl AssignedShip {
+    /// Default player cut for delegated contracts (70%).
+    pub const DEFAULT_CUT: f32 = 0.7;
+
+    /// Creates a new assignment with the default player cut.
+    pub fn new(ship_entity: Entity) -> Self {
+        Self {
+            ship_entity,
+            player_cut: Self::DEFAULT_CUT,
+        }
+    }
+}

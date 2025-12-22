@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::resources::{PlayerFleet, FleetEntities};
 use crate::components::{OrderQueue, Order, Player, PlayerOwned};
+use crate::components::contract::{Contract, ContractDetails, AcceptedContract, AssignedShip, ContractType};
+use crate::plugins::port_ui::PlayerContracts;
 
 /// Plugin for the Fleet Management UI.
 pub struct FleetUiPlugin;
@@ -11,10 +13,12 @@ impl Plugin for FleetUiPlugin {
         app
             .init_resource::<FleetUiState>()
             .add_event::<AssignOrderEvent>()
+            .add_event::<AssignContractEvent>()
             .add_systems(Update, (
                 toggle_fleet_ui_system,
                 fleet_ui_system,
                 apply_order_assignments,
+                apply_contract_assignments,
             ));
     }
 }
@@ -30,6 +34,13 @@ pub struct FleetUiState {
 pub struct AssignOrderEvent {
     pub ship_entity: Entity,
     pub order: Order,
+}
+
+/// Event to assign a contract to a fleet ship.
+#[derive(Event)]
+pub struct AssignContractEvent {
+    pub contract_entity: Entity,
+    pub ship_entity: Entity,
 }
 
 /// Order types selectable from the UI.
@@ -60,7 +71,7 @@ fn toggle_fleet_ui_system(
     }
 }
 
-/// Main system to render the Fleet UI with order controls.
+/// Main system to render the Fleet UI with order and contract controls.
 fn fleet_ui_system(
     mut contexts: EguiContexts,
     ui_state: Res<FleetUiState>,
@@ -69,7 +80,11 @@ fn fleet_ui_system(
     order_query: Query<&OrderQueue, With<PlayerOwned>>,
     ship_transform_query: Query<&Transform, With<PlayerOwned>>,
     player_query: Query<Entity, With<Player>>,
+    // Contract queries
+    player_contracts: Option<Res<PlayerContracts>>,
+    contract_query: Query<(Entity, &ContractDetails, Option<&AssignedShip>), (With<Contract>, With<AcceptedContract>)>,
     mut order_events: EventWriter<AssignOrderEvent>,
+    mut contract_events: EventWriter<AssignContractEvent>,
 ) {
     if !ui_state.is_open {
         return;
@@ -77,9 +92,18 @@ fn fleet_ui_system(
 
     let player_entity = player_query.get_single().ok();
 
+    // Build list of unassigned Transport contracts
+    let unassigned_contracts: Vec<(Entity, &ContractDetails)> = contract_query
+        .iter()
+        .filter(|(_, d, assigned)| {
+            assigned.is_none() && d.contract_type == ContractType::Transport
+        })
+        .map(|(e, d, _)| (e, d))
+        .collect();
+
     egui::Window::new("Fleet Management")
-        .default_width(320.0)
-        .default_height(400.0)
+        .default_width(350.0)
+        .default_height(500.0)
         .show(contexts.ctx_mut(), |ui| {
             ui.heading("Your Fleet");
             ui.separator();
@@ -90,7 +114,6 @@ fn fleet_ui_system(
             } else {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for (i, ship_data) in player_fleet.ships.iter().enumerate() {
-                        // Get corresponding entity from FleetEntities
                         let entity = fleet_entities.entities.get(i).copied();
                         
                         ui.group(|ui| {
@@ -122,11 +145,11 @@ fn fleet_ui_system(
 
                             // Order display and selection
                             if let Some(ent) = entity {
-                                // Get current order
                                 let current_order_type = if let Ok(queue) = order_query.get(ent) {
                                     match queue.current() {
                                         Some(Order::Escort { .. }) => OrderType::Escort,
                                         Some(Order::Patrol { .. }) => OrderType::Patrol,
+                                        Some(Order::TradeRoute { .. }) => OrderType::Idle, // Show as "busy"
                                         Some(Order::Idle) | None => OrderType::Idle,
                                         _ => OrderType::Idle,
                                     }
@@ -134,54 +157,86 @@ fn fleet_ui_system(
                                     OrderType::Idle
                                 };
 
+                                // Check if this ship has an assigned contract
+                                let has_contract = contract_query.iter()
+                                    .any(|(_, _, assigned)| {
+                                        assigned.map(|a| a.ship_entity == ent).unwrap_or(false)
+                                    });
+
                                 ui.horizontal(|ui| {
                                     ui.label("Order:");
                                     
-                                    // Create combo box for order selection
-                                    let combo_id = format!("order_combo_{}", i);
-                                    egui::ComboBox::from_id_salt(combo_id)
-                                        .selected_text(current_order_type.label())
-                                        .show_ui(ui, |ui| {
-                                            for order_type in [OrderType::Escort, OrderType::Patrol, OrderType::Idle] {
-                                                if ui.selectable_label(
-                                                    current_order_type == order_type,
-                                                    order_type.label()
-                                                ).clicked() {
-                                                    // Build the new order
-                                                    let new_order = match order_type {
-                                                        OrderType::Escort => {
-                                                            if let Some(p) = player_entity {
-                                                                Order::Escort {
-                                                                    target: p,
-                                                                    follow_distance: 60.0 + (i as f32 * 20.0),
+                                    if has_contract {
+                                        ui.label("📜 Fulfilling Contract");
+                                    } else {
+                                        let combo_id = format!("order_combo_{}", i);
+                                        egui::ComboBox::from_id_salt(combo_id)
+                                            .selected_text(current_order_type.label())
+                                            .show_ui(ui, |ui| {
+                                                for order_type in [OrderType::Escort, OrderType::Patrol, OrderType::Idle] {
+                                                    if ui.selectable_label(
+                                                        current_order_type == order_type,
+                                                        order_type.label()
+                                                    ).clicked() {
+                                                        let new_order = match order_type {
+                                                            OrderType::Escort => {
+                                                                if let Some(p) = player_entity {
+                                                                    Order::Escort {
+                                                                        target: p,
+                                                                        follow_distance: 60.0 + (i as f32 * 20.0),
+                                                                    }
+                                                                } else {
+                                                                    Order::Idle
                                                                 }
-                                                            } else {
-                                                                Order::Idle
                                                             }
-                                                        }
-                                                        OrderType::Patrol => {
-                                                            // Patrol around ship's current position
-                                                            let center = ship_transform_query
-                                                                .get(ent)
-                                                                .map(|t| t.translation.truncate())
-                                                                .unwrap_or_default();
-                                                            Order::Patrol {
-                                                                center,
-                                                                radius: 500.0,
-                                                                waypoint_index: 0,
+                                                            OrderType::Patrol => {
+                                                                let center = ship_transform_query
+                                                                    .get(ent)
+                                                                    .map(|t| t.translation.truncate())
+                                                                    .unwrap_or_default();
+                                                                Order::Patrol {
+                                                                    center,
+                                                                    radius: 500.0,
+                                                                    waypoint_index: 0,
+                                                                }
                                                             }
-                                                        }
-                                                        OrderType::Idle => Order::Idle,
-                                                    };
-                                                    
-                                                    order_events.send(AssignOrderEvent {
-                                                        ship_entity: ent,
-                                                        order: new_order,
-                                                    });
+                                                            OrderType::Idle => Order::Idle,
+                                                        };
+                                                        
+                                                        order_events.send(AssignOrderEvent {
+                                                            ship_entity: ent,
+                                                            order: new_order,
+                                                        });
+                                                    }
                                                 }
-                                            }
-                                        });
+                                            });
+                                    }
                                 });
+
+                                // Contract assignment dropdown (only if no contract assigned)
+                                if !has_contract && !unassigned_contracts.is_empty() {
+                                    ui.horizontal(|ui| {
+                                        ui.label("Assign:");
+                                        let contract_combo_id = format!("contract_combo_{}", i);
+                                        egui::ComboBox::from_id_salt(contract_combo_id)
+                                            .selected_text("📜 Contract...")
+                                            .show_ui(ui, |ui| {
+                                                for (contract_entity, details) in &unassigned_contracts {
+                                                    let label = format!(
+                                                        "{} (💰{})", 
+                                                        &details.description, 
+                                                        (details.reward_gold as f32 * AssignedShip::DEFAULT_CUT) as u32
+                                                    );
+                                                    if ui.selectable_label(false, label).clicked() {
+                                                        contract_events.send(AssignContractEvent {
+                                                            contract_entity: *contract_entity,
+                                                            ship_entity: ent,
+                                                        });
+                                                    }
+                                                }
+                                            });
+                                    });
+                                }
                             }
                         });
                         ui.add_space(5.0);
@@ -201,6 +256,26 @@ fn apply_order_assignments(
             queue.clear();
             queue.push(event.order.clone());
             info!("Assigned order {:?} to fleet ship {:?}", event.order, event.ship_entity);
+        }
+    }
+}
+
+/// System to apply contract assignments from UI events.
+fn apply_contract_assignments(
+    mut commands: Commands,
+    mut events: EventReader<AssignContractEvent>,
+    contract_query: Query<Entity, (With<Contract>, With<AcceptedContract>)>,
+) {
+    for event in events.read() {
+        // Verify contract exists and is accepted
+        if contract_query.get(event.contract_entity).is_ok() {
+            commands.entity(event.contract_entity).insert(
+                AssignedShip::new(event.ship_entity)
+            );
+            info!(
+                "Contract {:?} assigned to fleet ship {:?}",
+                event.contract_entity, event.ship_entity
+            );
         }
     }
 }

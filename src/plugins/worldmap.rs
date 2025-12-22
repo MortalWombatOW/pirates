@@ -9,7 +9,7 @@ use crate::systems::{
     fog_of_war_update_system, update_fog_tilemap_system, FogTile,
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
     path_visualization_system, port_arrival_system, order_execution_system,
-    ai_pathfinding_system, ai_movement_system,
+    ai_pathfinding_system, ai_movement_system, contract_delegation_system,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
@@ -60,6 +60,7 @@ impl Plugin for WorldMapPlugin {
                 ai_movement_system.after(ai_pathfinding_system),
                 path_visualization_system,
                 port_arrival_system,
+                contract_delegation_system,
             ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities, clear_fleet_entities));
     }

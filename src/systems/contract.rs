@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
-use crate::components::contract::{AcceptedContract, Contract, ContractDetails};
-use crate::events::ContractExpiredEvent;
+use crate::components::contract::{AcceptedContract, AssignedShip, Contract, ContractDetails, ContractProgress, ContractType};
+use crate::components::{Order, OrderQueue, Port, NavigationPath, PlayerOwned};
+use crate::events::{ContractExpiredEvent, ContractCompletedEvent};
 use crate::resources::WorldClock;
 
 /// System that checks for and removes expired contracts.
@@ -36,6 +37,104 @@ pub fn contract_expiry_system(
         }
     }
 }
+
+/// System that processes delegated contracts and sets ship orders.
+///
+/// For Transport contracts:
+/// 1. If ship has no order, set order to go to destination port
+/// 2. Check if ship arrived (no navigation path and close to destination)
+/// 3. On arrival, complete the contract
+pub fn contract_delegation_system(
+    mut commands: Commands,
+    mut completion_events: EventWriter<ContractCompletedEvent>,
+    mut contract_query: Query<
+        (Entity, &ContractDetails, &AssignedShip, &mut ContractProgress),
+        (With<Contract>, With<AcceptedContract>),
+    >,
+    mut ship_query: Query<
+        (Entity, &Transform, Option<&OrderQueue>, Option<&NavigationPath>),
+        With<PlayerOwned>,
+    >,
+    port_query: Query<&Transform, With<Port>>,
+    mut player_gold: Query<&mut crate::components::Gold, With<crate::components::Player>>,
+) {
+    for (contract_entity, details, assigned, mut progress) in contract_query.iter_mut() {
+        // Only handle Transport contracts for MVP
+        if details.contract_type != ContractType::Transport {
+            continue;
+        }
+
+        let Some(destination_entity) = details.destination else {
+            continue;
+        };
+
+        // Get the assigned ship
+        let Ok((ship_entity, ship_transform, order_queue, nav_path)) = ship_query.get(assigned.ship_entity) else {
+            // Ship no longer exists - could remove assignment
+            continue;
+        };
+
+        // Get destination port position
+        let Ok(dest_transform) = port_query.get(destination_entity) else {
+            continue;
+        };
+        let dest_pos = dest_transform.translation.truncate();
+        let ship_pos = ship_transform.translation.truncate();
+        let distance = ship_pos.distance(dest_pos);
+
+        // Check if ship needs orders
+        let needs_order = order_queue
+            .map(|q| q.is_empty())
+            .unwrap_or(true);
+        
+        let is_navigating = nav_path
+            .map(|p| !p.is_empty())
+            .unwrap_or(false);
+
+        // If ship arrived at destination (close and not navigating)
+        if distance < 100.0 && !is_navigating && !progress.destination_reached {
+            progress.destination_reached = true;
+            
+            // Calculate reward with player cut
+            let base_reward = details.reward_gold;
+            let player_reward = (base_reward as f32 * assigned.player_cut) as u32;
+            
+            // Pay the player
+            if let Ok(mut gold) = player_gold.get_single_mut() {
+                gold.add(player_reward);
+                info!(
+                    "Contract completed by fleet ship! Reward: {} gold ({}% cut)",
+                    player_reward,
+                    (assigned.player_cut * 100.0) as u32
+                );
+            }
+
+            // Emit completion event
+            completion_events.send(ContractCompletedEvent {
+                contract_entity,
+                reward_gold: player_reward,
+            });
+
+            // Remove the contract
+            commands.entity(contract_entity).despawn_recursive();
+            
+            // Set ship back to idle
+            if let Ok(mut ship) = ship_query.get_mut(assigned.ship_entity) {
+                commands.entity(ship.0).insert(OrderQueue::with_order(Order::Idle));
+            }
+        } else if needs_order && !progress.destination_reached {
+            // Set order to go to destination
+            commands.entity(ship_entity).insert(
+                OrderQueue::with_order(Order::TradeRoute {
+                    origin: details.origin_port,
+                    destination: destination_entity,
+                    outbound: true,
+                })
+            );
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
