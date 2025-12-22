@@ -1,11 +1,6 @@
----
-description: A workflow for finishing a task.
----
+description = "A workflow for finishing a task."
 
----
-description: A workflow for finishing a task.
----
-
+prompt = """
 # Workflow: Accept
 
 **Goal**: Officially mark work as complete and persist it.
@@ -26,3 +21,4 @@ description: A workflow for finishing a task.
 4.  **Handoff**
     * Notify the user: "Task Complete."
     * Trigger `/next-task` to continue momentum, or `/sync` if the session is ending.
+"""
