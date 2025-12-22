@@ -839,3 +839,21 @@ All 6 tasks completed:
 
 **Example**:
 - `PlayerFleet` (persistent) + `FleetEntities` (transient).
+
+## 2025-12-22: Epic 6.2 Companions [COMPLETED]
+
+**Summary**: Implemented all companion abilities for the Companions system.
+
+### Files Modified
+- `src/systems/navigation.rs`: Navigator ability (+25% speed bonus)
+- `src/systems/worldmap.rs`: Lookout ability (+50% vision radius)
+- `src/systems/combat.rs`: Gunner ability (-30% cannon cooldown)
+- `docs/protocol/INVARIANTS.md`: Section 12 - Companion Ability Pattern
+
+### Tasks Completed
+- 6.2.7: Navigator ability ✅
+- 6.2.8: Lookout ability ✅
+- 6.2.9: Gunner ability ✅
+
+### Verification
+- `cargo check`: PASSED
