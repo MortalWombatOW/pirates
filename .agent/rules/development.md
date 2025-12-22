@@ -2,6 +2,10 @@
 trigger: always_on
 ---
 
+---
+trigger: always_on
+---
+
 # Development Workflow
 
 To maintain high development velocity and avoid long idle times during compilation:
@@ -18,7 +22,6 @@ To maintain high development velocity and avoid long idle times during compilati
 ## Final Check
 - Before considering a task "complete", ensure the project is in a compiling state (`cargo check` passes).
 - **Run the Git Workflow**: Immediately commit and push your changes after every task. Refer to `.agent/rules/git.md` for details.
-- **Completion Signal**: **Never** call `notify_user` to signal task completion until the changes have been committed and pushed.
 
 ## Agent Best Practices
 - **Artifact Metadata**: When using `write_to_file` or `replace_file_content` on files in the artifacts directory, you **must** include `ArtifactMetadata`.
@@ -29,3 +32,10 @@ To maintain high development velocity and avoid long idle times during compilati
 - **`debug!`**: Use for per-frame diagnostics you may want occasionally (physics values, AI decisions)
 - **`trace!`**: Use for high-frequency data (every-frame values)
 - Avoid `info!` inside tight loops or per-frame systems
+
+## Temporal Purity Standard
+When writing comments, documentation, or commit messages (unless specified otherwise):
+* **Prohibited Words**: `Added`, `Updated`, `Changed`, `Fixed`, `Removed`.
+* **Requirement**: Describe the *current* behavior of the code, not the history of how it got there.
+* *Bad*: "// Fixed the player movement speed"
+* *Good*: "// Calculates player movement speed based on drag"

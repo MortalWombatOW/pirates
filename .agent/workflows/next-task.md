@@ -2,38 +2,22 @@
 description: Picking up the next task from the work plan.
 ---
 
-Follow these steps to proceed with the next task in the project:
+# Workflow: Next Task
 
-1. **Context Loading & Research**:
-   - Read [README.md](file:///Users/andrewgleeson/Documents/code/pirates/README.md) to understand the full Game Design Document and Technical Specification.
-   - Read [WORK_PLAN.md](file:///Users/andrewgleeson/Documents/code/pirates/WORK_PLAN.md) to find the current project status.
-   - **Research**: Carefully research the task requirements. Before writing new code, check Bevy documentation and the existing codebase/libraries (e.g., Avian, Egui, Tilemap, Leafwing) to identify features and patterns that can be re-used.
+**Goal**: Identify and lock the next unit of work.
 
-2. **Task Selection**:
-   - Identify the next available task in `WORK_PLAN.md`. 
-   - An available task is one marked with `[ ]` whose dependencies (if any) are already marked as `[x]`.
-   - **Complete tasks in numerical order within each Epic.** Do not skip tasks.
+## Protocol Steps
 
-> [!IMPORTANT]
-> **Task Order**: Tasks are listed in the order they should be completed. Lower-priority work is already placed lower in the list. **Never skip or reorder tasks.** If you believe a task has incorrect dependencies or is logically out of sequence:
-> 1. **Stop** before starting any out-of-order work.
-> 2. **Propose** a corrected task order to the user with your reasoning.
-> 3. **Wait** for approval before proceeding.
+1.  **Context Check**
+    * Ensure you have executed the `/init` workflow to load the project context.
 
-3. **Status Update**:
-   - Mark the selected task as in-progress by changing `[ ]` to `[/]` in `WORK_PLAN.md`.
+2.  **Task Selection**
+    * Identify the next available task in `WORK_PLAN.md`.
+    * Criteria: Marked `[ ]`, dependencies are `[x]`.
+    * **Constraint**: Strict numerical order within Epics. Do not skip.
 
-4. **Design & Implementation**:
-   - **Architectural Integrity**: Design your implementation to reduce technical debt. Ensure clean boundaries between systems and maintain consistent practices as defined in the technical specification (e.g., proper use of Components vs Resources, standard Event patterns).
-   - Perform the task as described in its "Task" and "Acceptance Criteria" columns.
-   - Refer back to the `README.md` for specific technical details, component definitions, or architectural patterns.
-   - **API Verification**: Before writing code that uses external crates, verify the exact API by checking the crate's source or examples. Use `grep` on the cargo registry or run `cargo doc --open` to confirm method signatures.
+3.  **State Transition**
+    * Mark the selected task as in-progress `[/]` in `WORK_PLAN.md`.
 
-5. **Completion & Documentation**:
-   - Once the task and its acceptance criteria are met, update the task in `WORK_PLAN.md` by changing `[/]` to `[x]`.
-   - Update `README.md` if the task revealed any necessary changes to the design or technical specification.
-   - Summarize the work done in the `WORK_LOG.md`.
-   - **Git Workflow**: Immediately commit and push your changes. Refer to `.agent/rules/git.md`.
-
-6. **Cleanup**:
-   - If the task was part of a larger Epic or Phase that is now complete, update the status indicators accordingly.
+4.  **Handoff**
+    * Trigger `/forge` to begin implementation.

@@ -4,23 +4,24 @@ description:
 
 # Workflow: Architect
 
-**Goal**: Convert a vague requirement into a set of atomic, technically sound tasks.
+**Goal**: Convert requirements into atomic tasks.
 
 ## Protocol Steps
 
 1.  **Context Loading**
-    * Read `README.md` (Game Design Document).
-    * Read `docs/protocol/INVARIANTS.md` (Technical Constraints).
-    * Read `WORK_PLAN.md` (Current State).
+    * Ensure context from `/init` is active.
 
 2.  **Architectural Critique**
-    * Analyze the request against the Invariants.
-    * *Self-Correction*: Ask, "Does this feature require new Components? Does it impact the `FixedUpdate` physics loop? Does it conflict with existing Event patterns?"
+    * Analyze the request against `docs/protocol/INVARIANTS.md`.
+    * Check for impacts on `FixedUpdate` loops or Event patterns.
 
 3.  **Micro-Planning**
     * Draft a list of tasks.
-    * **Constraint**: Each task must be small enough to complete in one `/forge` session (approx. 1 file change or 1 system implementation).
+    * **Constraint**: Each task must be approx. 1 file change or 1 system.
 
-4.  **Update**
-    * Present the plan to the user.
-    * Upon approval, insert the new tasks into `WORK_PLAN.md`.
+4.  **Plan Update**
+    * Update `WORK_PLAN.md` with the new tasks.
+    * **Rule**: Only `/architect` may add new `[ ]` items to the plan.
+
+5.  **Handoff**
+    * Trigger `/forge` on the first new task.

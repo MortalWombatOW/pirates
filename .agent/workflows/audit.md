@@ -2,25 +2,34 @@
 description: 
 ---
 
+---
+description: 
+---
+
 # Workflow: Audit
 
-**Goal**: Ensure code quality, documentation accuracy, and architectural integrity.
+**Goal**: Comprehensive code review to ensure technical quality and product alignment.
 
 ## Protocol Steps
 
-1.  **Temporal Scan**
-    * Review the code just generated.
-    * Grep for "temporal" words: `Added`, `Updated`, `Changed`, `Fixed`, `Removed`.
-    * If found, rewrite the comment to be timeless.
+1.  **Product & Context Alignment**
+    * Does the implementation strictly match the active task in `WORK_PLAN.md`?
+    * Have changes been reflected in `WORK_LOG.md`?
 
-2.  **Invariant Check**
+2.  **Code Quality & Norms**
+    * **Bevy Optimization**: Verify compliance with `.agent/rules/bevy.md` (Query filters, Command usage).
+    * **Input Handling**: Verify no `.pressed()` on Axis inputs. Verify "sticky input" for FixedUpdate.
+    * **Temporal Purity**: Grep for banned words (`Added`, `Fixed`, etc.) per `.agent/rules/development.md`.
+
+3.  **Architectural Integrity**
     * Verify against `docs/protocol/INVARIANTS.md`.
-    * *Check*: Is Physics logic in `FixedUpdate`? Are input actions buffered? Are queries using `Changed<T>` where appropriate?
+    * Is physics logic strictly in `FixedUpdate`?
+    * Are systems properly gated by `State`?
 
-3.  **Invisible Knowledge Extraction**
-    * Ask: "Did we make a decision here that isn't obvious from the code?"
-    * *Example*: "We used a resource for the timer instead of a component because it's global state."
-    * Action: If yes, add a note to `docs/protocol/INVARIANTS.md` under a relevant section.
+4.  **Invisible Knowledge Extraction**
+    * Ask: "Did we make a decision here that isn't obvious?"
+    * If yes, add a note to `docs/protocol/INVARIANTS.md`.
 
-4.  **Verification**
-    * Confirm the implementation meets the "Acceptance Criteria" listed in `WORK_PLAN.md` for the active task.
+5.  **Handoff**
+    * If **Failed**: Return to `/forge` to fix issues.
+    * If **Passed**: Trigger `/accept`.

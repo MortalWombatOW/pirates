@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::resources::{PlayerFleet, FleetEntities};
-use crate::components::{OrderQueue, Order, Player, PlayerOwned};
+use crate::components::{OrderQueue, Order, Player, PlayerOwned, Health, Cargo};
 use crate::components::contract::{Contract, ContractDetails, AcceptedContract, AssignedShip, ContractType};
+use crate::systems::ai::AIState;
 use crate::plugins::port_ui::PlayerContracts;
+use bevy::math::Vec2;
 
 /// Plugin for the Fleet Management UI.
 pub struct FleetUiPlugin;
@@ -27,6 +29,7 @@ impl Plugin for FleetUiPlugin {
 #[derive(Resource, Default)]
 pub struct FleetUiState {
     pub is_open: bool,
+    pub selected_tab: usize,
 }
 
 /// Event to apply an order assignment to a fleet ship.
@@ -73,17 +76,21 @@ fn toggle_fleet_ui_system(
 
 /// Main system to render the Fleet UI with order and contract controls.
 fn fleet_ui_system(
+    mut commands: Commands,
     mut contexts: EguiContexts,
-    ui_state: Res<FleetUiState>,
+    mut ui_state: ResMut<FleetUiState>,
     player_fleet: Res<PlayerFleet>,
     fleet_entities: Res<FleetEntities>,
-    order_query: Query<&OrderQueue, With<PlayerOwned>>,
-    ship_transform_query: Query<&Transform, With<PlayerOwned>>,
+    // Queries for render_ship_list
+    ship_query: Query<(Entity, Option<&Name>, &Health, Option<&Cargo>, Option<&OrderQueue>, Option<&AIState>)>,
+    order_query: Query<&OrderQueue, With<PlayerOwned>>, // Used for checking current order in list? Wait, render_ship_list does that.
+    ship_transform_query: Query<&Transform, With<PlayerOwned>>, // Used? render_ship_list used it?
     player_query: Query<Entity, With<Player>>,
     // Contract queries
     player_contracts: Option<Res<PlayerContracts>>,
     contract_query: Query<(Entity, &ContractDetails, Option<&AssignedShip>), (With<Contract>, With<AcceptedContract>)>,
-    mut order_events: EventWriter<AssignOrderEvent>,
+    companion_query: Query<(&crate::components::companion::CompanionName, &crate::components::companion::CompanionRole, Option<&crate::components::companion::AssignedTo>), With<crate::components::companion::Companion>>,
+    mut _order_events: EventWriter<AssignOrderEvent>,
     mut contract_events: EventWriter<AssignContractEvent>,
 ) {
     if !ui_state.is_open {
@@ -105,143 +112,143 @@ fn fleet_ui_system(
         .default_width(350.0)
         .default_height(500.0)
         .show(contexts.ctx_mut(), |ui| {
-            ui.heading("Your Fleet");
+            ui.heading("Fleet Management");
+            
+            // Tab selection
+            ui.horizontal(|ui| {
+                if ui.selectable_label(ui_state.selected_tab == 0, "Ships").clicked() {
+                    ui_state.selected_tab = 0;
+                }
+                if ui.selectable_label(ui_state.selected_tab == 1, "Companions").clicked() {
+                    ui_state.selected_tab = 1;
+                }
+            });
+            
             ui.separator();
+            
+            // Tab content
+            match ui_state.selected_tab {
+                0 => {
+                    render_ship_list(ui, &mut commands, &player_fleet, &fleet_entities, &ship_query, &mut contract_events, &contract_query);
+                },
+                1 => {
+                    render_companion_roster(ui, &companion_query);
+                },
+                _ => {},
+            }
+        });
+}
 
-            if player_fleet.ships.is_empty() {
-                ui.label("No ships in fleet.");
-                ui.weak("Capture enemy ships to build your fleet!");
-            } else {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for (i, ship_data) in player_fleet.ships.iter().enumerate() {
-                        let entity = fleet_entities.entities.get(i).copied();
+
+fn render_ship_list(
+    ui: &mut egui::Ui,
+    commands: &mut Commands,
+    player_ships: &PlayerFleet,
+    fleet_entities: &FleetEntities,
+    ship_query: &Query<(Entity, Option<&bevy::prelude::Name>, &Health, Option<&Cargo>, Option<&OrderQueue>, Option<&AIState>)>,
+    contract_events: &mut EventWriter<AssignContractEvent>,
+    contract_query: &Query<(Entity, &ContractDetails, Option<&AssignedShip>), (With<Contract>, With<AcceptedContract>)>,
+) {
+    use crate::components::order::OrderQueue;
+    use std::collections::VecDeque;
+
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        if player_ships.ships.is_empty() {
+            ui.label("You have no ships in your fleet.");
+            return;
+        }
+
+        for (i, ship_data) in player_ships.ships.iter().enumerate() {
+            let entity = fleet_entities.entities.get(i).copied();
+            
+            if let Some(entity) = entity {
+                ui.group(|ui| {
+                    if let Ok((_ent, name, health, cargo, order_queue, ai_state)) = ship_query.get(entity) {
+                         ui.horizontal(|ui| {
+                            ui.strong(format!("{}. {}", i+1, if let Some(n) = name { n.as_str() } else { &ship_data.name }));
+                            ui.label(format!("HP: {:.0}/{:.0}", health.hull, health.hull_max));
+                        });
                         
-                        ui.group(|ui| {
-                            ui.strong(format!("{}. {}", i + 1, ship_data.name));
-                            
-                            // Health bar
-                            let health_pct = ship_data.hull_health / ship_data.max_hull_health;
-                            ui.horizontal(|ui| {
-                                ui.label("Health:");
-                                ui.add(egui::ProgressBar::new(health_pct)
-                                    .text(format!("{:.0}/{:.0}", ship_data.hull_health, ship_data.max_hull_health))
-                                    .fill(if health_pct > 0.5 { 
-                                        egui::Color32::from_rgb(100, 180, 100) 
-                                    } else { 
-                                        egui::Color32::from_rgb(180, 80, 80) 
-                                    })
-                                );
-                            });
-
-                            // Cargo summary
-                            ui.horizontal(|ui| {
-                                ui.label("Cargo:");
-                                if let Some(cargo) = &ship_data.cargo {
-                                    ui.label(format!("{}/{}", cargo.total_units(), cargo.capacity));
-                                } else {
-                                    ui.label("None");
-                                }
-                            });
-
-                            // Order display and selection
-                            if let Some(ent) = entity {
-                                let current_order_type = if let Ok(queue) = order_query.get(ent) {
-                                    match queue.current() {
-                                        Some(Order::Escort { .. }) => OrderType::Escort,
-                                        Some(Order::Patrol { .. }) => OrderType::Patrol,
-                                        Some(Order::TradeRoute { .. }) => OrderType::Idle, // Show as "busy"
-                                        Some(Order::Idle) | None => OrderType::Idle,
-                                        _ => OrderType::Idle,
-                                    }
-                                } else {
-                                    OrderType::Idle
-                                };
-
-                                // Check if this ship has an assigned contract
-                                let has_contract = contract_query.iter()
-                                    .any(|(_, _, assigned)| {
-                                        assigned.map(|a| a.ship_entity == ent).unwrap_or(false)
-                                    });
-
-                                ui.horizontal(|ui| {
-                                    ui.label("Order:");
-                                    
-                                    if has_contract {
-                                        ui.label("📜 Fulfilling Contract");
-                                    } else {
-                                        let combo_id = format!("order_combo_{}", i);
-                                        egui::ComboBox::from_id_salt(combo_id)
-                                            .selected_text(current_order_type.label())
-                                            .show_ui(ui, |ui| {
-                                                for order_type in [OrderType::Escort, OrderType::Patrol, OrderType::Idle] {
-                                                    if ui.selectable_label(
-                                                        current_order_type == order_type,
-                                                        order_type.label()
-                                                    ).clicked() {
-                                                        let new_order = match order_type {
-                                                            OrderType::Escort => {
-                                                                if let Some(p) = player_entity {
-                                                                    Order::Escort {
-                                                                        target: p,
-                                                                        follow_distance: 60.0 + (i as f32 * 20.0),
-                                                                    }
-                                                                } else {
-                                                                    Order::Idle
-                                                                }
-                                                            }
-                                                            OrderType::Patrol => {
-                                                                let center = ship_transform_query
-                                                                    .get(ent)
-                                                                    .map(|t| t.translation.truncate())
-                                                                    .unwrap_or_default();
-                                                                Order::Patrol {
-                                                                    center,
-                                                                    radius: 500.0,
-                                                                    waypoint_index: 0,
-                                                                }
-                                                            }
-                                                            OrderType::Idle => Order::Idle,
-                                                        };
-                                                        
-                                                        order_events.send(AssignOrderEvent {
-                                                            ship_entity: ent,
-                                                            order: new_order,
-                                                        });
-                                                    }
-                                                }
-                                            });
-                                    }
+                        if let Some(cargo) = cargo {
+                            ui.label(format!("Cargo: {}/{}", cargo.total_units(), cargo.capacity));
+                        }
+                        
+                        if let Some(queue) = order_queue {
+                            if let Some(current) = queue.current() {
+                                ui.label(format!("Order: {:?}", current));
+                            } else {
+                                ui.label("Idle");
+                            }
+                        }
+                        
+                        let assigned_contract = contract_query.iter().find(|(_, _, assigned)| {
+                            assigned.map(|a| a.ship_entity == entity).unwrap_or(false)
+                        });
+                         
+                        if let Some((_, details, _)) = assigned_contract {
+                             ui.label(format!("Contract: {}", details.description));
+                        }
+    
+                        ui.collapsing("Give Orders", |ui| {
+                            if ui.button("Patrol Here").clicked() {
+                                let mut orders = VecDeque::new();
+                                orders.push_back(Order::Patrol {
+                                    center: Vec2::ZERO,
+                                    radius: 500.0,
+                                    waypoint_index: 0,
                                 });
-
-                                // Contract assignment dropdown (only if no contract assigned)
-                                if !has_contract && !unassigned_contracts.is_empty() {
-                                    ui.horizontal(|ui| {
-                                        ui.label("Assign:");
-                                        let contract_combo_id = format!("contract_combo_{}", i);
-                                        egui::ComboBox::from_id_salt(contract_combo_id)
-                                            .selected_text("📜 Contract...")
-                                            .show_ui(ui, |ui| {
-                                                for (contract_entity, details) in &unassigned_contracts {
-                                                    let label = format!(
-                                                        "{} (💰{})", 
-                                                        &details.description, 
-                                                        (details.reward_gold as f32 * AssignedShip::DEFAULT_CUT) as u32
-                                                    );
-                                                    if ui.selectable_label(false, label).clicked() {
-                                                        contract_events.send(AssignContractEvent {
-                                                            contract_entity: *contract_entity,
-                                                            ship_entity: ent,
-                                                        });
-                                                    }
-                                                }
-                                            });
-                                    });
-                                }
+                                commands.entity(entity).insert(OrderQueue { orders });
+                            }
+                            if ui.button("Clear Orders").clicked() {
+                                commands.entity(entity).insert(OrderQueue::new());
                             }
                         });
-                        ui.add_space(5.0);
+                        
+                        if let Some(ai) = ai_state {
+                            ui.weak(format!("AI: {:?}", ai));
+                        }
+                    } else {
+                         ui.label("Ship lost or not found.");
                     }
                 });
+            }
+        }
+    });
+}
+
+
+fn render_companion_roster(
+    ui: &mut egui::Ui,
+    companion_query: &Query<(&crate::components::companion::CompanionName, &crate::components::companion::CompanionRole, Option<&crate::components::companion::AssignedTo>), With<crate::components::companion::Companion>>,
+) {
+    ui.heading("Companion Roster");
+    ui.add_space(5.0);
+    
+    if companion_query.is_empty() {
+        ui.label("You have no companions. Recruit them at taverns!");
+        return;
+    }
+    
+    egui::Grid::new("roster_grid")
+        .num_columns(3)
+        .striped(true)
+        .min_col_width(100.0)
+        .show(ui, |ui| {
+            ui.strong("Name");
+            ui.strong("Role");
+            ui.strong("Assignment");
+            ui.end_row();
+            
+            for (name, role, assigned) in companion_query.iter() {
+                ui.label(&name.0);
+                ui.label(role.name()).on_hover_text(role.description());
+                
+                if let Some(assigned_to) = assigned {
+                    ui.label(format!("Ship {:?}", assigned_to.0)); // Could lookup name if we had query access
+                } else {
+                    ui.label("Unassigned");
+                }
+                ui.end_row();
             }
         });
 }

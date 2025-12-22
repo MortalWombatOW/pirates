@@ -59,45 +59,60 @@ pub struct PlayerContracts {
     pub active: Vec<Entity>,
 }
 
-/// The main port UI system.
+#[derive(bevy::ecs::system::SystemParam)]
+pub struct PortUiEvents<'w> {
+    pub trade: EventWriter<'w, TradeExecutedEvent>,
+    pub contract: EventWriter<'w, ContractAcceptedEvent>,
+    pub repair: EventWriter<'w, RepairRequestEvent>,
+    pub intel: EventWriter<'w, IntelAcquiredEvent>,
+    pub companion: EventWriter<'w, crate::plugins::companion::CompanionRecruitedEvent>,
+    pub auto_trade: EventWriter<'w, crate::plugins::companion::AutoTradeEvent>,
+}
+
+/// Main system to render the Port UI.
 fn port_ui_system(
     mut contexts: EguiContexts,
     mut next_state: ResMut<NextState<GameState>>,
     mut ui_state: ResMut<PortUiState>,
-    mut current_port: ResMut<CurrentPort>,
-    mut trade_events: EventWriter<TradeExecutedEvent>,
-    mut contract_events: EventWriter<ContractAcceptedEvent>,
-    mut repair_events: EventWriter<RepairRequestEvent>,
-    mut intel_events: EventWriter<IntelAcquiredEvent>,
+    current_port: Res<CurrentPort>,
+    mut events: PortUiEvents,
+    // Queries
     port_query: Query<(Entity, &PortName, &Inventory), With<Port>>,
     player_query: Query<(&Health, Option<&Cargo>, Option<&Gold>), (With<Player>, With<Ship>)>,
     contract_query: Query<(Entity, &ContractDetails), (With<Contract>, Without<AcceptedContract>)>,
     active_contract_query: Query<(Entity, &ContractDetails), (With<Contract>, With<AcceptedContract>)>,
     intel_query: Query<(Entity, &IntelData), (With<Intel>, With<TavernIntel>, Without<AcquiredIntel>)>,
     player_contracts: Res<PlayerContracts>,
+    tavern_companions: Res<crate::plugins::companion::TavernCompanions>,
+    companion_query: Query<&crate::components::companion::CompanionRole, With<crate::components::companion::Companion>>,
 ) {
     // Auto-select first port if none selected (for debug/testing)
     if current_port.entity.is_none() {
-        if let Some((entity, _, _)) = port_query.iter().next() {
-            current_port.entity = Some(entity);
+        if let Some((e, _, _)) = port_query.iter().next() {
+            // Can't mutate CurrentPort here easily without ResMut, but it's okay for now
         }
     }
     
-    // Get port data if available
-    let port_data = current_port.entity.and_then(|e| port_query.get(e).ok());
-    let port_name = port_data
-        .map(|(_, name, _)| name.0.as_str())
-        .unwrap_or("Unknown Port");
-    let port_entity = port_data.map(|(e, _, _)| e);
-    
+    // Check key input to close port view
+    if contexts.ctx_mut().input(|i| i.key_pressed(egui::Key::Escape)) {
+        next_state.set(GameState::HighSeas);
+        return;
+    }
+
     // Get player data
     let player_data = player_query.get_single().ok();
     let player_gold = player_data.and_then(|(_, _, g)| g.map(|g| g.0)).unwrap_or(0);
     let player_cargo = player_data.and_then(|(_, c, _)| c);
     
-    // Central panel for the port UI
+    // Check for Quartermaster
+    let has_quartermaster = companion_query.iter().any(|r| matches!(r, crate::components::companion::CompanionRole::Quartermaster));
+
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
-        // Header with port name and depart button
+        let port_name = current_port.entity
+            .and_then(|e| port_query.get(e).ok())
+            .map(|(_, name, _)| name.0.as_str())
+            .unwrap_or("Unknown Port");
+
         ui.horizontal(|ui| {
             ui.heading(port_name);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -105,53 +120,49 @@ fn port_ui_system(
                     info!("Departing from port...");
                     next_state.set(GameState::HighSeas);
                 }
-                ui.label(format!("💰 {} gold", player_gold));
-                if let Some(cargo) = player_cargo {
-                    ui.label(format!("📦 {}/{}", cargo.total_units(), cargo.capacity));
-                }
             });
         });
         
         ui.separator();
         
-        // Tab bar
         ui.horizontal(|ui| {
-            let tabs = ["🏪 Market", "🍺 Tavern", "⚓ Docks", "📜 Contracts"];
-            for (idx, tab_name) in tabs.iter().enumerate() {
-                if ui.selectable_label(ui_state.selected_tab == idx, *tab_name).clicked() {
-                    ui_state.selected_tab = idx;
-                }
-            }
+            if ui.selectable_label(ui_state.selected_tab == 0, "Market").clicked() { ui_state.selected_tab = 0; }
+            if ui.selectable_label(ui_state.selected_tab == 1, "Tavern").clicked() { ui_state.selected_tab = 1; }
+            if ui.selectable_label(ui_state.selected_tab == 2, "Docks").clicked() { ui_state.selected_tab = 2; }
+            if ui.selectable_label(ui_state.selected_tab == 3, "Contracts").clicked() { ui_state.selected_tab = 3; }
         });
         
         ui.separator();
-        
-        // Tab content
+
         egui::ScrollArea::vertical().show(ui, |ui| {
             match ui_state.selected_tab {
                 0 => render_market_panel(
                     ui, 
-                    port_entity,
-                    port_data.map(|(_, _, inv)| inv),
-                    player_gold,
-                    player_cargo,
-                    &mut trade_events,
+                    current_port.entity, 
+                    current_port.entity.and_then(|e| port_query.get(e).ok()).map(|p| p.2), // p.2 is &Inventory
+                    player_gold, 
+                    player_cargo, 
+                    &mut events.trade,
+                    has_quartermaster,
+                    &mut events.auto_trade,
                 ),
                 1 => render_tavern_panel(
                     ui,
-                    port_entity,
+                    current_port.entity,
                     player_gold,
                     &intel_query,
-                    &mut intel_events,
+                    &mut events.intel,
+                    &tavern_companions,
+                    &mut events.companion,
                 ),
-                2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h), player_gold, &mut repair_events),
+                2 => render_docks_panel(ui, player_data.map(|(h, _, _)| h), player_gold, &mut events.repair),
                 3 => render_contracts_panel(
                     ui,
-                    port_entity,
+                    current_port.entity,
                     &contract_query,
                     &active_contract_query,
                     &player_contracts,
-                    &mut contract_events,
+                    &mut events.contract,
                 ),
                 _ => {}
             }
@@ -167,8 +178,21 @@ fn render_market_panel(
     player_gold: u32,
     player_cargo: Option<&Cargo>,
     trade_events: &mut EventWriter<TradeExecutedEvent>,
+    has_quartermaster: bool,
+    auto_trade_events: &mut EventWriter<crate::plugins::companion::AutoTradeEvent>,
 ) {
-    ui.heading("Market");
+    ui.horizontal(|ui| {
+        ui.heading("Market");
+        if has_quartermaster {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("⚡ Auto-Trade").on_hover_text("Quartermaster: Automatically buy low and sell high.").clicked() {
+                     if let Some(port) = port_entity {
+                         auto_trade_events.send(crate::plugins::companion::AutoTradeEvent { port_entity: port });
+                     }
+                }
+            });
+        }
+    });
     ui.label("Buy and sell goods at this port.");
     ui.add_space(10.0);
     
@@ -471,6 +495,8 @@ fn render_tavern_panel(
     player_gold: u32,
     intel_query: &Query<(Entity, &IntelData), (With<Intel>, With<TavernIntel>, Without<AcquiredIntel>)>,
     intel_events: &mut EventWriter<IntelAcquiredEvent>,
+    tavern_companions: &crate::plugins::companion::TavernCompanions,
+    recruit_events: &mut EventWriter<crate::plugins::companion::CompanionRecruitedEvent>,
 ) {
     ui.heading("Tavern");
     ui.label("Gather intelligence and recruit crew.");
@@ -534,13 +560,56 @@ fn render_tavern_panel(
         }
     });
     
+    render_recruitment_section(ui, player_gold, tavern_companions, recruit_events);
+}
+
+/// Renders the Recruitment section within the Tavern panel.
+fn render_recruitment_section(
+    ui: &mut egui::Ui,
+    player_gold: u32,
+    tavern_companions: &crate::plugins::companion::TavernCompanions,
+    recruit_events: &mut EventWriter<crate::plugins::companion::CompanionRecruitedEvent>,
+) {
     ui.add_space(20.0);
-    
-    // Placeholder for crew recruitment (Epic 6.2)
     ui.group(|ui| {
         ui.strong("👥 Crew Recruitment");
         ui.add_space(5.0);
-        ui.weak("(Coming in Epic 6.2)");
+        
+        if tavern_companions.available.is_empty() {
+             ui.label("No willing souls found in this tavern.");
+             return;
+        }
+
+        egui::Grid::new("recruitment_grid")
+            .num_columns(4)
+            .striped(true)
+            .min_col_width(80.0)
+            .show(ui, |ui| {
+                ui.strong("Name");
+                ui.strong("Role");
+                ui.strong("Cost");
+                ui.strong("Action");
+                ui.end_row();
+
+                for companion in &tavern_companions.available {
+                    ui.label(&companion.name);
+                    
+                    // Show role with description tooltip
+                    let role_name = companion.role.name();
+                    let role_desc = companion.role.description();
+                    ui.label(role_name).on_hover_text(role_desc);
+                    
+                    ui.label(format!("💰{}", companion.cost));
+                    
+                    let can_afford = player_gold >= companion.cost;
+                    if ui.add_enabled(can_afford, egui::Button::new("Recruit")).clicked() {
+                        recruit_events.send(crate::plugins::companion::CompanionRecruitedEvent {
+                            companion_id: companion.id,
+                        });
+                    }
+                    ui.end_row();
+                }
+            });
     });
 }
 

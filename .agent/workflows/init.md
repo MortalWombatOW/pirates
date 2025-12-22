@@ -2,4 +2,24 @@
 description: 
 ---
 
-Read docs/protocol/{INDEX,INVARIANTS,MANIFESTO}.md, then README.md, TASK_PLAN.md, and TASK_LOG.md in their entirety to bring you up to speed on the project.
+---
+description: 
+---
+
+# Workflow: Init
+
+**Goal**: Load the complete mental model of the project.
+
+## Protocol Steps
+
+1.  **Core Protocol Loading**
+    * Read `docs/protocol/INDEX.md` (The Map).
+    * Read `docs/protocol/INVARIANTS.md` (The Law).
+    * Read `docs/protocol/MANIFESTO.md` (The Persona).
+
+2.  **Product Context Loading**
+    * Read `README.md` (Game Design Document).
+    * Read `WORK_PLAN.md` (Project Status).
+
+3.  **Handoff**
+    * Trigger `/next-task` to begin work, or `/architect` if the plan is empty.

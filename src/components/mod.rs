@@ -7,6 +7,7 @@ pub mod current;
 pub mod worldmap;
 pub mod navigation;
 pub mod port;
+pub mod companion;
 pub mod contract;
 pub mod order;
 pub mod intel;

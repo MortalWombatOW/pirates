@@ -4,23 +4,22 @@ description:
 
 # Workflow: Forge
 
-**Goal**: Implement a single atomic task with high quality and adherence to Bevy ECS patterns.
+**Goal**: Implement a single atomic task with high quality.
 
 ## Protocol Steps
 
-1.  **Task Acquisition**
-    * Read the next available task in `WORK_PLAN.md` marked `[ ]`.
-    * Read `docs/protocol/INDEX.md` to identify relevant files for this task.
+1.  **Strategy Formulation**
+    * **Scope Safety**: Check `WORK_PLAN.md`. If the requirement is missing, **ABORT** and trigger `/architect`. Do not invent tasks.
+    * **Bevy Rule Injection**: Read `.agent/rules/bevy.md`. Quote the specific section of the rules that applies to this task (e.g., "Input Handling", "ECS Optimization") in your plan.
+    * **Plan**: List components/systems to modify.
 
-2.  **Strategy Formulation**
-    * Explicitly write out your plan in the chat:
-        1.  **Plan**: What components/systems need changing.
-        2.  **Implementation**: The specific code changes.
-        3.  **Verification**: How we know it works (e.g., "The ship should stop moving when Space is held").
-
-3.  **Implementation**
+2.  **Implementation**
     * Generate the code.
-    * **Strict Constraint**: Apply "Temporal Purity" to all comments. Do not mention "added", "updated", or "fixed". Describe the current behavior only.
+    * **Constraint**: Apply the "Temporal Purity Standard" from `.agent/rules/development.md`. Describe current behavior only.
 
-4.  **Completion**
-    * Mark the task as `[/]` (In Progress) if partial, or wait for `/audit` before marking `[x]`.
+3.  **Verification**
+    * Run `cargo check`.
+    * Verify the implementation meets the criteria in `WORK_PLAN.md`.
+
+4.  **Handoff**
+    * Trigger `/audit` to review the code.
