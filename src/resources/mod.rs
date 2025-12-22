@@ -17,3 +17,7 @@ pub use route_cache::*;
 
 pub mod fleet;
 pub use fleet::*;
+
+pub mod meta_profile;
+pub use meta_profile::*;
+
