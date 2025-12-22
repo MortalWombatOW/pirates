@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::components::{Player, Ship, Destination, NavigationPath};
+use crate::components::companion::CompanionRole;
 use crate::resources::{MapData, Wind};
 use crate::plugins::core::GameState;
 use crate::utils::pathfinding::{find_path, tile_to_world, world_to_tile};
@@ -164,12 +165,18 @@ fn catmull_rom_interpolate(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32, tensi
 
 /// System that moves the player along the navigation path.
 /// Uses smooth rotation for natural ship turning.
+/// Navigator companion provides +25% speed bonus.
 pub fn navigation_movement_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut NavigationPath), With<Player>>,
+    companion_query: Query<&CompanionRole>,
     wind: Res<Wind>,
     time: Res<Time>,
 ) {
+    // Check if player has a Navigator companion (provides +25% speed bonus)
+    let has_navigator = companion_query.iter().any(|role| *role == CompanionRole::Navigator);
+    let navigator_bonus = if has_navigator { 1.25 } else { 1.0 };
+
     for (entity, mut transform, mut path) in &mut query {
         let Some(next_waypoint) = path.next_waypoint() else {
             // Path complete - remove navigation components
@@ -190,8 +197,8 @@ pub fn navigation_movement_system(
         
         let direction_normalized = direction.normalize();
         
-        // Base speed with wind effect
-        let base_speed = 300.0;
+        // Base speed with wind effect and Navigator bonus
+        let base_speed = 300.0 * navigator_bonus;
         let wind_alignment = direction_normalized.dot(wind.direction_vec());
         let wind_effect = wind_alignment * wind.strength * 0.5;
         let speed = base_speed * (1.0 + wind_effect);
