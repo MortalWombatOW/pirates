@@ -8,11 +8,17 @@ use crate::components::{Player, Vision};
 pub struct FogTile;
 
 /// System that updates the `FogOfWar` resource based on entities with `Vision`.
+/// Lookout companion provides +50% vision radius bonus.
 pub fn fog_of_war_update_system(
     mut fog_of_war: ResMut<FogOfWar>,
     query: Query<(&Transform, &Vision), With<Player>>,
+    companion_query: Query<&crate::components::companion::CompanionRole>,
     map_data: Res<MapData>,
 ) {
+    // Check if player has a Lookout companion (provides +50% vision radius bonus)
+    let has_lookout = companion_query.iter().any(|role| *role == crate::components::companion::CompanionRole::Lookout);
+    let lookout_bonus = if has_lookout { 1.5 } else { 1.0 };
+
     let tile_size = 64.0;
     let map_width = map_data.width as f32;
     let map_height = map_data.height as f32;
@@ -25,7 +31,8 @@ pub fn fog_of_war_update_system(
         let tile_x = (pos.x / tile_size + map_width / 2.0).floor() as i32;
         let tile_y = (pos.y / tile_size + map_height / 2.0).floor() as i32;
         
-        let radius = vision.radius as i32;
+        // Apply Lookout bonus to vision radius
+        let radius = (vision.radius * lookout_bonus) as i32;
         
         // Reveal tiles within radius
         for dy in -radius..=radius {
