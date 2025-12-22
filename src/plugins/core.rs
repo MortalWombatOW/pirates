@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::components::{Player, Ship};
-use crate::resources::{Wind, WorldClock, FactionRegistry};
+use crate::resources::{Wind, WorldClock, FactionRegistry, ArchetypeRegistry, ArchetypeId, MetaProfile, PlayerDeathData};
 use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, intel_expiry_system, faction_ai_system, trade_route_generation_system, faction_ship_spawning_system, faction_threat_response_system, ThreatResponseCooldown, GlobalDemand};
 use crate::events::ContractExpiredEvent;
 use leafwing_input_manager::prelude::*;
@@ -25,9 +25,15 @@ impl Plugin for CorePlugin {
             .init_resource::<WorldClock>()
             .init_resource::<GlobalDemand>()
             .init_resource::<ThreatResponseCooldown>()
+            .init_resource::<ArchetypeRegistry>()
+            .init_resource::<PlayerDeathData>()
             .insert_resource(FactionRegistry::new())
             .add_event::<ContractExpiredEvent>()
-            .add_systems(Startup, (spawn_camera, init_meta_profile))
+            .add_systems(Startup, (
+                spawn_camera,
+                init_meta_profile,
+                check_archetype_unlocks.after(init_meta_profile),
+            ))
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
@@ -161,13 +167,77 @@ fn init_meta_profile(mut commands: Commands) {
 }
 
 /// Saves the MetaProfile to disk when the player dies.
-/// Increments death counter and saves the current state.
-fn save_profile_on_death(mut profile: ResMut<crate::resources::MetaProfile>) {
+/// Creates a legacy wreck from death data and increments death counter.
+fn save_profile_on_death(
+    mut profile: ResMut<MetaProfile>,
+    mut death_data: ResMut<PlayerDeathData>,
+) {
     profile.deaths += 1;
+
+    // Create legacy wreck from death data
+    let run_number = profile.deaths; // Use death count as run number
+    const TILE_SIZE: f32 = 16.0; // Must match MapData tile size
+
+    if let Some(wreck) = death_data.to_legacy_wreck(run_number, TILE_SIZE) {
+        info!(
+            "Creating legacy wreck at {:?} with {} gold and {} cargo items",
+            wreck.position,
+            wreck.gold,
+            wreck.cargo.len()
+        );
+        profile.legacy_wrecks.push(wreck);
+
+        // Cap the number of wrecks to prevent file bloat
+        const MAX_WRECKS: usize = 10;
+        while profile.legacy_wrecks.len() > MAX_WRECKS {
+            profile.legacy_wrecks.remove(0); // Remove oldest
+        }
+    }
+
+    // Clear death data after consumption
+    death_data.clear();
+
     info!("Player died! Total deaths: {}", profile.deaths);
-    
+
     if let Err(e) = profile.save_to_file() {
         error!("Failed to save profile on death: {}", e);
+    }
+}
+
+/// Checks all archetypes and unlocks any that meet their unlock conditions.
+/// Runs after profile load to update unlocks based on lifetime stats.
+fn check_archetype_unlocks(
+    registry: Res<ArchetypeRegistry>,
+    mut profile: ResMut<MetaProfile>,
+) {
+    let mut newly_unlocked = Vec::new();
+
+    for &archetype_id in ArchetypeId::all() {
+        // Skip if already unlocked
+        if profile.unlocked_archetypes.contains(&archetype_id) {
+            continue;
+        }
+
+        // Check if this archetype should be unlocked
+        if registry.is_unlocked(archetype_id, &profile) {
+            newly_unlocked.push(archetype_id);
+        }
+    }
+
+    // Add newly unlocked archetypes
+    for archetype_id in newly_unlocked {
+        if let Some(config) = registry.get(archetype_id) {
+            info!("🎉 Archetype unlocked: {} - {}", config.name, config.description);
+        }
+        profile.unlocked_archetypes.push(archetype_id);
+    }
+
+    // Save if any new unlocks occurred
+    if !profile.unlocked_archetypes.is_empty() {
+        debug!(
+            "Available archetypes: {:?}",
+            profile.unlocked_archetypes
+        );
     }
 }
 

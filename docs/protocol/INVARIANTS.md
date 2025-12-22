@@ -116,3 +116,36 @@
   * Navigation: +1 per 5000 lifetime gold (max +4)
   * Logistics: +1 per 3 captured ships (max +4)
   * All stats cap at level 5 (base 1 + 4 from milestones)
+
+## 14. Archetype System
+* **Selection Flow**: MainMenu → SelectedArchetype resource → spawn_high_seas_player reads it
+* **Bonus Application**: Bonuses apply ONCE when transitioning MainMenu → HighSeas:
+  * Starting gold → `Gold` component
+  * Ship type → Sprite path + cargo capacity
+  * Faction reputation → `FactionRegistry.factions[*].player_reputation`
+* **Unlock Conditions**: Checked at startup via `check_archetype_unlocks` system:
+  * `AlwaysUnlocked` — Default archetype
+  * `RunsCompleted(n)` — Compare against `profile.runs_completed`
+  * `LifetimeGold(n)` — Compare against `profile.lifetime_gold`
+  * `QuickDeath(hours)` — Special case: tracked via death events, stored in `unlocked_archetypes`
+* **Ship Type Stats**:
+  | ShipType | Cargo Capacity | Sprite |
+  |----------|----------------|--------|
+  | Sloop | 100 | player.png |
+  | Frigate | 200 | frigate.png |
+  | Schooner | 150 | schooner.png |
+  | Raft | 30 | raft.png |
+* **No Re-Application**: Faction reputation bonuses apply only on first spawn. Re-entering HighSeas (from Port or Combat) does NOT re-apply archetype bonuses because `spawn_high_seas_player` only runs on initial entry.
+
+## 15. Legacy Wreck System
+* **Death Data Capture**: State transfer pattern — `PlayerDeathData` resource captures position, gold, and cargo BEFORE despawn in `ship_destruction_system`
+* **Wreck Recording**: On `OnEnter(GameOver)`, `save_profile_on_death` creates a `LegacyWreck` from death data and adds it to `MetaProfile.legacy_wrecks`
+* **Wreck Cap**: Maximum 10 wrecks stored; oldest removed when cap exceeded
+* **Wreck Spawning**: `spawn_legacy_wrecks` runs on `OnEnter(HighSeas)`, converts tile positions to world coordinates
+* **Exploration**: `wreck_exploration_system` triggers on proximity (48 world units):
+  * Transfers gold to player's `Gold` component
+  * Transfers cargo (if space available) to player's `Cargo` component
+  * Removes wreck from `MetaProfile` and saves immediately
+  * Despawns wreck entity
+* **Position Persistence**: Stored as tile coordinates (`IVec2`), converted to/from world coords using `TILE_SIZE = 16.0`
+* **Index Limitation**: `LegacyWreckMarker.wreck_index` becomes stale after ANY wreck is removed. Safe only because exploration is single-wreck proximity-based and entities despawn immediately. Do NOT batch wreck removals.

@@ -34,3 +34,17 @@ pub enum FactionId {
 /// Component that assigns a faction to an entity.
 #[derive(Component, Debug, Default, Reflect)]
 pub struct Faction(pub FactionId);
+
+/// Ship class determines base stats and visual appearance.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
+pub enum ShipType {
+    /// Small, fast vessel. Low cargo, low firepower, high maneuverability.
+    #[default]
+    Sloop,
+    /// Large military vessel. High firepower, moderate cargo, slow but sturdy.
+    Frigate,
+    /// Fast merchant vessel. Moderate cargo, low firepower, high speed.
+    Schooner,
+    /// Makeshift survival vessel. Minimal stats, slow, fragile.
+    Raft,
+}

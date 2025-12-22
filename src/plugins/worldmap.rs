@@ -39,11 +39,12 @@ impl Plugin for WorldMapPlugin {
             .add_event::<CombatTriggeredEvent>()
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
             .add_systems(OnEnter(GameState::HighSeas), (
-                spawn_tilemap_from_map_data, 
-                spawn_high_seas_player, 
+                spawn_tilemap_from_map_data,
+                spawn_high_seas_player,
                 spawn_high_seas_ai_ships,
                 spawn_player_fleet,
                 spawn_port_entities,
+                spawn_legacy_wrecks,
                 reset_encounter_cooldown,
                 show_tilemap,
             ))
@@ -64,9 +65,16 @@ impl Plugin for WorldMapPlugin {
                 intel_visualization_system,
                 port_arrival_system,
                 contract_delegation_system,
+                wreck_exploration_system,
             ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnEnter(GameState::Combat), hide_tilemap)
-            .add_systems(OnExit(GameState::HighSeas), (despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities, clear_fleet_entities));
+            .add_systems(OnExit(GameState::HighSeas), (
+                despawn_high_seas_player,
+                despawn_high_seas_ai_ships,
+                despawn_port_entities,
+                despawn_legacy_wrecks,
+                clear_fleet_entities,
+            ));
     }
 }
 
@@ -89,6 +97,13 @@ pub struct HighSeasPlayer;
 /// Marker component for AI ships in High Seas view (no physics, just visual)
 #[derive(Component)]
 pub struct HighSeasAI;
+
+/// Marker component for legacy wreck entities from previous runs.
+#[derive(Component)]
+pub struct LegacyWreckMarker {
+    /// Index into MetaProfile.legacy_wrecks for this wreck's data.
+    pub wreck_index: usize,
+}
 
 /// Resource holding the procedurally generated tileset image handle
 #[derive(Resource)]
@@ -333,30 +348,72 @@ fn spawn_tilemap_from_map_data(
 }
 
 /// Spawns the player ship in the High Seas view.
+/// Applies archetype bonuses from the selected starting character.
 fn spawn_high_seas_player(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     _map_data: Res<MapData>,
+    selected_archetype: Res<crate::plugins::main_menu::SelectedArchetype>,
+    registry: Res<crate::resources::ArchetypeRegistry>,
+    mut faction_registry: ResMut<crate::resources::FactionRegistry>,
 ) {
     use crate::components::{Cargo, Gold};
-    
-    info!("Spawning player for High Seas...");
-    
+    use crate::components::ship::ShipType;
+
+    // Get archetype configuration
+    let archetype_config = registry.get(selected_archetype.0);
+    let (starting_gold, ship_type) = archetype_config
+        .map(|c| (c.starting_gold, c.ship_type))
+        .unwrap_or((500, ShipType::Sloop)); // Fallback to defaults
+
+    info!(
+        "Spawning player for High Seas with archetype {:?}: {} gold, {:?}",
+        selected_archetype.0, starting_gold, ship_type
+    );
+
+    // Apply faction reputation bonuses from archetype
+    if let Some(config) = archetype_config {
+        for (faction_id, rep_modifier) in &config.faction_reputation {
+            if let Some(faction_state) = faction_registry.get_mut(*faction_id) {
+                faction_state.player_reputation += rep_modifier;
+                info!(
+                    "Applied {:+} reputation to {:?} (now {})",
+                    rep_modifier, faction_id, faction_state.player_reputation
+                );
+            }
+        }
+    }
+
     // Spawn at map center
     let center_x = 0.0;
     let center_y = 0.0;
-    
-    let texture_handle: Handle<Image> = asset_server.load("sprites/ships/player.png");
-    
+
+    // Select sprite based on ship type
+    let sprite_path = match ship_type {
+        ShipType::Sloop => "sprites/ships/player.png",
+        ShipType::Frigate => "sprites/ships/frigate.png",
+        ShipType::Schooner => "sprites/ships/schooner.png",
+        ShipType::Raft => "sprites/ships/raft.png",
+    };
+    let texture_handle: Handle<Image> = asset_server.load(sprite_path);
+
+    // Adjust cargo capacity based on ship type
+    let cargo_capacity = match ship_type {
+        ShipType::Sloop => 100,
+        ShipType::Frigate => 200,
+        ShipType::Schooner => 150,
+        ShipType::Raft => 30,
+    };
+
     commands.spawn((
         Name::new("High Seas Player"),
         Player,
         Ship,
         HighSeasPlayer,
         Vision { radius: 10.0 }, // Sight radius in tiles
-        Health::default(), // Required by camera follow
-        Cargo::new(100),   // Trading capacity
-        Gold(100),         // Starting gold
+        Health::default(),       // Required by camera follow
+        Cargo::new(cargo_capacity),
+        Gold(starting_gold),
         Sprite {
             image: texture_handle,
             custom_size: Some(Vec2::splat(64.0)),
@@ -377,6 +434,150 @@ fn despawn_high_seas_player(
     }
 }
 
+/// Spawns legacy wreck entities from previous deaths.
+/// Wrecks are interactable markers on the map containing loot from past runs.
+fn spawn_legacy_wrecks(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    profile: Res<crate::resources::MetaProfile>,
+    existing_wrecks: Query<Entity, With<LegacyWreckMarker>>,
+) {
+    // Don't spawn duplicates if wrecks already exist
+    if !existing_wrecks.is_empty() {
+        return;
+    }
+
+    const TILE_SIZE: f32 = 16.0;
+
+    for (index, wreck) in profile.legacy_wrecks.iter().enumerate() {
+        // Convert tile position back to world coordinates
+        let world_pos = Vec2::new(
+            wreck.position.x as f32 * TILE_SIZE,
+            wreck.position.y as f32 * TILE_SIZE,
+        );
+
+        info!(
+            "Spawning legacy wreck '{}' at {:?} (tile {:?}) with {} gold",
+            wreck.ship_name, world_pos, wreck.position, wreck.gold
+        );
+
+        // Spawn wreck entity with visual indicator
+        commands.spawn((
+            Name::new(format!("Wreck: {}", wreck.ship_name)),
+            LegacyWreckMarker { wreck_index: index },
+            Sprite {
+                image: asset_server.load("sprites/loot/wreck.png"),
+                custom_size: Some(Vec2::splat(48.0)),
+                color: Color::srgba(0.8, 0.6, 0.4, 0.9), // Weathered brown tint
+                ..default()
+            },
+            Transform::from_xyz(world_pos.x, world_pos.y, 1.5), // Between fog and ships
+        ));
+    }
+
+    if !profile.legacy_wrecks.is_empty() {
+        info!("Spawned {} legacy wrecks from previous runs", profile.legacy_wrecks.len());
+    }
+}
+
+/// Despawn legacy wrecks when leaving HighSeas state.
+fn despawn_legacy_wrecks(
+    mut commands: Commands,
+    query: Query<Entity, With<LegacyWreckMarker>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+/// Proximity radius for wreck exploration (in world units).
+const WRECK_EXPLORE_RADIUS: f32 = 48.0;
+
+/// System that handles wreck exploration when the player gets close.
+/// Transfers gold and cargo from the wreck to the player, then removes the wreck.
+fn wreck_exploration_system(
+    mut commands: Commands,
+    player_query: Query<&Transform, With<HighSeasPlayer>>,
+    wreck_query: Query<(Entity, &Transform, &LegacyWreckMarker)>,
+    mut player_gold_query: Query<&mut crate::components::Gold, With<Player>>,
+    mut player_cargo_query: Query<&mut crate::components::Cargo, With<Player>>,
+    mut profile: ResMut<crate::resources::MetaProfile>,
+) {
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    let player_pos = player_transform.translation.truncate();
+
+    for (wreck_entity, wreck_transform, wreck_marker) in &wreck_query {
+        let wreck_pos = wreck_transform.translation.truncate();
+        let distance = player_pos.distance(wreck_pos);
+
+        if distance <= WRECK_EXPLORE_RADIUS {
+            // Get wreck data from profile
+            let Some(wreck_data) = profile.legacy_wrecks.get(wreck_marker.wreck_index) else {
+                // Wreck data not found, just despawn the entity
+                commands.entity(wreck_entity).despawn_recursive();
+                continue;
+            };
+
+            info!(
+                "Exploring wreck '{}': {} gold, {} cargo items",
+                wreck_data.ship_name,
+                wreck_data.gold,
+                wreck_data.cargo.len()
+            );
+
+            // Transfer gold to player
+            if let Ok(mut gold) = player_gold_query.get_single_mut() {
+                gold.0 += wreck_data.gold;
+                info!("Recovered {} gold from wreck (total: {})", wreck_data.gold, gold.0);
+            }
+
+            // Transfer cargo to player
+            if let Ok(mut cargo) = player_cargo_query.get_single_mut() {
+                for (good_type_str, quantity) in &wreck_data.cargo {
+                    // Try to parse the good type
+                    if let Some(good_type) = parse_good_type(good_type_str) {
+                        let space_available = cargo.capacity.saturating_sub(cargo.total_units());
+                        let to_add = (*quantity).min(space_available);
+                        if to_add > 0 {
+                            *cargo.goods.entry(good_type).or_insert(0) += to_add;
+                            info!("Recovered {} {:?} from wreck", to_add, good_type);
+                        }
+                    }
+                }
+            }
+
+            // Remove wreck from profile
+            if wreck_marker.wreck_index < profile.legacy_wrecks.len() {
+                profile.legacy_wrecks.remove(wreck_marker.wreck_index);
+                info!("Removed wreck from profile, {} wrecks remaining", profile.legacy_wrecks.len());
+
+                // Save profile to persist wreck removal
+                if let Err(e) = profile.save_to_file() {
+                    error!("Failed to save profile after wreck exploration: {}", e);
+                }
+            }
+
+            // Despawn wreck entity
+            commands.entity(wreck_entity).despawn_recursive();
+        }
+    }
+}
+
+/// Helper to parse good type strings back to GoodType enum.
+fn parse_good_type(s: &str) -> Option<crate::components::cargo::GoodType> {
+    use crate::components::cargo::GoodType;
+    match s {
+        "Sugar" => Some(GoodType::Sugar),
+        "Rum" => Some(GoodType::Rum),
+        "Spices" => Some(GoodType::Spices),
+        "Timber" => Some(GoodType::Timber),
+        "Cloth" => Some(GoodType::Cloth),
+        "Weapons" => Some(GoodType::Weapons),
+        _ => None,
+    }
+}
 
 /// Despawns the world map when leaving HighSeas state.
 pub fn despawn_tilemap(

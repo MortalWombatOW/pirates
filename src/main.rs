@@ -10,6 +10,7 @@ use pirates::plugins::worldmap::WorldMapPlugin;
 use pirates::plugins::port_ui::PortUiPlugin;
 use pirates::plugins::fleet_ui::FleetUiPlugin;
 use pirates::plugins::companion::CompanionPlugin;
+use pirates::plugins::main_menu::MainMenuPlugin;
 
 fn main() {
     App::new()
@@ -31,6 +32,7 @@ fn main() {
         .add_plugins(CompanionPlugin)
         .add_plugins(PortUiPlugin)
         .add_plugins(FleetUiPlugin)
+        .add_plugins(MainMenuPlugin)
         .run();
 }
 

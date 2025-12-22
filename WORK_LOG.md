@@ -878,3 +878,66 @@ All 6 tasks completed:
 ### Verification
 - `cargo check`: PASSED
 
+---
+
+## 2025-12-21: Epic 7.2 Archetypes [COMPLETED]
+
+**Summary**: Implemented starting archetype selection for roguelike variety.
+
+### Files Created/Modified
+- `src/components/ship.rs`: Added `ShipType` enum (Sloop, Frigate, Schooner, Raft)
+- `src/resources/meta_profile.rs`: Added `ArchetypeConfig`, `ArchetypeRegistry`, `UnlockCondition`
+- `src/plugins/core.rs`: Registered `ArchetypeRegistry`, added `check_archetype_unlocks` system
+- `src/plugins/main_menu.rs`: **NEW** - MainMenu UI with archetype selection
+- `src/plugins/mod.rs`: Added `main_menu` module
+- `src/main.rs`: Registered `MainMenuPlugin`
+- `src/plugins/worldmap.rs`: Modified `spawn_high_seas_player` to apply archetype bonuses
+- `docs/protocol/INVARIANTS.md`: Section 14 - Archetype System
+- `docs/protocol/INDEX.md`: Added new key file entries
+
+### Tasks Completed
+- 7.2.1a: Define Archetype enum and ArchetypeConfig struct ✅
+- 7.2.1b: Create ArchetypeRegistry resource ✅
+- 7.2.1c: Add unlocked_archetypes to MetaProfile ✅
+- 7.2.2: Implement check_archetype_unlocks system ✅
+- 7.2.3: Implement archetype selection UI ✅
+- 7.2.4: Apply archetype bonuses on game start ✅
+
+### Archetypes Defined
+| Archetype | Gold | Ship | Unlock Condition |
+|-----------|------|------|------------------|
+| Default (Freebooter) | 500 | Sloop | Always |
+| RoyalNavyCaptain | 1000 | Frigate | 5 runs completed |
+| Smuggler | 300 | Schooner | 10,000 lifetime gold |
+| Castaway | 0 | Raft | Die within 24 hours |
+
+### Verification
+- `cargo check`: PASSED
+
+---
+
+## 2025-12-21: Epic 7.3 Legacy Wrecks [COMPLETED]
+
+**Summary**: Implemented legacy wreck system for roguelike persistence across deaths.
+
+### Files Created/Modified
+- `src/resources/meta_profile.rs`: Added `PlayerDeathData` resource
+- `src/systems/combat.rs`: Modified `ship_destruction_system` to capture death data
+- `src/plugins/core.rs`: Enhanced `save_profile_on_death` to create wrecks
+- `src/plugins/worldmap.rs`: Added `LegacyWreckMarker`, spawn/despawn/exploration systems
+- `docs/protocol/INVARIANTS.md`: Section 15 - Legacy Wreck System
+
+### Tasks Completed
+- 7.3.1: Record wreck on player death ✅
+- 7.3.2: Spawn legacy wrecks on new run ✅
+- 7.3.3: Implement wreck exploration ✅
+
+### System Flow
+1. Player dies → `ship_destruction_system` captures position/gold/cargo in `PlayerDeathData`
+2. `OnEnter(GameOver)` → `save_profile_on_death` creates `LegacyWreck`, saves to profile
+3. New run → `spawn_legacy_wrecks` places wreck entities on map
+4. Player approaches wreck → `wreck_exploration_system` transfers loot, removes wreck
+
+### Verification
+- `cargo check`: PASSED
+

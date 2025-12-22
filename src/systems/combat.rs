@@ -214,24 +214,56 @@ pub fn spawn_test_target(
 }
 
 /// System that detects and destroys ships with hull HP <= 0.
+/// Captures player death data for legacy wreck creation before despawning.
 pub fn ship_destruction_system(
     mut commands: Commands,
-    query: Query<(Entity, &Health, Option<&Player>, Option<&Name>), With<Ship>>,
+    query: Query<(
+        Entity,
+        &Health,
+        Option<&Player>,
+        Option<&Name>,
+        Option<&Transform>,
+        Option<&crate::components::Gold>,
+        Option<&crate::components::Cargo>,
+    ), With<Ship>>,
     mut ship_destroyed_events: EventWriter<crate::events::ShipDestroyedEvent>,
+    mut death_data: ResMut<crate::resources::PlayerDeathData>,
 ) {
-    for (entity, health, player, name) in &query {
+    for (entity, health, player, name, transform, gold, cargo) in &query {
         if health.is_destroyed() {
             let ship_name = name.map(|n| n.as_str()).unwrap_or("Unknown Ship");
             let was_player = player.is_some();
-            
+
             info!("Ship destroyed: {} (was_player: {})", ship_name, was_player);
-            
+
+            // Capture player death data before despawning
+            if was_player {
+                death_data.position = transform.map(|t| t.translation.truncate());
+                death_data.gold = gold.map(|g| g.0).unwrap_or(0);
+                death_data.cargo = cargo
+                    .map(|c| {
+                        c.goods
+                            .iter()
+                            .map(|(good_type, qty)| (format!("{:?}", good_type), *qty))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                death_data.ship_name = ship_name.to_string();
+
+                info!(
+                    "Captured death data: pos={:?}, gold={}, cargo_items={}",
+                    death_data.position,
+                    death_data.gold,
+                    death_data.cargo.len()
+                );
+            }
+
             // Send the event before despawning
             ship_destroyed_events.send(crate::events::ShipDestroyedEvent {
                 entity,
                 was_player,
             });
-            
+
             // Despawn the ship entity
             commands.entity(entity).despawn_recursive();
         }

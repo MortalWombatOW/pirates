@@ -4,6 +4,7 @@ pub mod debug_ui;
 pub mod physics;
 pub mod companion;
 pub mod combat;
+pub mod main_menu;
 
 pub mod worldmap;
 pub mod port;

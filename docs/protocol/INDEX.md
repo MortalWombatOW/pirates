@@ -17,8 +17,10 @@
 | File | Responsibility | When to Read/Edit |
 | :--- | :--- | :--- |
 | `src/plugins/core.rs` | GameState, Camera, Window setup | Changing states (`GameState`), camera logic. |
+| `src/plugins/main_menu.rs` | Archetype selection UI | Modifying starting character selection. |
 | `src/plugins/physics.rs` | Avian2D config, Gravity | Tuning global physics settings. |
-| `src/components/ship.rs` | `Ship`, `Player`, `AI` markers | Modifying what defines a ship entity. |
+| `src/resources/meta_profile.rs` | MetaProfile, Archetypes, Unlocks | Changing progression or archetype configs. |
+| `src/components/ship.rs` | `Ship`, `Player`, `AI`, `ShipType` | Modifying what defines a ship entity. |
 | `src/components/cargo.rs` | `Cargo`, `Gold`, `GoodType` | Changing economy data structures. |
 | `src/systems/movement.rs` | Ship thrust, turn, drag logic | Tuning ship handling or "Keel Effect". |
 | `src/systems/combat.rs` | Damage, Projectiles, Health | Balancing combat, hit detection. |

@@ -352,17 +352,19 @@
 ### Epic 7.2: Archetypes
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 7.2.1 | Define starting archetypes | 7.1.1 | `Default`, `RoyalNavyCaptain`, `Smuggler`, `Castaway`. |
-| [ ] 7.2.2 | Implement archetype unlock conditions | 7.2.1 | Unlocked based on achievements. |
-| [ ] 7.2.3 | Implement archetype selection on new game | 7.2.1, 1.2.2 | UI to choose archetype. |
-| [ ] 7.2.4 | Apply archetype bonuses | 7.2.3 | Starting gold, faction rep, ship type. |
+| [x] 7.2.1a | Define `Archetype` enum and `ArchetypeConfig` struct | 7.1.1 | Enum with 4 variants, config with gold/rep/ship fields. |
+| [x] 7.2.1b | Create `ArchetypeRegistry` resource | 7.2.1a | Resource maps archetypes to configs, registered in plugin. |
+| [x] 7.2.1c | Add `unlocked_archetypes` to `MetaProfile` | 7.2.1a | Vec persisted to profile.json, Default always unlocked. |
+| [x] 7.2.2 | Implement `check_archetype_unlocks` system | 7.2.1c | Runs on profile load, checks lifetime stats for unlocks. |
+| [x] 7.2.3 | Implement archetype selection UI | 7.2.1b, 1.2.2 | MainMenu shows unlocked archetypes, stores selection. |
+| [x] 7.2.4 | Apply archetype bonuses on game start | 7.2.3 | `spawn_player_ship` reads selection, applies gold/rep/ship. |
 
 ### Epic 7.3: Legacy Wrecks
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 7.3.1 | Record wreck on player death | 2.9.5, 7.1.1 | Position and cargo saved to `MetaProfile`. |
-| [ ] 7.3.2 | Spawn legacy wrecks on new run | 7.3.1, 3.2.2 | Wrecks placed on map. |
-| [ ] 7.3.3 | Implement wreck exploration | 7.3.2 | Player can loot wreck for cargo/gold. |
+| [x] 7.3.1 | Record wreck on player death | 2.9.5, 7.1.1 | Position and cargo saved to `MetaProfile`. |
+| [x] 7.3.2 | Spawn legacy wrecks on new run | 7.3.1, 3.2.2 | Wrecks placed on map. |
+| [x] 7.3.3 | Implement wreck exploration | 7.3.2 | Player can loot wreck for cargo/gold. |
 
 ### Epic 7.4: Save/Load
 | ID | Task | Dependencies | Acceptance Criteria |
