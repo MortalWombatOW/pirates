@@ -9,6 +9,7 @@ pub mod navigation;
 pub mod port;
 pub mod contract;
 pub mod order;
+pub mod intel;
 
 pub use ship::*;
 pub use health::*;
@@ -21,3 +22,4 @@ pub use navigation::*;
 pub use port::*;
 pub use contract::*;
 pub use order::*;
+pub use intel::*;

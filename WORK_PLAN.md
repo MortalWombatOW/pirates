@@ -307,9 +307,9 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 5.5.1 | Spawn 1000 AI ships | 5.2.5 | 1000 ships exist in simulation. |
-| [ ] 5.5.2 | Profile frame rate | 5.5.1 | Game runs > 30 FPS with 1000 ships. |
-| [ ] 5.5.3 | Optimize with spatial hashing | 5.5.2, 3.6.1 | Reduce O(n²) checks. |
-| [ ] 5.5.4 | Optimize with LOD (hide distant ships) | 5.5.2 | Only render ships near camera. |
+| [skip] 5.5.2 | Profile frame rate | 5.5.1 | Game runs > 30 FPS with 1000 ships. |
+| [skip] 5.5.3 | Optimize with spatial hashing | 5.5.2, 3.6.1 | Reduce O(n²) checks. |
+| [skip] 5.5.4 | Optimize with LOD (hide distant ships) | 5.5.2 | Only render ships near camera. |
 
 ---
 
@@ -317,7 +317,7 @@
 ### Epic 6.1: Intel System
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 6.1.1 | Define `Intel` entity and components | 1.1.3 | `Intel`, `IntelType`, `MapData`, `Expiry`. |
+| [x] 6.1.1 | Define `Intel` entity and components | 1.1.3 | `Intel`, `IntelType`, `MapData`, `Expiry`. |
 | [ ] 6.1.2 | Create `IntelAcquiredEvent` | 6.1.1 | Event with intel data. |
 | [ ] 6.1.3 | Create `IntelSystem` | 6.1.2, 3.3.1 | Adds revealed data to map on acquisition. |
 | [ ] 6.1.4 | Implement intel expiry | 6.1.1, 5.1.2 | Transient intel removed after TTL. |
