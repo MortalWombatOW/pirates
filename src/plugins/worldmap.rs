@@ -64,7 +64,7 @@ impl Plugin for WorldMapPlugin {
                 port_arrival_system,
                 contract_delegation_system,
             ).run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), (despawn_tilemap, despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities, clear_fleet_entities));
+            .add_systems(OnExit(GameState::HighSeas), (despawn_high_seas_player, despawn_high_seas_ai_ships, despawn_port_entities, clear_fleet_entities));
     }
 }
 
@@ -211,11 +211,18 @@ fn generate_procedural_map(mut map_data: ResMut<MapData>) {
 }
 
 /// Spawns the tilemap from MapData resource.
+/// Skips if tilemap already exists (persists across state transitions).
 fn spawn_tilemap_from_map_data(
     mut commands: Commands,
     map_data: Res<MapData>,
     tileset: Option<Res<TilesetHandle>>,
+    existing_tilemap: Query<Entity, With<WorldMap>>,
 ) {
+    // Skip if tilemap already exists
+    if !existing_tilemap.is_empty() {
+        return;
+    }
+
     let Some(tileset) = tileset else {
         error!("TilesetHandle resource not found! Tilemap cannot be spawned.");
         return;
