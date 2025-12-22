@@ -857,3 +857,24 @@ All 6 tasks completed:
 
 ### Verification
 - `cargo check`: PASSED
+
+## 2025-12-22: Epic 7.1 Meta Profile [COMPLETED]
+
+**Summary**: Implemented meta-progression with persistent player profile.
+
+### Files Created/Modified
+- `src/resources/meta_profile.rs`: MetaProfile resource with stats, unlocks, wrecks
+- `src/plugins/core.rs`: Load on Startup, save on GameOver
+- `Cargo.toml`: Added `dirs` and `serde_json` dependencies
+- `docs/protocol/INVARIANTS.md`: Section 13 - MetaProfile Persistence
+
+### Tasks Completed
+- 7.1.1: Define MetaProfile resource ✅
+- 7.1.2: Load on app start ✅
+- 7.1.3: Save on death/quit ✅
+- 7.1.4: Define player stats ✅
+- 7.1.5: Implement stat progression ✅
+
+### Verification
+- `cargo check`: PASSED
+
