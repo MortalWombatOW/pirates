@@ -166,16 +166,24 @@ fn catmull_rom_interpolate(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2, t: f32, tensi
 /// System that moves the player along the navigation path.
 /// Uses smooth rotation for natural ship turning.
 /// Navigator companion provides +25% speed bonus.
+/// Navigation stat provides additional speed scaling.
 pub fn navigation_movement_system(
     mut commands: Commands,
     mut query: Query<(Entity, &mut Transform, &mut NavigationPath), With<Player>>,
     companion_query: Query<&CompanionRole>,
+    meta_profile: Option<Res<crate::resources::MetaProfile>>,
     wind: Res<Wind>,
     time: Res<Time>,
 ) {
     // Check if player has a Navigator companion (provides +25% speed bonus)
     let has_navigator = companion_query.iter().any(|role| *role == CompanionRole::Navigator);
     let navigator_bonus = if has_navigator { 1.25 } else { 1.0 };
+    
+    // Apply Navigation stat bonus
+    let stat_bonus = meta_profile
+        .as_ref()
+        .map(|p| p.stats.sailing_speed_multiplier())
+        .unwrap_or(1.0);
 
     for (entity, mut transform, mut path) in &mut query {
         let Some(next_waypoint) = path.next_waypoint() else {
@@ -197,8 +205,8 @@ pub fn navigation_movement_system(
         
         let direction_normalized = direction.normalize();
         
-        // Base speed with wind effect and Navigator bonus
-        let base_speed = 300.0 * navigator_bonus;
+        // Base speed with wind effect, Navigator bonus, and Navigation stat
+        let base_speed = 300.0 * navigator_bonus * stat_bonus;
         let wind_alignment = direction_normalized.dot(wind.direction_vec());
         let wind_effect = wind_alignment * wind.strength * 0.5;
         let speed = base_speed * (1.0 + wind_effect);

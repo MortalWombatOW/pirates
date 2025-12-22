@@ -61,6 +61,38 @@ impl Default for PlayerStats {
     }
 }
 
+impl PlayerStats {
+    /// Returns the companion recruitment cost multiplier (lower is better).
+    /// At level 1: 1.0, at level 10: 0.55 (45% discount).
+    pub fn companion_cost_multiplier(&self) -> f32 {
+        1.0 - (self.charisma as f32 - 1.0) * 0.05
+    }
+
+    /// Returns the faction reputation gain multiplier.
+    /// At level 1: 1.0, at level 10: 1.45 (45% bonus).
+    pub fn reputation_gain_multiplier(&self) -> f32 {
+        1.0 + (self.charisma as f32 - 1.0) * 0.05
+    }
+
+    /// Returns the sailing speed multiplier.
+    /// At level 1: 1.0, at level 10: 1.27 (27% bonus).
+    pub fn sailing_speed_multiplier(&self) -> f32 {
+        1.0 + (self.navigation as f32 - 1.0) * 0.03
+    }
+
+    /// Returns the cargo capacity bonus (flat addition).
+    /// At level 1: 0, at level 10: 45 extra cargo slots.
+    pub fn cargo_capacity_bonus(&self) -> u32 {
+        (self.logistics as u32 - 1) * 5
+    }
+
+    /// Returns the maximum fleet size allowed.
+    /// At level 1: 1, at level 10: 10 ships.
+    pub fn max_fleet_size(&self) -> usize {
+        self.logistics as usize
+    }
+}
+
 /// Starting archetype identifiers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ArchetypeId {
