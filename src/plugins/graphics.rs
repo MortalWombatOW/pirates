@@ -66,9 +66,7 @@ impl Plugin for GraphicsPlugin {
 #[derive(Component, Clone, Copy, ExtractComponent, ShaderType, Default, Reflect)]
 #[reflect(Component)]
 pub struct InkParchmentSettings {
-    // We can add parameters here later (e.g., ink density, paper color)
-    // For now, it's just a marker/empty struct that we bind as a uniform just in case.
-    pub enabled: u32, 
+    pub enabled: u32,
 }
 
 // ----------------------------------------------------------------------------
@@ -82,7 +80,6 @@ struct PostProcessLabel;
 // 3. Render Node
 // ----------------------------------------------------------------------------
 
-/// The node that runs the post-processing pass.
 #[derive(Default)]
 struct PostProcessNode;
 
@@ -102,14 +99,18 @@ impl ViewNode for PostProcessNode {
         let post_process_pipeline = world.resource::<PostProcessPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
-        // Get the pipeline from the cache
-        let Some(pipeline) = pipeline_cache.get_render_pipeline(post_process_pipeline.pipeline_id)
-        else {
+        // Get the pipeline from the cache, specialized for the current view format
+        let key = PostProcessPipelineKey {
+            format: view_target.out_texture_format(),
+        };
+        let descriptor = post_process_pipeline.specialize(key);
+        let pipeline_id = pipeline_cache.queue_render_pipeline(descriptor);
+
+        let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_id) else {
             return Ok(());
         };
 
         // Create the bind group
-        // We bind the screen texture (0) and sampler (1)
         let bind_group = render_context.render_device().create_bind_group(
             "ink_parchment_bind_group",
             &post_process_pipeline.layout,
@@ -126,7 +127,7 @@ impl ViewNode for PostProcessNode {
                 view: view_target.out_texture(),
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(LinearRgba::BLACK.into()), 
+                    load: LoadOp::Clear(LinearRgba::BLACK.into()),
                     store: StoreOp::Store,
                 },
             })],
@@ -147,21 +148,17 @@ impl ViewNode for PostProcessNode {
 // 4. Pipeline Resource
 // ----------------------------------------------------------------------------
 
-/// Resource that holds the pipeline and layout.
 #[derive(Resource)]
 struct PostProcessPipeline {
     layout: BindGroupLayout,
     sampler: Sampler,
-    pipeline_id: CachedRenderPipelineId,
+    shader: Handle<Shader>,
 }
 
 impl FromWorld for PostProcessPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
 
-        // We need the layout to match the shader:
-        // @group(0) @binding(0) var screen_texture: texture_2d<f32>;
-        // @group(0) @binding(1) var screen_sampler: sampler;
         let layout = render_device.create_bind_group_layout(
             "ink_parchment_bind_group_layout",
             &BindGroupLayoutEntries::sequential(
@@ -179,33 +176,42 @@ impl FromWorld for PostProcessPipeline {
             .resource::<AssetServer>()
             .load("shaders/ink_parchment.wgsl");
 
-        let pipeline_id = world
-            .resource::<PipelineCache>()
-            .queue_render_pipeline(RenderPipelineDescriptor {
-                label: Some("ink_parchment_pipeline".into()),
-                layout: vec![layout.clone()],
-                vertex: fullscreen_shader_vertex_state(),
-                fragment: Some(FragmentState {
-                    shader,
-                    shader_defs: vec![],
-                    entry_point: "fragment".into(),
-                    targets: vec![Some(ColorTargetState {
-                        format: TextureFormat::Bgra8UnormSrgb,
-                        blend: None,
-                        write_mask: ColorWrites::ALL,
-                    })],
-                }),
-                primitive: PrimitiveState::default(),
-                depth_stencil: None,
-                multisample: MultisampleState::default(),
-                push_constant_ranges: vec![],
-                zero_initialize_workgroup_memory: false,
-            });
-
         Self {
             layout,
             sampler,
-            pipeline_id,
+            shader,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+struct PostProcessPipelineKey {
+    format: TextureFormat,
+}
+
+impl SpecializedRenderPipeline for PostProcessPipeline {
+    type Key = PostProcessPipelineKey;
+
+    fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
+        RenderPipelineDescriptor {
+            label: Some("ink_parchment_pipeline".into()),
+            layout: vec![self.layout.clone()],
+            vertex: fullscreen_shader_vertex_state(),
+            fragment: Some(FragmentState {
+                shader: self.shader.clone(),
+                shader_defs: vec![],
+                entry_point: "fragment".into(),
+                targets: vec![Some(ColorTargetState {
+                    format: key.format,
+                    blend: None,
+                    write_mask: ColorWrites::ALL,
+                })],
+            }),
+            primitive: PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: MultisampleState::default(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
         }
     }
 }

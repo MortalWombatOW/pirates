@@ -21,7 +21,7 @@ description: Convert requirements into atomic tasks. Run after /init. Run before
 
 4.  **Plan Update**
     * Update `WORK_PLAN.md` with the new tasks.
-    * **Rule**: Only `/architect` may add new `[ ]` items to the plan.
+    * **Rule**: Only `/architect` may add new feature tasks. `/forge` may add subtasks for bug fixes.
 
 5.  **Handoff**
-    * Trigger `/forge` on the first new task.
+    * Remind the user to run `/forge` on the first new task.

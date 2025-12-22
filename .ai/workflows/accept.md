@@ -1,5 +1,5 @@
 ---
-description: Officially mark work as complete and persist it. Run after /audit. Run before /next-task or /sync.
+description: Officially mark work as complete and persist it. Run after /audit. Run before /next-task or /refine.
 ---
 
 
@@ -22,4 +22,4 @@ description: Officially mark work as complete and persist it. Run after /audit. 
 
 4.  **Handoff**
     * Notify the user: "Task Complete."
-    * Trigger `/next-task` to continue momentum, or `/sync` if the session is ending.
+    * Remind the user to run `/next-task` to continue, or `/refine` if the session is ending.

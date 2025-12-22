@@ -27,5 +27,5 @@ description: Comprehensive code review to ensure technical quality and product a
     * If yes, add a note to `docs/protocol/INVARIANTS.md`.
 
 5.  **Handoff**
-    * If **Failed**: Return to `/forge` to fix issues.
-    * If **Passed**: Trigger `/accept`.
+    * If **Failed**: Remind the user to run `/forge` to fix issues.
+    * If **Passed**: Remind the user to run `/accept`.

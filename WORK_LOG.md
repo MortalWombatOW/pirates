@@ -974,3 +974,37 @@ All 6 tasks completed:
 - Used Bevy 0.15 `ViewNode` pattern for post-processing.
 - Inserted custom node into `Core2d` graph after `Tonemapping`.
 - Settings are controlled via `InkParchmentSettings` component on the Camera2d entity.
+
+## 2025-12-22: Task 8.1.0 - Fix EguiUserTextures Panic
+
+**Summary**: Fixed a startup panic caused by missing `EguiPlugin`.
+
+### Files Modified
+- `src/main.rs`: Added `add_plugins(EguiPlugin)` to the app initialization.
+
+### Tasks Completed
+- 8.1.0: Fix EguiUserTextures panic on startup ✅
+
+### Notes
+- The panic `could not access system parameter ResMut<'_, EguiUserTextures>` occurred because `EguiPlugin` was not registered, despite being imported. `DebugUiPlugin` and `FleetUiPlugin` depend on resources provided by `EguiPlugin`.
+
+## 2025-12-22: Debugging Task 8.1.2 - Shader Visibility
+
+**Summary**: Fixed issue where the post-processing shader was not visible.
+
+### Files Modified
+- `assets/shaders/ink_parchment.wgsl`: Reverted debug color change (verified shader logic is correct).
+- `src/plugins/graphics.rs`: Changed `TextureFormat` from `Bgra8UnormSrgb` to `Bgra8Unorm` to match the swapchain/view format on Metal/M1.
+
+### Notes
+- The pipeline likely failed to bind because of a texture format mismatch between the render pass output (ViewTarget) and the pipeline definition. Bevy 0.15's default view format is typically `Bgra8Unorm` on macOS.
+
+## 2025-12-22: Refactor Task 8.1.2 - Specialized Render Pipeline
+
+**Summary**: Upgraded the Post-Processing pipeline to use `SpecializedRenderPipeline`.
+
+### Files Modified
+- `src/plugins/graphics.rs`: Implemented `SpecializedRenderPipeline` for `PostProcessPipeline`. The pipeline now dynamically adapts to the output texture format of the view (`view_target.out_texture_format()`).
+
+### Notes
+- This prevents crashes caused by TextureFormat mismatches between the pipeline and the render pass (wgpu validation errors). The previous hardcoded `Bgra8Unorm` crashed on `Bgra8UnormSrgb` swapchains. The specialized pipeline handles any format.

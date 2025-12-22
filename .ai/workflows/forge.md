@@ -22,5 +22,23 @@ description: Implement a single atomic task with high quality. Run after /archit
     * Run `cargo check`.
     * Verify the implementation meets the criteria in `WORK_PLAN.md`.
 
+## Interrupt Protocol: Bug/Error Discovery
+
+**Trigger**: User identifies a bug or error during implementation.
+
+1.  **Documentation**
+    *   Add a subtask to `WORK_PLAN.md` (indented under the current task) describing the error (e.g., `- [ ] FIX: Panic on collision`).
+
+2.  **Resolution**
+    *   Diagnose and fix the issue immediately.
+
+3.  **Verification**
+    *   Ask the user: "Is this resolved?"
+    *   **Wait** for confirmation.
+
+4.  **Resumption**
+    *   Mark the subtask as `[x]`.
+    *   Resume the original task.
+
 4.  **Handoff**
-    * Trigger `/audit` to review the code.
+    * Remind the user to run `/audit` to review the code.

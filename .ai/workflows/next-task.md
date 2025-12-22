@@ -20,4 +20,4 @@ description: Identify and lock the next unit of work. Run after /init or /accept
     * Mark the selected task as in-progress `[/]` in `WORK_PLAN.md`.
 
 4.  **Handoff**
-    * Trigger `/forge` to begin implementation.
+    * Remind the user to run `/forge` to begin implementation.

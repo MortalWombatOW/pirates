@@ -387,6 +387,7 @@
 ### Epic 8.1: Visual Polish
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
+| [x] 8.1.0 | Fix EguiUserTextures panic on startup | None | Game launches without panic. |
 | [x] 8.1.1 | Create "Ink and Parchment" shader | 1.1.2 | WGSL shader in `assets/shaders/`. |
 | [x] 8.1.2 | Apply shader as post-processing | 8.1.1 | Entire game has parchment tint. |
 | [ ] 8.1.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |

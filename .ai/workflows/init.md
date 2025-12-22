@@ -18,4 +18,4 @@ description: Load the complete mental model of the project. Run at the start of 
     * Read `WORK_PLAN.md` (Project Status).
 
 3.  **Handoff**
-    * Trigger `/next-task` to begin work, or `/architect` if the plan is empty.
+    * Remind the user to run `/next-task` to begin work, or `/architect` if the plan is empty.
