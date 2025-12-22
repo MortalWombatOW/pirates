@@ -6,3 +6,4 @@ pub mod combat;
 pub mod worldmap;
 pub mod port;
 pub mod port_ui;
+pub mod fleet_ui;

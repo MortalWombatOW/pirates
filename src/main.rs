@@ -8,6 +8,7 @@ use pirates::plugins::physics::PhysicsPlugin;
 use pirates::plugins::combat::CombatPlugin;
 use pirates::plugins::worldmap::WorldMapPlugin;
 use pirates::plugins::port_ui::PortUiPlugin;
+use pirates::plugins::fleet_ui::FleetUiPlugin;
 
 fn main() {
     App::new()
@@ -27,6 +28,7 @@ fn main() {
         .add_plugins(CombatPlugin)
         .add_plugins(WorldMapPlugin)
         .add_plugins(PortUiPlugin)
+        .add_plugins(FleetUiPlugin)
         .run();
 }
 
