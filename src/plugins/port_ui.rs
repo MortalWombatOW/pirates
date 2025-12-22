@@ -33,6 +33,7 @@ impl Plugin for PortUiPlugin {
                 trade_execution_system,
                 contract_acceptance_system,
                 repair_execution_system,
+                crate::systems::intel_acquisition_system,
             ).run_if(in_state(GameState::Port)));
     }
 }
