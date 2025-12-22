@@ -67,3 +67,10 @@
     #[derive(Resource, Default)]
     pub struct FleetEntities { pub entities: Vec<Entity> }
     ```
+
+## 9. Contract Delegation (Subcontracting)
+* **Simplified Cargo Handling**: Fleet ships assigned to Transport contracts do NOT actually load/unload cargo. They simply navigate to the destination port; arrival triggers contract completion.
+  * Rationale: Fleet ships use `ShipData` for persistence (data-only), not full `Cargo` components. Simulating cargo transfers would require significant additional systems.
+  * Trade-off: Gamified abstraction acceptable for MVP. Full simulation can be added in a future pass.
+* **Player Cut**: The `AssignedShip` component stores `player_cut` (default 70%). The remaining 30% represents "fleet overhead" and is not explicitly tracked—it's simply not awarded.
+* **Schedule**: `contract_delegation_system` runs on `Update` (not `FixedUpdate`) because it's proximity-based and needs immediate response, similar to threat detection.
