@@ -1,5 +1,10 @@
 # Work Log
 
+## 2025-12-23: Refine Workflow
+*   **Sync**: Updated `INDEX.md` with 5 new Epic 8.5 files (ink_reveal, typewriter, wake_effects, shader).
+*   **Friction**: bevy_hanabi v0.14 API differs from docs (no `with_spawner` on ParticleEffect).
+*   **Evolution**: Added bevy_hanabi API note to `AGENT.md` Bevy Specifics section.
+
 ## 2025-12-23: Epic 8.5 - Living Ink Effects
 *   **8.5.1**: Created `InkReveal` component in `components/ink_reveal.rs` tracking tile position, start time, and animation progress with ease-out cubic easing.
 *   **8.5.2**: Implemented fog reveal ink animation - replaced static `update_fog_tilemap_system` with animated `spawn_ink_reveals` and `animate_ink_reveals` systems for 0.5s smooth fog fade transitions.
