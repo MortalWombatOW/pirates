@@ -1,5 +1,18 @@
 # Work Log
 
+## 2025-12-23: Epic 8.5 - Living Ink Effects
+*   **8.5.1**: Created `InkReveal` component in `components/ink_reveal.rs` tracking tile position, start time, and animation progress with ease-out cubic easing.
+*   **8.5.2**: Implemented fog reveal ink animation - replaced static `update_fog_tilemap_system` with animated `spawn_ink_reveals` and `animate_ink_reveals` systems for 0.5s smooth fog fade transitions.
+*   **8.5.3**: Added ship wake ink trails using `bevy_hanabi` GPU particles - sepia-toned particles spawn behind moving ships with 1.5s lifetime and linear drag.
+*   **8.5.4**: Implemented damage ink splatter VFX - added `ShipHitEvent` and one-shot particle burst (30 particles, 2s lifetime) triggered on projectile hits.
+*   **8.5.5**: Added water ink wash shader effect - detects blue water pixels, samples neighbors for edge detection, applies subtle teal wash at coastline transitions.
+*   **8.5.6**: Created `TypewriterText` component for UI write-on animation with `TypewriterRegistry` for egui integration. Used for main menu title animation.
+*   **Design Decisions**:
+    *   Used `bevy_hanabi` v0.14 for GPU-accelerated particles (wake trails, damage splatter).
+    *   `ShipHitEvent` decouples combat damage from VFX spawning.
+    *   Fog reveal uses `FogOfWar::take_newly_explored()` for efficient batch processing.
+    *   Disabled crosshatch shading (set `crosshatch_enabled: 0`) per user request.
+
 ## 2025-12-22: Documentation Audit & Fix
 *   **Audit**: Identified inconsistency where `docs/protocol` and `.agent/rules` were consolidated into `AGENT.md` but references were not updated.
 *   **Fix**: Updated `AGENT.md` to be the single source of truth.
