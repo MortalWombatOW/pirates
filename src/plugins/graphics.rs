@@ -104,6 +104,8 @@ pub struct AestheticSettings {
     pub wobble_amplitude: f32,
     /// Line wobble frequency (5.0 - 20.0)
     pub wobble_frequency: f32,
+    /// Maximum edge thickness multiplier (1.0 - 3.0)
+    pub edge_thickness: f32,
 
     /// Elapsed time for animated effects
     pub time: f32,
@@ -123,10 +125,12 @@ impl Default for AestheticSettings {
             edge_threshold: 0.1,
             wobble_amplitude: 1.0,
             wobble_frequency: 10.0,
+            edge_thickness: 1.5,
             time: 0.0,
         }
     }
 }
+
 
 /// Resource holding the paper texture handle for extraction to render world.
 #[derive(Resource, Clone, ExtractResource)]

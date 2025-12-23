@@ -361,38 +361,110 @@ fn ink_spread(uv: vec2<f32>, center: vec2<f32>, progress: f32) -> f32 {
 
 ### 6.3 Ship Wake Trails
 
-**Approach**: Particle-like trail stored in a scrolling buffer.
+**Approach**: GPU particle system using `bevy_hanabi` for efficient ink ribbon particles.
 
+**Dependency**: Add to `Cargo.toml`:
+```toml
+bevy_hanabi = { version = "0.16", default-features = false, features = ["2d"] }
+```
+
+**Effect Definition**:
 ```rust
-#[derive(Component)]
-pub struct InkTrail {
-    pub points: VecDeque<(Vec2, f32)>, // position, spawn_time
-    pub max_points: usize,
-    pub fade_duration: f32,
+fn create_wake_effect(effects: &mut Assets<EffectAsset>) -> Handle<EffectAsset> {
+    let mut module = Module::default();
+    let lifetime = module.lit(1.5);
+    
+    // Spawn behind ship, perpendicular to direction
+    let init_pos = SetPositionSphereModifier {
+        center: module.lit(Vec3::ZERO),
+        radius: module.lit(8.0), // Half ship width
+        dimension: ShapeDimension::Surface,
+    };
+    
+    // Ink gradient: sepia to transparent
+    let mut gradient = Gradient::new();
+    gradient.add_key(0.0, Vec4::new(0.2, 0.15, 0.1, 0.6)); // Dark sepia
+    gradient.add_key(0.5, Vec4::new(0.3, 0.25, 0.2, 0.3));
+    gradient.add_key(1.0, Vec4::splat(0.0)); // Fade out
+    
+    EffectAsset::new(512, SpawnerSettings::rate(30.0.into()), module)
+        .with_name("ship_wake")
+        .init(init_pos)
+        .init(SetAttributeModifier::new(Attribute::LIFETIME, lifetime))
+        .render(ColorOverLifetimeModifier { gradient, ..default() })
+        .render(OrientModifier::new(OrientMode::AlongVelocity))
 }
 ```
 
-Rendered as connected line segments with decreasing alpha.
+**System**: Spawn wake emitter as child of each moving ship. Particles auto-follow ship transform.
+
+**Considerations**:
+- Max 512 particles per ship, 30/sec spawn rate
+- 1.5s lifetime balances trail length vs. performance
+- `OrientMode::AlongVelocity` creates ribbon effect
+- Particles render before post-processing to receive edge detection treatment
 
 ### 6.4 Damage Splatter
 
-**Approach**: Spawn temporary ink splatter sprites at hit location.
+**Approach**: One-shot burst of GPU particles via `bevy_hanabi` on damage events.
 
+**Effect Definition**:
 ```rust
-fn spawn_ink_splatter(
-    commands: &mut Commands,
-    position: Vec2,
-    intensity: f32, // based on damage amount
-) {
-    commands.spawn((
-        SpriteBundle { /* splatter texture */ },
-        InkSplatter {
-            lifetime: Timer::from_seconds(0.3, TimerMode::Once),
-            scale_curve: EaseOut,
-        },
-    ));
+fn create_splatter_effect(effects: &mut Assets<EffectAsset>) -> Handle<EffectAsset> {
+    let mut module = Module::default();
+    let lifetime = module.lit(2.5);
+    
+    // Explosive radial velocity
+    let init_vel = SetVelocitySphereModifier {
+        center: module.lit(Vec3::ZERO),
+        speed: module.lit(80.0), // Fast initial burst
+    };
+    
+    // Ink splatter gradient
+    let mut gradient = Gradient::new();
+    gradient.add_key(0.0, Vec4::new(0.1, 0.08, 0.05, 0.9)); // Dark ink
+    gradient.add_key(0.3, Vec4::new(0.15, 0.12, 0.08, 0.7));
+    gradient.add_key(1.0, Vec4::splat(0.0));
+    
+    // Size grows then shrinks
+    let mut size_gradient = Gradient::new();
+    size_gradient.add_key(0.0, Vec3::splat(2.0));
+    size_gradient.add_key(0.2, Vec3::splat(8.0));
+    size_gradient.add_key(1.0, Vec3::splat(0.0));
+    
+    EffectAsset::new(256, SpawnerSettings::once(50.0.into(), true), module)
+        .with_name("damage_splatter")
+        .init(init_vel)
+        .init(SetAttributeModifier::new(Attribute::LIFETIME, lifetime))
+        .update(LinearDragModifier::new(module.lit(5.0))) // Slow down
+        .render(ColorOverLifetimeModifier { gradient, ..default() })
+        .render(SizeOverLifetimeModifier { gradient: size_gradient, ..default() })
 }
 ```
+
+**Event-Driven Spawning**:
+```rust
+fn spawn_damage_splatter(
+    mut commands: Commands,
+    mut events: EventReader<ShipHitEvent>,
+    assets: Res<ParticleEffectAssets>,
+) {
+    for event in events.read() {
+        let particle_count = (event.damage * 5.0).clamp(10.0, 100.0);
+        commands.spawn((
+            ParticleEffect::new(assets.splatter_effect.clone())
+                .with_spawner(Spawner::once(particle_count.into(), true)),
+            Transform::from_translation(event.hit_position.extend(0.0)),
+        ));
+    }
+}
+```
+
+**Considerations**:
+- Burst count scales with damage (10-100 particles)
+- 2.5s lifetime allows ink stains to linger
+- `LinearDragModifier` creates natural deceleration
+- Size animation: small→large→gone mimics splatter spread
 
 ### 6.5 Water Ink Wash
 

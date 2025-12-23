@@ -429,7 +429,7 @@
 | [x] 8.4.1 | Implement Sobel edge detection | 8.1.2 | Shader extracts edges from scene. |
 | [x] 8.4.2 | Render edges as ink strokes | 8.4.1 | Edges drawn in ink color, fill muted. |
 | [x] 8.4.3 | Add line wobble displacement | 8.4.2 | Edges have hand-drawn imperfection. |
-| [ ] 8.4.4 | Implement variable line weight | 8.4.2 | Important edges thicker than details. |
+| [x] 8.4.4 | Implement variable line weight | 8.4.2 | Important edges thicker than details. |
 | [ ] 8.4.5 | Add crosshatch shading for shadows | 8.4.1 | Dark areas show crosshatch pattern. |
 | [ ] 8.4.6 | Tune edge detection thresholds | 8.4.2 | Balance between detail and clarity. |
 

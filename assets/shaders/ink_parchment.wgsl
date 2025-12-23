@@ -19,6 +19,7 @@ struct AestheticSettings {
     edge_threshold: f32,
     wobble_amplitude: f32,
     wobble_frequency: f32,
+    edge_thickness: f32,
     // Time
     time: f32,
 }
@@ -187,7 +188,19 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     if (settings.edge_detection_enabled != 0u) {
         // Apply wobble to UV for hand-drawn imperfection (8.4.3)
         let wobbled_uv = wobble_uv(in.uv, settings.time, texel, settings.wobble_amplitude, settings.wobble_frequency);
-        let edge = sobel(wobbled_uv, texel);
+        
+        // Initial edge detection for line weight calculation
+        let initial_edge = sobel(wobbled_uv, texel);
+        
+        // Variable line weight (8.4.4): thicker lines for stronger edges
+        let line_weight = mix(1.0, settings.edge_thickness, initial_edge);
+        let weighted_texel = texel * line_weight;
+        
+        // Re-sample with dilated kernel for thicker edges
+        let edge = max(
+            sobel(wobbled_uv, weighted_texel),
+            sobel(wobbled_uv + texel * 0.5, weighted_texel)
+        );
         
         // Soft threshold for smooth edge transition
         let edge_mask = smoothstep(settings.edge_threshold, settings.edge_threshold + 0.1, edge);
