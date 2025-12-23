@@ -6,14 +6,17 @@ use bevy::{
     prelude::*,
     render::{
         extract_component::{ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin},
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_asset::RenderAssets,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
-            binding_types::{sampler, texture_2d},
+            binding_types::{sampler, texture_2d, uniform_buffer},
             *,
         },
         renderer::{RenderContext, RenderDevice},
+        texture::GpuImage,
         view::ViewTarget,
         RenderApp,
     },
@@ -24,9 +27,16 @@ pub struct GraphicsPlugin;
 
 impl Plugin for GraphicsPlugin {
     fn build(&self, app: &mut App) {
+        // Load the paper texture and store the handle
+        let asset_server = app.world().resource::<AssetServer>();
+        let paper_handle: Handle<Image> = asset_server.load("sprites/ui/parchment.png");
+
+        app.insert_resource(PaperTextureHandle(paper_handle));
+
         app.add_plugins((
-            ExtractComponentPlugin::<InkParchmentSettings>::default(),
-            UniformComponentPlugin::<InkParchmentSettings>::default(),
+            ExtractComponentPlugin::<AestheticSettings>::default(),
+            UniformComponentPlugin::<AestheticSettings>::default(),
+            ExtractResourcePlugin::<PaperTextureHandle>::default(),
         ));
 
         // We need to get the render app to set up the render graph
@@ -62,12 +72,49 @@ impl Plugin for GraphicsPlugin {
 // 1. Component & Settings
 // ----------------------------------------------------------------------------
 
-/// Marker component for the camera that enables the Ink/Parchment effect.
-#[derive(Component, Clone, Copy, ExtractComponent, ShaderType, Default, Reflect)]
+/// Settings for the Ink/Parchment aesthetic effect.
+/// Attached to the camera entity.
+#[derive(Component, Clone, Copy, ExtractComponent, ShaderType, Reflect)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable)]
 #[reflect(Component)]
-pub struct InkParchmentSettings {
-    pub enabled: u32,
+#[repr(C)]
+pub struct AestheticSettings {
+    /// Strength of paper texture overlay (0.0 - 1.0)
+    pub paper_texture_strength: f32,
+    /// Strength of vignette darkening (0.0 - 1.0)
+    pub vignette_strength: f32,
+    /// Radius where vignette starts (0.3 - 0.8)
+    pub vignette_radius: f32,
+    /// Strength of paper grain noise (0.0 - 0.3)
+    pub grain_strength: f32,
+    /// Scale of grain noise pattern (50.0 - 200.0)
+    pub grain_scale: f32,
+    /// Strength of coffee/age stains (0.0 - 0.5)
+    pub stain_strength: f32,
+    /// Ink feathering blur radius in pixels (0.0 - 3.0)
+    pub ink_feather_radius: f32,
+    /// Elapsed time for animated effects
+    pub time: f32,
 }
+
+impl Default for AestheticSettings {
+    fn default() -> Self {
+        Self {
+            paper_texture_strength: 0.15,
+            vignette_strength: 0.4,
+            vignette_radius: 0.4,
+            grain_strength: 0.08,
+            grain_scale: 100.0,
+            stain_strength: 0.1,
+            ink_feather_radius: 1.0,
+            time: 0.0,
+        }
+    }
+}
+
+/// Resource holding the paper texture handle for extraction to render world.
+#[derive(Resource, Clone, ExtractResource)]
+pub struct PaperTextureHandle(pub Handle<Image>);
 
 // ----------------------------------------------------------------------------
 // 2. Render Graph Label
@@ -86,19 +133,16 @@ struct PostProcessNode;
 impl ViewNode for PostProcessNode {
     type ViewQuery = (
         &'static ViewTarget,
-        &'static InkParchmentSettings,
+        &'static AestheticSettings,
     );
 
     fn run(
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target, settings): (&ViewTarget, &InkParchmentSettings),
+        (view_target, settings): (&ViewTarget, &AestheticSettings),
         world: &World,
     ) -> Result<(), NodeRunError> {
-        // Read the field to suppress unused warning.
-        let _ = settings.enabled;
-
         let post_process_pipeline = world.resource::<PostProcessPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
@@ -108,18 +152,37 @@ impl ViewNode for PostProcessNode {
             return Ok(());
         };
 
+        // Get the paper texture from GPU images
+        let gpu_images = world.resource::<RenderAssets<GpuImage>>();
+        let paper_handle = world.resource::<PaperTextureHandle>();
+
+        let Some(paper_image) = gpu_images.get(&paper_handle.0) else {
+            // Paper texture not loaded yet, skip this frame
+            return Ok(());
+        };
+
         // Get the post-process write struct which handles double-buffering.
-        // This gives us a source texture (what was rendered) and a destination
-        // texture (where we write our output). They are guaranteed to be different.
         let post_process = view_target.post_process_write();
 
-        // Create the bind group using the SOURCE texture (what we read from)
+        // Create settings uniform buffer
+        let settings_buffer = render_context.render_device().create_buffer_with_data(
+            &BufferInitDescriptor {
+                label: Some("aesthetic_settings_buffer"),
+                contents: bytemuck::bytes_of(settings),
+                usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            },
+        );
+
+        // Create the bind group with all textures and settings
         let bind_group = render_context.render_device().create_bind_group(
             "ink_parchment_bind_group",
             &post_process_pipeline.layout,
             &BindGroupEntries::sequential((
                 post_process.source,
                 &post_process_pipeline.sampler,
+                &paper_image.texture_view,
+                &post_process_pipeline.sampler,
+                settings_buffer.as_entire_binding(),
             )),
         );
 
@@ -162,26 +225,43 @@ impl FromWorld for PostProcessPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
 
+        // Expanded bind group layout:
+        // 0: screen texture
+        // 1: screen sampler
+        // 2: paper texture
+        // 3: paper sampler
+        // 4: settings uniform
         let layout = render_device.create_bind_group_layout(
             "ink_parchment_bind_group_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,
                 (
+                    // Screen texture
                     texture_2d(TextureSampleType::Float { filterable: true }),
+                    // Screen sampler
                     sampler(SamplerBindingType::Filtering),
+                    // Paper texture
+                    texture_2d(TextureSampleType::Float { filterable: true }),
+                    // Paper sampler
+                    sampler(SamplerBindingType::Filtering),
+                    // Settings uniform buffer
+                    uniform_buffer::<AestheticSettings>(false),
                 ),
             ),
         );
 
-        let sampler = render_device.create_sampler(&SamplerDescriptor::default());
+        let sampler = render_device.create_sampler(&SamplerDescriptor {
+            address_mode_u: AddressMode::Repeat,
+            address_mode_v: AddressMode::Repeat,
+            mag_filter: FilterMode::Linear,
+            min_filter: FilterMode::Linear,
+            ..default()
+        });
 
         let shader = world
             .resource::<AssetServer>()
             .load("shaders/ink_parchment.wgsl");
 
-        // Queue the pipeline for compilation.
-        // On macOS/Metal, the swapchain format is Bgra8UnormSrgb.
-        // This matches what ViewTarget.out_texture() uses for the final output.
         let pipeline_cache = world.resource::<PipelineCache>();
         let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
             label: Some("ink_parchment_pipeline".into()),
@@ -192,8 +272,6 @@ impl FromWorld for PostProcessPipeline {
                 shader_defs: vec![],
                 entry_point: "fragment".into(),
                 targets: vec![Some(ColorTargetState {
-                    // Use Rgba8UnormSrgb which is the internal render texture format
-                    // for non-HDR cameras in Bevy's Core2d pipeline
                     format: TextureFormat::Rgba8UnormSrgb,
                     blend: None,
                     write_mask: ColorWrites::ALL,

@@ -4088,6 +4088,7 @@ dependencies = [
  "bevy_egui",
  "bevy_kira_audio",
  "bevy_save",
+ "bytemuck",
  "dirs",
  "leafwing-input-manager",
  "noise",

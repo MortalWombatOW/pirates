@@ -413,9 +413,9 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 8.3.1 | Add paper texture to post-process shader | 8.1.2 | Shader samples `parchment.png` overlay. |
-| [ ] 8.3.2 | Implement vignette darkening | 8.3.1 | Screen edges darken like aged paper. |
-| [ ] 8.3.3 | Add procedural paper grain noise | 8.3.1 | Subtle fiber texture via FBM noise. |
+| [x] 8.3.1 | Add paper texture to post-process shader | 8.1.2 | Shader samples `parchment.png` overlay. |
+| [x] 8.3.2 | Implement vignette darkening | 8.3.1 | Screen edges darken like aged paper. |
+| [x] 8.3.3 | Add procedural paper grain noise | 8.3.1 | Subtle fiber texture via FBM noise. |
 | [ ] 8.3.4 | Implement ink feathering/absorption | 8.3.1 | Dark edges slightly fuzzy, not crisp. |
 | [ ] 8.3.5 | Add procedural stain spots | 8.3.3 | Coffee/foxing stains via Voronoi noise. |
 | [ ] 8.3.6 | Implement fold crease overlay | 8.3.1 | Subtle fold lines with shadow. |

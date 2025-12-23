@@ -1061,3 +1061,32 @@ All 6 tasks completed:
 - Fixed 'InkParchmentSettings' fields warning in 'graphics.rs'.
 - Fixed duplicate import warning in 'port_ui.rs'.
 
+## 2025-12-23: Epic 8.3.1-8.3.2 - Weathered Document Foundation
+
+**Summary**: Expanded post-processing pipeline to support paper texture overlay and vignette effects.
+
+### Task 8.3.1: Paper Texture Overlay
+- **Expanded `AestheticSettings`**: Replaced minimal `InkParchmentSettings` with full settings struct:
+  - `paper_texture_strength`, `vignette_strength`, `vignette_radius`
+  - `grain_strength`, `grain_scale`, `stain_strength`, `ink_feather_radius`, `time`
+- **Extended Bind Group Layout**: Added paper texture (binding 2), paper sampler (binding 3), settings uniform (binding 4)
+- **Texture Loading**: Created `PaperTextureHandle` resource with `ExtractResourcePlugin` for render world access
+- **Shader Enhancement**: Paper texture sampled with tiling (3x scale) and slight rotation (0.02 rad) to break grid alignment
+- **Paper Blending**: Luminance deviation from 0.5 modulates scene color, weighted by brightness
+
+### Task 8.3.2: Vignette Darkening
+- **Radial Darkening**: Distance-based vignette from screen center using `smoothstep`
+- **Asymmetric Shaping**: Y-axis scaled 1.1x with -0.05 offset for heavier bottom (aged document effect)
+- **Palette Preservation**: Vignette darkens toward `INK_COLOR` rather than black
+- **Configurable**: `vignette_radius` (default 0.4) and `vignette_strength` (default 0.4) tunable
+
+### Files Modified
+- `src/plugins/graphics.rs` - Complete pipeline expansion with new bindings and settings
+- `src/plugins/core.rs` - Updated camera spawn to use `AestheticSettings`
+- `assets/shaders/ink_parchment.wgsl` - Paper overlay and vignette effects
+- `Cargo.toml` - Added `bytemuck` dependency for uniform buffer serialization
+
+### Verification
+- `cargo check`: PASSED
+- `cargo run`: Shader renders correctly with paper texture and vignette visible
+

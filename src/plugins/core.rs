@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
-use crate::plugins::graphics::InkParchmentSettings;
+use crate::plugins::graphics::AestheticSettings;
 use crate::components::{Player, Ship};
 use crate::resources::{Wind, WorldClock, FactionRegistry, ArchetypeRegistry, ArchetypeId, MetaProfile, PlayerDeathData};
 use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, intel_expiry_system, faction_ai_system, trade_route_generation_system, faction_ship_spawning_system, faction_threat_response_system, ThreatResponseCooldown, GlobalDemand};
@@ -81,7 +81,7 @@ fn spawn_camera(mut commands: Commands) {
             scale: 1.0,
             ..OrthographicProjection::default_2d()
         },
-        InkParchmentSettings::default(),
+        AestheticSettings::default(),
         Transform::from_xyz(0.0, 0.0, 100.0),
         GlobalTransform::default(),
         InputManagerBundle::with_map(get_default_input_map()),
