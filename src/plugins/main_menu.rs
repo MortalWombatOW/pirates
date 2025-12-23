@@ -110,18 +110,32 @@ fn main_menu_ui_system(
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
 
-            // Animated Title - writes on character by character
+            // Animated Title - left-aligned so letters stay in place as they appear
             let title = typewriter.get_or_start("title", "PIRATES", 0.12);
-            ui.heading(egui::RichText::new(title.visible_text()).size(48.0).strong());
+            let title_width = 280.0; // Fixed width to contain full title
+            ui.allocate_ui_with_layout(
+                egui::vec2(title_width, 60.0),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.heading(egui::RichText::new(title.visible_text()).size(48.0).strong());
+                },
+            );
             ui.add_space(10.0);
             
-            // Animated subtitle - starts after title finishes
+            // Animated subtitle - left-aligned, starts after title finishes
             let subtitle_text = if title.is_complete() {
-                typewriter.get_or_start("subtitle", "A Naval Roguelike", 0.05).visible_text()
+                typewriter.get_or_start("subtitle", "A Naval Roguelike", 0.05).visible_text().to_string()
             } else {
-                ""
+                String::new()
             };
-            ui.label(egui::RichText::new(subtitle_text).size(16.0).italics());
+            let subtitle_width = 200.0;
+            ui.allocate_ui_with_layout(
+                egui::vec2(subtitle_width, 24.0),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.label(egui::RichText::new(subtitle_text).size(16.0).italics());
+                },
+            );
 
             ui.add_space(40.0);
             ui.separator();
