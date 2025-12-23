@@ -6,7 +6,7 @@ use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::resources::{MapData, FogOfWar, RouteCache};
 use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue};
 use crate::systems::{
-    fog_of_war_update_system, update_fog_tilemap_system, FogTile,
+    fog_of_war_update_system, FogTile,
     click_to_navigate_system, pathfinding_system, navigation_movement_system,
     path_visualization_system, port_arrival_system, order_execution_system,
     ai_pathfinding_system, ai_movement_system, contract_delegation_system,
@@ -50,7 +50,9 @@ impl Plugin for WorldMapPlugin {
             ))
             .add_systems(Update, (
                 fog_of_war_update_system,
-                update_fog_tilemap_system,
+                // Animated ink reveal replaces static fog update
+                crate::systems::ink_reveal::spawn_ink_reveals.after(fog_of_war_update_system),
+                crate::systems::ink_reveal::animate_ink_reveals.after(crate::systems::ink_reveal::spawn_ink_reveals),
                 fog_of_war_ai_visibility_system,
                 rebuild_encounter_spatial_hash,
                 encounter_detection_system.after(rebuild_encounter_spatial_hash),

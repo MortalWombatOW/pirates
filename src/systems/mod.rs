@@ -13,6 +13,7 @@ pub mod faction_ai;
 pub mod order_execution;
 pub mod intel;
 pub mod wake_effects;
+pub mod ink_reveal;
 
 pub use ship::*;
 pub use movement::*;
@@ -28,4 +29,6 @@ pub use repair::*;
 pub use faction_ai::*;
 pub use order_execution::*;
 pub use intel::*;
+pub use ink_reveal::*;
+
 
