@@ -12,6 +12,7 @@ pub mod contract;
 pub mod order;
 pub mod intel;
 pub mod ink_reveal;
+pub mod typewriter;
 
 pub use ship::*;
 pub use health::*;
@@ -26,4 +27,4 @@ pub use contract::*;
 pub use order::*;
 pub use intel::*;
 pub use ink_reveal::*;
-
+pub use typewriter::*;

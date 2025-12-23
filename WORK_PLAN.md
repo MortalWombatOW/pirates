@@ -431,7 +431,6 @@
 | [x] 8.4.3 | Add line wobble displacement | 8.4.2 | Edges have hand-drawn imperfection. |
 | [x] 8.4.4 | Implement variable line weight | 8.4.2 | Important edges thicker than details. |
 | [x] 8.4.5 | Add crosshatch shading for shadows | 8.4.1 | Dark areas show crosshatch pattern. |
-| [ ] 8.4.6 | Tune edge detection thresholds | 8.4.2 | Balance between detail and clarity. |
 
 ### Epic 8.5: Living Ink (Dynamic Fluid Effects)
 > Make the ink feel alive and responsive.
@@ -443,50 +442,4 @@
 | [x] 8.5.3 | Add ship wake ink trails | 2.3.1 | Ships leave fading ink strokes. |
 | [x] 8.5.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
 | [x] 8.5.5 | Add water area ink wash effect | 8.3.1 | Ocean has watercolor bleeding at edges. |
-| [ ] 8.5.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |
-| [ ] 8.5.7 | Add storm ink distortion | 3.4.1 | Rain causes ink to run/blur slightly. |
-| [ ] 8.5.8 | Revisit water display | 8.5.5 | Improve water tile appearance and readability. |
-
----
-
-## Phase 9: Steam Integration
-### Epic 9.1: Steamworks
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 9.1.1 | Integrate `steamworks` crate | 1.1.2 | Crate added, compiles. |
-| [ ] 9.1.2 | Initialize Steam on app launch | 9.1.1 | Steam overlay available. |
-| [ ] 9.1.3 | Define achievements | 9.1.2 | List in Steam partner site. |
-| [ ] 9.1.4 | Implement achievement unlocking | 9.1.3 | Trigger on events (first win, etc.). |
-| [ ] 9.1.5 | Implement cloud saves | 9.1.2, 7.4.2 | Saves sync via Steam Cloud. |
-| [ ] 9.1.6 | Build and test Steam release | All above | Runs as Steam game. |
-
----
-
-## Phase 10: Supernatural Shift
-### Epic 10.1: Narrative Trigger
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 10.1.1 | Define success threshold | 7.1.1 | Gold earned, ships sunk, etc. |
-| [ ] 10.1.2 | Create `SupernaturalShiftEvent` | 10.1.1 | Emitted when threshold reached. |
-| [ ] 10.1.3 | Display narrative reveal | 10.1.2 | Cutscene or dialog. |
-
-### Epic 10.2: Supernatural Enemies
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 10.2.1 | Define `Supernatural` faction | 2.8.2 | New `FactionId`. |
-| [ ] 10.2.2 | Create undead ship sprites | 2.8.4 | Ghostly/skeletal ship variants. |
-| [ ] 10.2.3 | Spawn supernatural ships post-shift | 10.1.2, 10.2.1, 10.2.2 | Undead ships appear on map. |
-| [ ] 10.2.4 | Implement boss ships | 10.2.3 | Unique AI, high HP, special attacks. |
-| [ ] 10.2.5 | Boss ships cannot be captured | 10.2.4 | Immune to boarding/capture. |
-
-### Epic 10.3: Magic Abilities
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 10.3.1 | Define `MagicAbility` enum | 1.1.3 | `BurnSails`, `FreezeRudder`, `Invisibility`, `WindManipulation`. |
-| [ ] 10.3.2 | Create `MagicSystem` | 10.3.1 | Handles ability activation and cooldowns. |
-| [ ] 10.3.3 | Implement `BurnSails` | 10.3.2 | DoT on enemy sails. |
-| [ ] 10.3.4 | Implement `FreezeRudder` | 10.3.2 | Lock enemy turn rate. |
-| [ ] 10.3.5 | Implement `Invisibility` | 10.3.2 | Player ship hidden from AI. |
-| [ ] 10.3.6 | Implement `WindManipulation` | 10.3.2, 3.4.1 | Change local wind direction. |
-| [ ] 10.3.7 | Magic granted via Mystic companion | 10.3.2, 6.2.2 | Mystic enables magic abilities. |
-| [ ] 10.3.8 | Magic granted via artifacts | 10.3.2 | Find artifacts in supernatural wrecks. |
+| [x] 8.5.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |
