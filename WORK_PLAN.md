@@ -390,7 +390,7 @@
 | [x] 8.1.0 | Fix EguiUserTextures panic on startup | None | Game launches without panic. |
 | [x] 8.1.1 | Create "Ink and Parchment" shader | 1.1.2 | WGSL shader in `assets/shaders/`. |
 | [x] 8.1.2 | Apply shader as post-processing | 8.1.1 | Entire game has parchment tint. |
-| [ ] 8.1.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |
+| [x] 8.1.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |
 | [ ] 8.1.4 | Style UI panels with parchment texture | 8.1.3, 1.4.1 | Egui panels have parchment bg. |
 | [ ] 8.1.5 | Add scroll/dagger decorations to UI | 8.1.4 | Decorative elements on panels. |
 | [ ] 8.1.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |

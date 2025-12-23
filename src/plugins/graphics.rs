@@ -99,35 +99,35 @@ impl ViewNode for PostProcessNode {
         let post_process_pipeline = world.resource::<PostProcessPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 
-        // Get the pipeline from the cache, specialized for the current view format
-        let key = PostProcessPipelineKey {
-            format: view_target.out_texture_format(),
-        };
-        let descriptor = post_process_pipeline.specialize(key);
-        let pipeline_id = pipeline_cache.queue_render_pipeline(descriptor);
-
-        let Some(pipeline) = pipeline_cache.get_render_pipeline(pipeline_id) else {
+        // Get the cached pipeline (queued during FromWorld)
+        let Some(pipeline) = pipeline_cache.get_render_pipeline(post_process_pipeline.pipeline_id) else {
+            // Pipeline is still compiling, skip this frame
             return Ok(());
         };
 
-        // Create the bind group
+        // Get the post-process write struct which handles double-buffering.
+        // This gives us a source texture (what was rendered) and a destination
+        // texture (where we write our output). They are guaranteed to be different.
+        let post_process = view_target.post_process_write();
+
+        // Create the bind group using the SOURCE texture (what we read from)
         let bind_group = render_context.render_device().create_bind_group(
             "ink_parchment_bind_group",
             &post_process_pipeline.layout,
             &BindGroupEntries::sequential((
-                view_target.main_texture_view(),
+                post_process.source,
                 &post_process_pipeline.sampler,
             )),
         );
 
-        // Run the render pass
+        // Run the render pass writing to the DESTINATION texture
         let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
             label: Some("ink_parchment_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
-                view: view_target.out_texture(),
+                view: post_process.destination,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(LinearRgba::BLACK.into()),
+                    load: LoadOp::Load,
                     store: StoreOp::Store,
                 },
             })],
@@ -152,7 +152,7 @@ impl ViewNode for PostProcessNode {
 struct PostProcessPipeline {
     layout: BindGroupLayout,
     sampler: Sampler,
-    shader: Handle<Shader>,
+    pipeline_id: CachedRenderPipelineId,
 }
 
 impl FromWorld for PostProcessPipeline {
@@ -176,33 +176,22 @@ impl FromWorld for PostProcessPipeline {
             .resource::<AssetServer>()
             .load("shaders/ink_parchment.wgsl");
 
-        Self {
-            layout,
-            sampler,
-            shader,
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-struct PostProcessPipelineKey {
-    format: TextureFormat,
-}
-
-impl SpecializedRenderPipeline for PostProcessPipeline {
-    type Key = PostProcessPipelineKey;
-
-    fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-        RenderPipelineDescriptor {
+        // Queue the pipeline for compilation.
+        // On macOS/Metal, the swapchain format is Bgra8UnormSrgb.
+        // This matches what ViewTarget.out_texture() uses for the final output.
+        let pipeline_cache = world.resource::<PipelineCache>();
+        let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
             label: Some("ink_parchment_pipeline".into()),
-            layout: vec![self.layout.clone()],
+            layout: vec![layout.clone()],
             vertex: fullscreen_shader_vertex_state(),
             fragment: Some(FragmentState {
-                shader: self.shader.clone(),
+                shader,
                 shader_defs: vec![],
                 entry_point: "fragment".into(),
                 targets: vec![Some(ColorTargetState {
-                    format: key.format,
+                    // Use Rgba8UnormSrgb which is the internal render texture format
+                    // for non-HDR cameras in Bevy's Core2d pipeline
+                    format: TextureFormat::Rgba8UnormSrgb,
                     blend: None,
                     write_mask: ColorWrites::ALL,
                 })],
@@ -212,6 +201,12 @@ impl SpecializedRenderPipeline for PostProcessPipeline {
             multisample: MultisampleState::default(),
             push_constant_ranges: vec![],
             zero_initialize_workgroup_memory: false,
+        });
+
+        Self {
+            layout,
+            sampler,
+            pipeline_id,
         }
     }
 }

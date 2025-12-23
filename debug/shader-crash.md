@@ -104,3 +104,37 @@ We fixed a startup panic regarding `EguiPlugin`. If that fix wasn't sufficient, 
 1.  **Get the Logs**: The exact panic message is crucial. Is it "Incompatible color attachments" again?
 2.  **Verify sRGB Logic**: Try explicitly forcing `.add_srgb_suffix()` on the format in `run()`.
 3.  **Verify MSAA**: Check if `Msaa` resource is added/configured in `main.rs` or `CorePlugin`. Post-processing on the main view target usually inherits sample count 1 (resolved), but if we inserted the node *before* resolve (unlikely in `Core2d` graph), it would crash.
+
+---
+
+## 8. Investigation Log (2025-12-23)
+
+### Attempt D: Reproduce & Analyze
+
+**Actual Error**:
+```
+thread panicked at bevy_render-0.15.1/src/render_resource/pipeline_cache.rs:546:28:
+index out of bounds: the len is 9 but the index is 9
+```
+
+**Backtrace Shows**:
+```
+6: bevy_render::render_resource::pipeline_cache::PipelineCache::get_render_pipeline
+7: <pirates::plugins::graphics::PostProcessNode as ViewNode>::run
+      at ./src/plugins/graphics.rs:109
+```
+
+**Root Cause Identified**:
+The current code calls `pipeline_cache.queue_render_pipeline(descriptor)` every frame in `run()`. This:
+1. Queues a *new* pipeline compilation request each frame
+2. Returns incrementing `CachedRenderPipelineId` values (9, 10, 11...)
+3. But `get_render_pipeline(id)` expects the pipeline to exist in the cache array
+4. The array hasn't grown to match the queued IDs → **index out of bounds**
+
+**Correct Pattern**:
+For `SpecializedRenderPipeline`, Bevy requires using `SpecializedRenderPipelines<T>` resource which:
+- Caches the specialized pipeline ID per key
+- Only queues compilation once per unique key
+- Returns the cached ID on subsequent calls
+
+### Fix Applied (Attempt E)
