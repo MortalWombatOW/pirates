@@ -1090,3 +1090,42 @@ All 6 tasks completed:
 - `cargo check`: PASSED
 - `cargo run`: Shader renders correctly with paper texture and vignette visible
 
+## 2025-12-23: Task 8.3.3 - Procedural Paper Grain Noise
+
+**Summary**: Added FBM noise for subtle paper fiber texture.
+
+### Implementation
+- **Noise Functions**: Added `hash21`, `noise2d`, and `fbm` to shader
+- **FBM Parameters**: 4 octaves, controlled by `grain_scale` (default 100.0)
+- **Animation**: Slow time-based shift (0.001 * time) for organic feel
+- **Luminance Modulation**: Grain more visible on lighter paper areas
+
+### Files Modified
+- `assets/shaders/ink_parchment.wgsl` - Added noise functions and grain effect
+
+### Verification
+- `cargo check`: PASSED
+- Visual test: Grain visible at boosted strength (0.3), subtle at default (0.08)
+
+## 2025-12-23: Tasks 8.4.1-8.4.2 - Sobel Edge Detection & Ink Strokes
+
+**Summary**: Implemented hand-drawn linework effect via edge detection.
+
+### Task 8.4.1: Sobel Edge Detection
+- **Luminance Function**: Extracted to reusable `luminance()` helper
+- **Sobel Operator**: Classic 3x3 neighborhood sampling for gradient magnitude
+- **Texel Calculation**: Uses `textureDimensions()` for resolution-independent sizing
+
+### Task 8.4.2: Edge Rendering
+- **Soft Threshold**: `smoothstep(threshold, threshold + 0.1, edge)` for smooth transitions
+- **Muted Fills**: Non-edge areas pushed 30% toward paper color
+- **Ink Strokes**: Detected edges rendered in `INK_COLOR`
+- **Toggle**: `edge_detection_enabled` uniform for performance/accessibility
+
+### Files Modified
+- `src/plugins/graphics.rs` - Added `edge_detection_enabled` and `edge_threshold` fields
+- `assets/shaders/ink_parchment.wgsl` - Added edge detection and rendering
+
+### Verification
+- `cargo check`: PASSED
+- Audit: No temporal words, proper struct alignment
