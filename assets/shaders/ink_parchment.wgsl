@@ -20,6 +20,8 @@ struct AestheticSettings {
     wobble_amplitude: f32,
     wobble_frequency: f32,
     edge_thickness: f32,
+    crosshatch_enabled: u32,
+    crosshatch_density: f32,
     // Time
     time: f32,
 }
@@ -120,6 +122,19 @@ fn wobble_uv(uv: vec2<f32>, time: f32, texel: vec2<f32>, amplitude: f32, frequen
     return uv + vec2<f32>(wobble_x, wobble_y);
 }
 
+// Crosshatch pattern for shadow shading - returns 0.0 (ink) or 1.0 (paper)
+fn crosshatch(uv: vec2<f32>, density: f32) -> f32 {
+    let scale = 100.0;
+    // Two diagonal line patterns (crossing each other)
+    let line1 = abs(sin((uv.x + uv.y) * scale));
+    let line2 = abs(sin((uv.x - uv.y) * scale));
+    // Second layer slightly denser (0.7x threshold)
+    let hatch1 = step(density, line1);
+    let hatch2 = step(density * 0.7, line2);
+    // Both need to pass for paper to show through
+    return min(hatch1, hatch2);
+}
+
 // ============================================================================
 // Main Fragment Shader
 // ============================================================================
@@ -210,6 +225,21 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         
         // Draw edges in ink, keep muted fill elsewhere
         final_rgb = mix(muted_color, INK_COLOR, edge_mask);
+    }
+
+    // 8. Crosshatch Shading for Shadows (8.4.5)
+    if (settings.crosshatch_enabled != 0u) {
+        // Calculate darkness (inverse of luminance)
+        let darkness = 1.0 - luminance(final_rgb);
+        
+        // Only apply crosshatch to dark areas (threshold at 0.3)
+        if (darkness > 0.3) {
+            let hatch_mask = crosshatch(in.uv, settings.crosshatch_density);
+            let hatched = mix(INK_COLOR, PAPER_COLOR, hatch_mask);
+            // Blend based on how dark the area is (darker = more hatching)
+            let hatch_strength = smoothstep(0.3, 0.7, darkness);
+            final_rgb = mix(final_rgb, hatched, hatch_strength * 0.5);
+        }
     }
 
     return vec4<f32>(final_rgb, color.a);

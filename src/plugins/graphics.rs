@@ -106,6 +106,10 @@ pub struct AestheticSettings {
     pub wobble_frequency: f32,
     /// Maximum edge thickness multiplier (1.0 - 3.0)
     pub edge_thickness: f32,
+    /// Enable crosshatch shading (0 = disabled, 1 = enabled)
+    pub crosshatch_enabled: u32,
+    /// Crosshatch density (0.0 - 1.0)
+    pub crosshatch_density: f32,
 
     /// Elapsed time for animated effects
     pub time: f32,
@@ -126,6 +130,8 @@ impl Default for AestheticSettings {
             wobble_amplitude: 1.0,
             wobble_frequency: 10.0,
             edge_thickness: 1.5,
+            crosshatch_enabled: 1,
+            crosshatch_density: 0.5,
             time: 0.0,
         }
     }
