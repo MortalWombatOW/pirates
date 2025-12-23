@@ -1,7 +1,7 @@
 # Debug Report: Post-Processing Shader Crash
 
-> **Status**: UNRESOLVED
-> **Impact**: Game crashes on startup (WGPU Validation Error) or Shader is invisible.
+> **Status**: ✅ RESOLVED
+> **Impact**: ~~Game crashes on startup (WGPU Validation Error) or Shader is invisible.~~
 > **Date**: 2025-12-22
 
 ## 1. Environment & Context
@@ -138,3 +138,40 @@ For `SpecializedRenderPipeline`, Bevy requires using `SpecializedRenderPipelines
 - Returns the cached ID on subsequent calls
 
 ### Fix Applied (Attempt E)
+
+**Changes Made**:
+1. **Cached Pipeline ID**: Store `CachedRenderPipelineId` in `PostProcessPipeline` resource during `FromWorld` instead of creating new pipelines each frame.
+
+2. **Use `post_process_write()`**: Changed from `main_texture_view()` + `out_texture()` to `view_target.post_process_write()` which provides proper double-buffering:
+   - `post_process.source` - texture to read from (previous render output)
+   - `post_process.destination` - texture to write to (guaranteed different from source)
+
+3. **Correct Texture Format**: Use `Rgba8UnormSrgb` which matches Bevy's internal render texture format for non-HDR 2D cameras, not `Bgra8UnormSrgb` (swapchain format).
+
+**Result**: ✅ RESOLVED - Game runs without crashes, shader effect applied.
+
+---
+
+## 9. Final Working Implementation
+
+```rust
+// In FromWorld - cache the pipeline ID once
+let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
+    // ...
+    targets: vec![Some(ColorTargetState {
+        format: TextureFormat::Rgba8UnormSrgb, // Internal render texture format
+        // ...
+    })],
+});
+
+// In run() - use double-buffered post-process textures
+let post_process = view_target.post_process_write();
+let bind_group = /* bind post_process.source as input texture */;
+let render_pass = /* write to post_process.destination */;
+```
+
+## 10. Key Lessons Learned
+
+1. **Never queue pipelines in `run()`** - Use `FromWorld` to cache `CachedRenderPipelineId`.
+2. **Use `post_process_write()`** - Provides safe double-buffering for read/write operations.
+3. **Internal vs Swapchain formats differ** - `Rgba8UnormSrgb` for internal textures, `Bgra8UnormSrgb` for Metal swapchain.

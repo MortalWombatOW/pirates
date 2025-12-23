@@ -8,6 +8,7 @@ use bevy_save::prelude::*;
 
 use crate::plugins::core::GameState;
 use crate::resources::{ArchetypeId, ArchetypeRegistry, MetaProfile, UnlockCondition};
+use crate::resources::ui_assets::UiAssets;
 
 /// Plugin for the Main Menu UI.
 pub struct MainMenuPlugin;
@@ -93,8 +94,14 @@ fn main_menu_ui_system(
     registry: Res<ArchetypeRegistry>,
     profile: Res<MetaProfile>,
     save_exists: Res<SaveFileExists>,
+    ui_assets: Res<UiAssets>,
 ) {
+    let texture_id = contexts.add_image(ui_assets.parchment_texture.clone());
+
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
+        // Draw parchment background
+        crate::plugins::ui_theme::draw_parchment_bg(ui, texture_id);
+
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
 

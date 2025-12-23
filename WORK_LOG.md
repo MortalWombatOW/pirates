@@ -1033,3 +1033,31 @@ All 6 tasks completed:
   - Updated `Post-Processing Architecture` to require `SpecializedRenderPipeline` to prevent format-related crashes.
 - **INDEX.md**:
   - Added `src/plugins/graphics.rs` to the key file index for better discoverability.
+
+## 2025-12-23: Post-Processing Shader Fix
+
+**Summary**: Fixed critical shader crash and visibility issues in the Ink and Parchment post-processing effect.
+
+### Issues Fixed
+1. **Index Out of Bounds Crash**: `queue_render_pipeline()` was called every frame in `run()`, creating new pipeline IDs without proper caching.
+2. **Invisible Shader**: Used `main_texture_view()` + `out_texture()` which don't provide proper double-buffering for read/write operations.
+3. **Texture Format Mismatch**: Hardcoded `Bgra8UnormSrgb` (swapchain format) instead of `Rgba8UnormSrgb` (internal render texture format).
+
+### Solution Applied
+- **Cached Pipeline ID**: Store `CachedRenderPipelineId` in `PostProcessPipeline` during `FromWorld`
+- **Double-Buffering**: Use `view_target.post_process_write()` which provides `source` and `destination` textures
+- **Correct Format**: Use `TextureFormat::Rgba8UnormSrgb` for non-HDR 2D camera internal textures
+
+### Files Modified
+- `src/plugins/graphics.rs` - Complete rewrite of pipeline caching and render pass logic
+
+### Verification
+- `cargo run` succeeds without crashes
+- Shader effect visible in High Seas view## 2025-12-22 23:44 - UI Styling and Warnings
+- Implemented 'UiThemePlugin' to apply 'parchment.png' background to UI panels.
+- Configured Egui visual style (colors, transparency) to match 'Ink & Parchment' aesthetic.
+- Fixed 'bevy_egui' panic by resolving 'ResMut' conflict.
+- Fixed UI texture tiling by implementing manual UV tiling in 'draw_parchment_bg'.
+- Fixed 'InkParchmentSettings' fields warning in 'graphics.rs'.
+- Fixed duplicate import warning in 'port_ui.rs'.
+

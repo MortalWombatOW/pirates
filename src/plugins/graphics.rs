@@ -93,9 +93,12 @@ impl ViewNode for PostProcessNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target, _settings): (&ViewTarget, &InkParchmentSettings),
+        (view_target, settings): (&ViewTarget, &InkParchmentSettings),
         world: &World,
     ) -> Result<(), NodeRunError> {
+        // Read the field to suppress unused warning.
+        let _ = settings.enabled;
+
         let post_process_pipeline = world.resource::<PostProcessPipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
 

@@ -81,9 +81,7 @@ fn spawn_camera(mut commands: Commands) {
             scale: 1.0,
             ..OrthographicProjection::default_2d()
         },
-        InkParchmentSettings {
-             enabled: 1,
-        },
+        InkParchmentSettings::default(),
         Transform::from_xyz(0.0, 0.0, 100.0),
         GlobalTransform::default(),
         InputManagerBundle::with_map(get_default_input_map()),

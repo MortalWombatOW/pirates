@@ -3,6 +3,7 @@ pub mod faction;
 pub mod map_data;
 pub mod fog_of_war;
 pub mod wind;
+pub mod ui_assets;
 pub mod world_clock;
 
 pub use combat::*;

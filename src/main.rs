@@ -20,6 +20,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(TilemapPlugin)
         .add_plugins(EguiPlugin)
+        .add_plugins(pirates::plugins::ui_theme::UiThemePlugin)
         .add_plugins(CorePlugin)
         .add_plugins(InputPlugin)
         .add_plugins(DebugUiPlugin)

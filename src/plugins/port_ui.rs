@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
+use crate::resources::ui_assets::UiAssets;
 
 use crate::components::{
     cargo::{Cargo, Gold},
@@ -85,6 +86,7 @@ fn port_ui_system(
     player_contracts: Res<PlayerContracts>,
     tavern_companions: Res<crate::plugins::companion::TavernCompanions>,
     companion_query: Query<&crate::components::companion::CompanionRole, With<crate::components::companion::Companion>>,
+    ui_assets: Res<UiAssets>,
 ) {
     // Check key input to close port view
     if contexts.ctx_mut().input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -100,7 +102,12 @@ fn port_ui_system(
     // Check for Quartermaster
     let has_quartermaster = companion_query.iter().any(|r| matches!(r, crate::components::companion::CompanionRole::Quartermaster));
 
+    let texture_id = contexts.add_image(ui_assets.parchment_texture.clone());
+
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
+        // Draw parchment background
+        crate::plugins::ui_theme::draw_parchment_bg(ui, texture_id);
+
         let port_name = current_port.entity
             .and_then(|e| port_query.get(e).ok())
             .map(|(_, name, _)| name.0.as_str())
