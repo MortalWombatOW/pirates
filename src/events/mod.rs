@@ -88,3 +88,15 @@ pub struct IntelAcquiredEvent {
     /// Source port where intel was acquired (if from tavern).
     pub source_port: Option<Entity>,
 }
+
+/// Event emitted when a ship is hit by a projectile.
+#[derive(Event, Debug)]
+pub struct ShipHitEvent {
+    /// The ship entity that was hit.
+    pub ship_entity: Entity,
+    /// World position of the hit.
+    pub hit_position: Vec2,
+    /// Damage amount dealt.
+    pub damage: f32,
+}
+

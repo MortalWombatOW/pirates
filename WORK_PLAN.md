@@ -441,7 +441,7 @@
 | [ ] 8.5.1 | Create `InkReveal` component | 3.3.1 | Tracks reveal animation progress. |
 | [ ] 8.5.2 | Implement fog reveal ink animation | 8.5.1 | New areas "draw in" with spreading ink. |
 | [x] 8.5.3 | Add ship wake ink trails | 2.3.1 | Ships leave fading ink strokes. |
-| [ ] 8.5.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
+| [x] 8.5.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
 | [ ] 8.5.5 | Add water area ink wash effect | 8.3.1 | Ocean has watercolor bleeding at edges. |
 | [ ] 8.5.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |
 | [ ] 8.5.7 | Add storm ink distortion | 3.4.1 | Rain causes ink to run/blur slightly. |

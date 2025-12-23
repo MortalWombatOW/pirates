@@ -35,7 +35,8 @@ impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         // Register events
         app.add_event::<crate::events::ShipDestroyedEvent>()
-            .add_event::<crate::events::CombatEndedEvent>();
+            .add_event::<crate::events::CombatEndedEvent>()
+            .add_event::<crate::events::ShipHitEvent>();
         
         // Initialize resources
         app.init_resource::<ShipInputBuffer>()

@@ -124,6 +124,7 @@ pub fn projectile_collision_system(
     projectiles: Query<(&Projectile, &Transform)>,
     mut ships: Query<(Entity, &mut Health, &Transform, Option<&Name>, Option<&mut WaterIntake>), With<Ship>>,
     asset_server: Res<AssetServer>,
+    mut ship_hit_events: EventWriter<crate::events::ShipHitEvent>,
 ) {
     for Collision(contacts) in collision_events.read() {
         let e1 = contacts.entity1;
@@ -176,9 +177,16 @@ pub fn projectile_collision_system(
                 health.hull
             );
 
+            // Emit ShipHitEvent for damage splatter VFX
+            let hit_pos = proj_transform.translation.truncate();
+            ship_hit_events.send(crate::events::ShipHitEvent {
+                ship_entity: ship_ent,
+                hit_position: hit_pos,
+                damage: projectile.damage,
+            });
+
             // Spawn loot at the projectile impact location
-            let loot_pos = proj_transform.translation;
-            spawn_loot(&mut commands, &asset_server, loot_pos.truncate());
+            spawn_loot(&mut commands, &asset_server, hit_pos);
 
             // Despawn projectile
             commands.entity(proj_ent).despawn_recursive();
