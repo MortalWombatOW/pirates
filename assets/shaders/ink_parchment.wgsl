@@ -232,13 +232,13 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         // Calculate darkness (inverse of luminance)
         let darkness = 1.0 - luminance(final_rgb);
         
-        // Only apply crosshatch to dark areas (threshold at 0.3)
-        if (darkness > 0.3) {
+        // Only apply crosshatch to very dark areas (threshold at 0.5)
+        if (darkness > 0.5) {
             let hatch_mask = crosshatch(in.uv, settings.crosshatch_density);
             let hatched = mix(INK_COLOR, PAPER_COLOR, hatch_mask);
-            // Blend based on how dark the area is (darker = more hatching)
-            let hatch_strength = smoothstep(0.3, 0.7, darkness);
-            final_rgb = mix(final_rgb, hatched, hatch_strength * 0.5);
+            // Blend subtly based on how dark the area is (darker = more hatching)
+            let hatch_strength = smoothstep(0.5, 0.8, darkness);
+            final_rgb = mix(final_rgb, hatched, hatch_strength * 0.15);
         }
     }
 
