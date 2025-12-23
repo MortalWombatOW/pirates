@@ -6,6 +6,7 @@
 @group(0) @binding(3) var paper_sampler: sampler;
 
 struct AestheticSettings {
+    // Epic 8.3: Paper
     paper_texture_strength: f32,
     vignette_strength: f32,
     vignette_radius: f32,
@@ -13,6 +14,10 @@ struct AestheticSettings {
     grain_scale: f32,
     stain_strength: f32,
     ink_feather_radius: f32,
+    // Epic 8.4: Edge Detection
+    edge_detection_enabled: u32,
+    edge_threshold: f32,
+    // Time
     time: f32,
 }
 
@@ -69,6 +74,40 @@ fn fbm(uv: vec2<f32>) -> f32 {
 }
 
 // ============================================================================
+// Edge Detection Utilities
+// ============================================================================
+
+// Convert RGB to grayscale luminance
+fn luminance(c: vec3<f32>) -> f32 {
+    return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
+}
+
+// Sample screen texture and return luminance
+fn sample_lum(uv: vec2<f32>) -> f32 {
+    return luminance(textureSample(screen_texture, screen_sampler, uv).rgb);
+}
+
+// Sobel edge detection - samples 3x3 neighborhood and returns edge magnitude
+fn sobel(uv: vec2<f32>, texel: vec2<f32>) -> f32 {
+    // Sample 3x3 neighborhood (grayscale luminance)
+    let tl = sample_lum(uv + vec2<f32>(-1.0, -1.0) * texel);
+    let t  = sample_lum(uv + vec2<f32>( 0.0, -1.0) * texel);
+    let tr = sample_lum(uv + vec2<f32>( 1.0, -1.0) * texel);
+    let l  = sample_lum(uv + vec2<f32>(-1.0,  0.0) * texel);
+    let r  = sample_lum(uv + vec2<f32>( 1.0,  0.0) * texel);
+    let bl = sample_lum(uv + vec2<f32>(-1.0,  1.0) * texel);
+    let b  = sample_lum(uv + vec2<f32>( 0.0,  1.0) * texel);
+    let br = sample_lum(uv + vec2<f32>( 1.0,  1.0) * texel);
+
+    // Sobel kernels for horizontal and vertical gradients
+    let gx = -tl - 2.0 * l - bl + tr + 2.0 * r + br;
+    let gy = -tl - 2.0 * t - tr + bl + 2.0 * b + br;
+
+    // Return edge magnitude
+    return sqrt(gx * gx + gy * gy);
+}
+
+// ============================================================================
 // Main Fragment Shader
 // ============================================================================
 
@@ -76,8 +115,12 @@ fn fbm(uv: vec2<f32>) -> f32 {
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     let color = textureSample(screen_texture, screen_sampler, in.uv);
 
+    // Get texture dimensions for texel size calculation
+    let tex_size = vec2<f32>(textureDimensions(screen_texture));
+    let texel = 1.0 / tex_size;
+
     // 1. Convert to Grayscale (Luminance)
-    let gray = dot(color.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    let gray = luminance(color.rgb);
 
     // 2. Contrast & Thresholding
     var contrast = 1.2;
@@ -102,7 +145,7 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     // Paper texture modulates the final color
     // We use the paper's luminance deviation from 0.5 to add texture
-    let paper_gray = dot(paper.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+    let paper_gray = luminance(paper.rgb);
     let paper_factor = (paper_gray - 0.5) * settings.paper_texture_strength;
 
     // Apply paper texture more to lighter areas (paper shows through more on light parts)
@@ -128,5 +171,19 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     // Modulate grain by luminance - more visible on lighter paper areas
     final_rgb = final_rgb + grain_adjust * t;
 
+    // 7. Sobel Edge Detection (Epic 8.4)
+    if (settings.edge_detection_enabled != 0u) {
+        let edge = sobel(in.uv, texel);
+        // Soft threshold for smooth edge transition
+        let edge_mask = smoothstep(settings.edge_threshold, settings.edge_threshold + 0.1, edge);
+        
+        // Mute the fill colors (push toward paper) per docs/weathered.md
+        let muted_color = mix(final_rgb, PAPER_COLOR, 0.3);
+        
+        // Draw edges in ink, keep muted fill elsewhere
+        final_rgb = mix(muted_color, INK_COLOR, edge_mask);
+    }
+
     return vec4<f32>(final_rgb, color.a);
 }
+

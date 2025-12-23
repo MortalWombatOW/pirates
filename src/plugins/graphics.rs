@@ -79,6 +79,7 @@ impl Plugin for GraphicsPlugin {
 #[reflect(Component)]
 #[repr(C)]
 pub struct AestheticSettings {
+    // Epic 8.3: Paper
     /// Strength of paper texture overlay (0.0 - 1.0)
     pub paper_texture_strength: f32,
     /// Strength of vignette darkening (0.0 - 1.0)
@@ -93,6 +94,13 @@ pub struct AestheticSettings {
     pub stain_strength: f32,
     /// Ink feathering blur radius in pixels (0.0 - 3.0)
     pub ink_feather_radius: f32,
+
+    // Epic 8.4: Edge Detection
+    /// Enable edge detection (0 = disabled, 1 = enabled)
+    pub edge_detection_enabled: u32,
+    /// Edge detection threshold (0.05 - 0.3)
+    pub edge_threshold: f32,
+
     /// Elapsed time for animated effects
     pub time: f32,
 }
@@ -107,6 +115,8 @@ impl Default for AestheticSettings {
             grain_scale: 100.0,
             stain_strength: 0.1,
             ink_feather_radius: 1.0,
+            edge_detection_enabled: 1,
+            edge_threshold: 0.1,
             time: 0.0,
         }
     }
