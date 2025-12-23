@@ -1008,3 +1008,19 @@ All 6 tasks completed:
 
 ### Notes
 - This prevents crashes caused by TextureFormat mismatches between the pipeline and the render pass (wgpu validation errors). The previous hardcoded `Bgra8Unorm` crashed on `Bgra8UnormSrgb` swapchains. The specialized pipeline handles any format.
+
+## 2025-12-22: Refinement - Process Improvements
+
+**Summary**: Updated project documentation to prevent recurring friction points identified during development.
+
+### Friction Points Addressed
+- **`WORK_LOG.md` Integrity**: Agent repeatedly overwrote the work log instead of appending, causing data loss.
+- **Render Pipeline Fragility**: Hardcoding texture formats led to visibility bugs and crashes. `SpecializedRenderPipeline` pattern should be used instead.
+- **Missing Dependencies**: Panics occurred due to plugins like `EguiPlugin` not being registered in `main.rs`.
+
+### Process Improvements Implemented
+- **INVARIANTS.md**:
+  - Added "Log Integrity" rule to `Documentation Standards`, mandating append-only updates.
+  - Updated `Post-Processing Architecture` to require `SpecializedRenderPipeline` to prevent format-related crashes.
+- **INDEX.md**:
+  - Added `src/plugins/graphics.rs` to the key file index for better discoverability.

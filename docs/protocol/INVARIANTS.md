@@ -32,6 +32,7 @@
     * *Forbidden*: `// Fixed bug where ship spins`
     * *Required*: `// Clamps angular velocity to prevent spinning`
 * **Source of Truth**: `README.md` is the GDD. This file (`INVARIANTS.md`) is the Technical Constraint list.
+* **Log Integrity**: When updating `WORK_LOG.md`, ALWAYS read the file first and append to the existing content. NEVER overwrite history.
 
 ## 5. UI & Rendering
 * **Debug UI**: Use `bevy_egui` for all debug tools.
@@ -175,6 +176,7 @@
 
 ## 17. Post-Processing Architecture
 * **ViewNode Pattern**: Full-screen post-processing effects use the `ViewNode` pattern in the Render Graph.
+* **SpecializedRenderPipeline**: ALWAYS use `SpecializedRenderPipeline` for render nodes to dynamically adapt to the target view's texture format (e.g. `Bgra8Unorm` vs `Bgra8UnormSrgb`). Hardcoding `TextureFormat` in pipelines causes wgpu validation crashes.
 * **ExtractComponent**: Settings are attached to the Camera as components (e.g., `InkParchmentSettings`) and extracted to the Render World via `ExtractComponentPlugin`.
 * **Render Pipeline**: Custom `RenderPipeline` handles the shader application.
 * **Core2d Graph**: The post-processing node is inserted into the `Core2d` graph between `Tonemapping` and `EndMainPassPostProcessing`.
