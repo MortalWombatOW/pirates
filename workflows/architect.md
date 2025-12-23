@@ -1,6 +1,7 @@
-description = "Convert requirements into atomic tasks. Run after /init. Run before /forge."
+---
+description: Convert requirements into atomic tasks. Run after /init. Run before /forge.
+---
 
-prompt = """
 # Workflow: Architect
 
 **Goal**: Convert requirements into atomic tasks.
@@ -11,7 +12,7 @@ prompt = """
     * Ensure context from `/init` is active.
 
 2.  **Architectural Critique**
-    * Analyze the request against `docs/protocol/INVARIANTS.md`.
+    * Analyze the request against `AGENT.md` (The Law).
     * Check for impacts on `FixedUpdate` loops or Event patterns.
 
 3.  **Micro-Planning**
@@ -24,4 +25,3 @@ prompt = """
 
 5.  **Handoff**
     * Remind the user to run `/forge` on the first new task.
-"""

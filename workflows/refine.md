@@ -10,7 +10,7 @@ description: Maintain documentation accuracy and improve agent performance throu
 
 1.  **Synchronization (The Map)**
     * Scan the `src/` directory for structural changes.
-    * Update `docs/protocol/INDEX.md`:
+    * Update `INDEX.md`:
         * Add new files.
         * Remove deleted files.
         * Update descriptions if responsibilities changed.
@@ -23,9 +23,9 @@ description: Maintain documentation accuracy and improve agent performance throu
 
 3.  **Evolution (The Upgrade)**
     * Propose specific changes to:
-        * **Rules**: `.ai/rules/*.md` or `docs/protocol/INVARIANTS.md`.
-        * **Process**: `.ai/workflows/*.md`.
-        * **Persona**: `docs/protocol/MANIFESTO.md`.
+        * **Rules**: `AGENT.md` (The Law/Operational Rules).
+        * **Process**: `workflows/*.md`.
+        * **Persona**: `AGENT.md` (Identity).
     * Explain *how* these changes prevent the friction identified in Step 2.
 
 4.  **Implementation**

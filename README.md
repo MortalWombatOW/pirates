@@ -93,20 +93,4 @@ For technical development, architectural constraints, and agent protocols, refer
 
 ### Directory Structure Overview
 
-A detailed index is available in `docs/protocol/INDEX.md`.
-
-```text
-pirates/
-├── assets/          # Textures, sounds, data files
-├── docs/
-│   └── protocol/    # Agent protocols and technical invariants
-├── src/
-│   ├── components/  # Pure data structs (ECS)
-│   ├── systems/     # Logic implementations (ECS)
-│   ├── plugins/     # Modular organization units
-│   ├── resources/   # Global state data
-│   └── main.rs      # App entry point
-├── Cargo.toml
-├── README.md        # This file (GDD)
-├── WORK_PLAN.md     # Active Task Queue
-└── WORK_LOG.md      # Immutable history of work
+A detailed index is available in `INDEX.md`.

@@ -1,6 +1,7 @@
-description = "Load the complete mental model of the project. Run at the start of a session. Run before /next-task or /architect."
+---
+description: Load the complete mental model of the project. Run at the start of a session. Run before /next-task or /architect.
+---
 
-prompt = """
 # Workflow: Init
 
 **Goal**: Load the complete mental model of the project.
@@ -8,9 +9,8 @@ prompt = """
 ## Protocol Steps
 
 1.  **Core Protocol Loading**
-    * Read `docs/protocol/INDEX.md` (The Map).
-    * Read `docs/protocol/INVARIANTS.md` (The Law).
-    * Read `docs/protocol/MANIFESTO.md` (The Persona).
+    * Read `AGENT.md` (The Single Source of Truth).
+    * Read `INDEX.md` (The Map).
 
 2.  **Product Context Loading**
     * Read `README.md` (Game Design Document).
@@ -18,4 +18,3 @@ prompt = """
 
 3.  **Handoff**
     * Remind the user to run `/next-task` to begin work, or `/architect` if the plan is empty.
-"""

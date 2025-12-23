@@ -1,3 +1,12 @@
+# Work Log
+
+## 2025-12-22: Documentation Audit & Fix
+*   **Audit**: Identified inconsistency where `docs/protocol` and `.agent/rules` were consolidated into `AGENT.md` but references were not updated.
+*   **Fix**: Updated `AGENT.md` to be the single source of truth.
+*   **Fix**: Updated `README.md` to point to the new structure.
+*   **Fix**: Updated `workflows/*.md` to reference `AGENT.md` and `INDEX.md`.
+*   **Restoration**: Restored `workflows/init.md` which was accidentally deleted.
+
 # WORK LOG - 2025-12-18
 
 ## Phase 1: Project Foundations

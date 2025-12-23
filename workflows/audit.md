@@ -13,18 +13,18 @@ description: Comprehensive code review to ensure technical quality and product a
     * Have changes been reflected in `WORK_LOG.md`?
 
 2.  **Code Quality & Norms**
-    * **Bevy Optimization**: Verify compliance with `.agent/rules/bevy.md` (Query filters, Command usage).
+    * **Bevy Optimization**: Verify compliance with `AGENT.md` (Query filters, Command usage).
     * **Input Handling**: Verify no `.pressed()` on Axis inputs. Verify "sticky input" for FixedUpdate.
-    * **Temporal Purity**: Grep for banned words (`Added`, `Fixed`, etc.) per `.agent/rules/development.md`.
+    * **Temporal Purity**: Grep for banned words (`Added`, `Fixed`, etc.) per `AGENT.md`.
 
 3.  **Architectural Integrity**
-    * Verify against `docs/protocol/INVARIANTS.md`.
+    * Verify against `AGENT.md`.
     * Is physics logic strictly in `FixedUpdate`?
     * Are systems properly gated by `State`?
 
 4.  **Invisible Knowledge Extraction**
     * Ask: "Did we make a decision here that isn't obvious?"
-    * If yes, add a note to `docs/protocol/INVARIANTS.md`.
+    * If yes, add a note to `AGENT.md`.
 
 5.  **Handoff**
     * If **Failed**: Remind the user to run `/forge` to fix issues.

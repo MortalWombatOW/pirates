@@ -1,6 +1,6 @@
 # Codebase Index
 
-> **Purpose**: A navigation map for the LLM to locate relevant code triggers.
+> **Purpose**: A navigation map to locate relevant code triggers.
 
 ## Core Directories
 
