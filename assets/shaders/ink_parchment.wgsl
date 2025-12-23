@@ -17,6 +17,8 @@ struct AestheticSettings {
     // Epic 8.4: Edge Detection
     edge_detection_enabled: u32,
     edge_threshold: f32,
+    wobble_amplitude: f32,
+    wobble_frequency: f32,
     // Time
     time: f32,
 }
@@ -107,6 +109,16 @@ fn sobel(uv: vec2<f32>, texel: vec2<f32>) -> f32 {
     return sqrt(gx * gx + gy * gy);
 }
 
+// Wobble UV for hand-drawn imperfection - displaces edge detection sampling
+fn wobble_uv(uv: vec2<f32>, time: f32, texel: vec2<f32>, amplitude: f32, frequency: f32) -> vec2<f32> {
+    // Slow animation (time * 0.5) for organic drift, not distracting jitter
+    let anim_time = time * 0.5;
+    // Different frequencies for X/Y (1.3x) to avoid uniform, artificial waves
+    let wobble_x = sin(uv.y * frequency + anim_time) * amplitude * texel.x;
+    let wobble_y = cos(uv.x * frequency * 1.3 + anim_time) * amplitude * texel.y;
+    return uv + vec2<f32>(wobble_x, wobble_y);
+}
+
 // ============================================================================
 // Main Fragment Shader
 // ============================================================================
@@ -173,7 +185,10 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     // 7. Sobel Edge Detection (Epic 8.4)
     if (settings.edge_detection_enabled != 0u) {
-        let edge = sobel(in.uv, texel);
+        // Apply wobble to UV for hand-drawn imperfection (8.4.3)
+        let wobbled_uv = wobble_uv(in.uv, settings.time, texel, settings.wobble_amplitude, settings.wobble_frequency);
+        let edge = sobel(wobbled_uv, texel);
+        
         // Soft threshold for smooth edge transition
         let edge_mask = smoothstep(settings.edge_threshold, settings.edge_threshold + 0.1, edge);
         
@@ -186,4 +201,3 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
 
     return vec4<f32>(final_rgb, color.a);
 }
-

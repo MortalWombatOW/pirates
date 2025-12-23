@@ -100,6 +100,10 @@ pub struct AestheticSettings {
     pub edge_detection_enabled: u32,
     /// Edge detection threshold (0.05 - 0.3)
     pub edge_threshold: f32,
+    /// Line wobble amplitude in pixels (0.0 - 2.0)
+    pub wobble_amplitude: f32,
+    /// Line wobble frequency (5.0 - 20.0)
+    pub wobble_frequency: f32,
 
     /// Elapsed time for animated effects
     pub time: f32,
@@ -117,6 +121,8 @@ impl Default for AestheticSettings {
             ink_feather_radius: 1.0,
             edge_detection_enabled: 1,
             edge_threshold: 0.1,
+            wobble_amplitude: 1.0,
+            wobble_frequency: 10.0,
             time: 0.0,
         }
     }
