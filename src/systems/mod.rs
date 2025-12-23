@@ -12,6 +12,7 @@ pub mod repair;
 pub mod faction_ai;
 pub mod order_execution;
 pub mod intel;
+pub mod wake_effects;
 
 pub use ship::*;
 pub use movement::*;
