@@ -95,7 +95,12 @@ fn main_menu_ui_system(
     profile: Res<MetaProfile>,
     save_exists: Res<SaveFileExists>,
     ui_assets: Res<UiAssets>,
+    time: Res<Time>,
+    mut typewriter: Local<crate::components::TypewriterRegistry>,
 ) {
+    // Update typewriter animations
+    typewriter.tick_all(time.delta_secs());
+    
     let texture_id = contexts.add_image(ui_assets.parchment_texture.clone());
 
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
@@ -105,10 +110,18 @@ fn main_menu_ui_system(
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
 
-            // Title
-            ui.heading(egui::RichText::new("PIRATES").size(48.0).strong());
+            // Animated Title - writes on character by character
+            let title = typewriter.get_or_start("title", "PIRATES", 0.12);
+            ui.heading(egui::RichText::new(title.visible_text()).size(48.0).strong());
             ui.add_space(10.0);
-            ui.label(egui::RichText::new("A Naval Roguelike").size(16.0).italics());
+            
+            // Animated subtitle - starts after title finishes
+            let subtitle_text = if title.is_complete() {
+                typewriter.get_or_start("subtitle", "A Naval Roguelike", 0.05).visible_text()
+            } else {
+                ""
+            };
+            ui.label(egui::RichText::new(subtitle_text).size(16.0).italics());
 
             ui.add_space(40.0);
             ui.separator();
