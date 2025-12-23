@@ -1,4 +1,4 @@
-# Gemini Agent Configuration
+# Claude Agent Configuration
 
 ## Initialization Protocol
 
@@ -20,7 +20,7 @@ Immediately upon starting a session, you must read the following files to build 
 ### 2. Capability Awareness
 You have specific workflows defined to handle tasks safely.
 *   Read `.ai/workflows/*.md` to understand your capabilities.
-*   Review `.ai/config/gemini/commands/*.toml` to understand the available slash commands (e.g., `/forge`, `/audit`).
+*   Review `.ai/config/claude/commands/*.toml` to understand the available slash commands (e.g., `/forge`, `/audit`).
 
 ### 3. Rules of Engagement
 You must strictly follow the technical rules defined in:

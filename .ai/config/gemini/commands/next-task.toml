@@ -1,4 +1,4 @@
-description = "Picking up the next task from the work plan."
+description = "Identify and lock the next unit of work. Run after /init or /accept. Run before /forge."
 
 prompt = """
 # Workflow: Next Task
@@ -19,5 +19,5 @@ prompt = """
     * Mark the selected task as in-progress `[/]` in `WORK_PLAN.md`.
 
 4.  **Handoff**
-    * Trigger `/forge` to begin implementation.
+    * Remind the user to run `/forge` to begin implementation.
 """
