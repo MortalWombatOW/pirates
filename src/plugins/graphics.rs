@@ -130,7 +130,7 @@ impl Default for AestheticSettings {
             wobble_amplitude: 1.0,
             wobble_frequency: 10.0,
             edge_thickness: 1.5,
-            crosshatch_enabled: 1,
+            crosshatch_enabled: 0,
             crosshatch_density: 0.3,
             time: 0.0,
         }

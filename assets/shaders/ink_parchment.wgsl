@@ -242,5 +242,37 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
+    // 9. Water Ink Wash Effect (8.5.5)
+    // Detects blue-ish water colors and applies watercolor bleeding at edges
+    {
+        // Water detection: check if current pixel is blue-ish (water tiles)
+        let blue_ratio = final_rgb.b / max(final_rgb.r + final_rgb.g + 0.001, 0.1);
+        let is_water = step(0.4, blue_ratio) * step(0.2, final_rgb.b);
+        
+        // Sample neighbors to detect color transitions (potential coastlines)
+        let wash_texel = texel * 2.0; // Larger sampling radius for softer bleed
+        let neighbor_tl = textureSample(screen_texture, screen_sampler, in.uv + vec2<f32>(-1.0, -1.0) * wash_texel).rgb;
+        let neighbor_tr = textureSample(screen_texture, screen_sampler, in.uv + vec2<f32>( 1.0, -1.0) * wash_texel).rgb;
+        let neighbor_bl = textureSample(screen_texture, screen_sampler, in.uv + vec2<f32>(-1.0,  1.0) * wash_texel).rgb;
+        let neighbor_br = textureSample(screen_texture, screen_sampler, in.uv + vec2<f32>( 1.0,  1.0) * wash_texel).rgb;
+        
+        // Calculate color variance (high variance = edge/transition)
+        let avg_neighbor = (neighbor_tl + neighbor_tr + neighbor_bl + neighbor_br) * 0.25;
+        let color_diff = distance(final_rgb, avg_neighbor);
+        
+        // Only apply wash at transitions (where color differs from neighbors)
+        let transition_mask = smoothstep(0.05, 0.2, color_diff);
+        
+        // Blend toward a soft water-tinted wash at transitions
+        // Use a subtle teal/blue wash color for watercolor effect
+        let wash_tint = vec3<f32>(0.6, 0.75, 0.8);
+        let wash_color = mix(final_rgb, wash_tint, 0.15);
+        
+        // Apply wash only at water edges (water pixels near transitions)
+        let wash_strength = is_water * transition_mask * 0.4;
+        final_rgb = mix(final_rgb, wash_color, wash_strength);
+    }
+
     return vec4<f32>(final_rgb, color.a);
 }
+
