@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 use crate::plugins::core::GameState;
 use crate::resources::{Wind, WorldClock, MapData};
 use crate::components::{Ship, AI, Health, Order, OrderQueue, FactionId, Faction};
@@ -33,7 +33,7 @@ impl Plugin for DebugUiPlugin {
         
         app.init_resource::<DebugToggles>()
             .add_systems(Update, (
-                debug_panel,
+                debug_panel.after(EguiSet::InitContexts),
                 apply_tilemap_visibility,
                 spawn_scale_test_ships.run_if(in_state(GameState::HighSeas)),
             ));

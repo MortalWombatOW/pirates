@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 use crate::resources::ui_assets::UiAssets;
 
 use crate::components::{
@@ -31,7 +31,7 @@ impl Plugin for PortUiPlugin {
             .add_event::<IntelAcquiredEvent>()
             .add_systems(OnEnter(GameState::Port), (generate_port_contracts, generate_tavern_intel))
             .add_systems(Update, (
-                port_ui_system,
+                port_ui_system.after(EguiSet::InitContexts),
                 trade_execution_system,
                 contract_acceptance_system,
                 repair_execution_system,

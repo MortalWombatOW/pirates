@@ -76,6 +76,7 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **GPU Particles**: Use `bevy_hanabi` v0.14. Note: `ParticleEffect` does not have `with_spawner()` - particle count is defined in the `EffectAsset` spawner configuration.
 *   **Coastline Geometry**: `CoastlinePolygon` uses CCW winding with "land on left" invariant. Map borders are treated as land to guarantee closed contours.
 *   **Vector UI**: For high-quality vector graphics in UI (e.g. compass), use `bevy_prototype_lyon` with a dedicated `Camera2d` (Order 1, `RenderLayers(1)`). Add `MainCamera` marker to primary camera to resolve input ambiguity.
+*   **Egui Systems**: Any system using `EguiContexts` MUST order itself after `EguiSet::InitContexts` to prevent panics on state transitions. Example: `.after(EguiSet::InitContexts)`.
 
 ---
 

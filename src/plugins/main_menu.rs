@@ -3,7 +3,7 @@
 //! Displays archetype selection and game start options.
 
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 use bevy_save::prelude::*;
 
 use crate::plugins::core::GameState;
@@ -22,7 +22,7 @@ impl Plugin for MainMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    main_menu_ui_system.run_if(in_state(GameState::MainMenu)),
+                    main_menu_ui_system.run_if(in_state(GameState::MainMenu)).after(EguiSet::InitContexts),
                     handle_load_game_event,
                 ),
             );

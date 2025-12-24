@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiSet};
 
 use crate::plugins::core::GameState;
 
@@ -8,7 +8,9 @@ pub struct UiThemePlugin;
 impl Plugin for UiThemePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<crate::resources::ui_assets::UiAssets>()
-           .add_systems(Update, configure_ui_theme.run_if(in_state(GameState::MainMenu).or(in_state(GameState::Port))));
+           .add_systems(Update, configure_ui_theme
+               .run_if(in_state(GameState::MainMenu).or(in_state(GameState::Port)))
+               .after(EguiSet::InitContexts));
     }
 }
 

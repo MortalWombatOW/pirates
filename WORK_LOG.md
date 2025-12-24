@@ -13,6 +13,16 @@
     *   `main_menu.rs`: Corner flourishes, anchor divider after title, rope divider before selection.
 *   All decorations use egui's `Painter` API for procedural vector drawing.
 
+## 2025-12-24: BUG FIX - EguiContexts Panic on State Transition
+*   **Issue**: `port_ui_system` panicked with "EguiContexts::ctx_mut was called for an uninitialized context".
+*   **Cause**: Systems using `EguiContexts` ran before `EguiSet::InitContexts` during state transitions.
+*   **Fix**: Added `.after(EguiSet::InitContexts)` ordering to all egui-using systems:
+    *   `port_ui.rs`: `port_ui_system`
+    *   `main_menu.rs`: `main_menu_ui_system`
+    *   `debug_ui.rs`: `debug_panel`
+    *   `ui_theme.rs`: `configure_ui_theme`
+*   **Documentation**: Added "Egui Systems" entry to `AGENT.md` Bevy Specifics section.
+
 ## 2025-12-23: Epic 8.5 - Historical Cartography (Tasks 8.5.0-8.5.1)
 *   **8.5.0**: Integrated `bevy_prototype_lyon` v0.13 for vector graphics. Registered `ShapePlugin` in `WorldMapPlugin`.
 *   **8.5.1**: Implemented coastline polygon extraction in `src/utils/geometry.rs`:
