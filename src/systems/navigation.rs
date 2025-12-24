@@ -4,7 +4,7 @@ use bevy::window::PrimaryWindow;
 use crate::components::{Player, Ship, Destination, NavigationPath};
 use crate::components::companion::CompanionRole;
 use crate::resources::{MapData, Wind};
-use crate::plugins::core::GameState;
+use crate::plugins::core::{GameState, MainCamera};
 use crate::utils::pathfinding::{find_path, tile_to_world, world_to_tile};
 
 /// System that handles mouse clicks to set navigation destination.
@@ -12,7 +12,7 @@ pub fn click_to_navigate_system(
     mut commands: Commands,
     mouse_button: Res<ButtonInput<MouseButton>>,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     player_query: Query<Entity, (With<Player>, With<Ship>)>,
     map_data: Res<MapData>,
 ) {

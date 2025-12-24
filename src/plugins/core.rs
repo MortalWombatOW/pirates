@@ -17,6 +17,10 @@ pub enum GameState {
     GameOver,
 }
 
+/// Marker component for the main game camera
+#[derive(Component)]
+pub struct MainCamera;
+
 pub struct CorePlugin;
 
 impl Plugin for CorePlugin {
@@ -60,7 +64,7 @@ impl Plugin for CorePlugin {
 }
 
 fn camera_follow(
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
     player_query: Query<&Transform, (With<Player>, With<Ship>)>,
 ) {
     if let (Ok(mut camera_transform), Ok(player_transform)) = (camera_query.get_single_mut(), player_query.get_single()) {
@@ -72,6 +76,7 @@ fn camera_follow(
 
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
+        MainCamera,
         Camera2d,
         Camera {
             ..default()
@@ -90,7 +95,7 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn camera_control(
-    mut query: Query<(&ActionState<PlayerAction>, &mut Transform, &mut OrthographicProjection), With<Camera2d>>,
+    mut query: Query<(&ActionState<PlayerAction>, &mut Transform, &mut OrthographicProjection), With<MainCamera>>,
     time: Res<Time>,
 ) {
     let (action_state, mut transform, mut projection) = query.single_mut();

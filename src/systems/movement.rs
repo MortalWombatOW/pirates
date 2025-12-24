@@ -5,6 +5,7 @@ use leafwing_input_manager::prelude::*;
 use crate::components::{Ship, Player, Health};
 use crate::plugins::input::PlayerAction;
 use crate::resources::Wind;
+use crate::plugins::core::MainCamera;
 
 /// Ship physics configuration.
 /// 
@@ -62,7 +63,7 @@ pub fn buffer_ship_input(
     action_query: Query<&ActionState<PlayerAction>>,
     mut input_buffer: ResMut<ShipInputBuffer>,
     window_query: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     if let Ok(action_state) = action_query.get_single() {
         input_buffer.thrust = action_state.pressed(&PlayerAction::Thrust);
