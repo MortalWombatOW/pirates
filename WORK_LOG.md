@@ -1159,3 +1159,16 @@ All 6 tasks completed:
 ### Verification
 - `cargo check`: PASSED
 - Audit: No temporal words, proper struct alignment
+
+## 2025-12-23: Task 8.5.7 - Compass Rose UI (Complete)
+
+Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, rendered via a dedicated Overlay Camera for visual stability.
+
+### Tasks Completed
+*   **8.5.7**: Created `CompassRosePlugin` and `compass_rose.rs` module.
+*   **Design**: Implemented 32-point Rose of the Winds with layered spikes (Red/Green/Gold) and decorative center.
+*   **Refactor**: Replaced initial camera-child implementation with **Overlay Camera** approach using `RenderLayers(1)`.
+    *   Eliminates jitter during camera movement.
+    *   Ensures consistent vector quality at all zoom levels.
+    *   Decouples UI positioning from world camera transform.
+*   **Fix**: Resolved input ambiguity (click-through issue) by adding `MainCamera` marker component to the primary world camera.

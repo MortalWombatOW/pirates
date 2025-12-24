@@ -441,8 +441,8 @@
 | [x] 8.5.4 | Smooth coastline with Catmull-Rom splines | 8.5.3 | Raw tile edges become smooth curves. |
 | [x] 8.5.5 | Add tunable noise/jitter to coastlines | 8.5.4 | Lines have organic irregularity (hand-drawn wobble). |
 | [x] 8.5.6 | Implement waterlining effect (Lyon) | 8.5.4 | Three offset strokes, progressively lighter/thinner. |
-| [ ] 8.5.7 | Create `CompassRose` UI component | 1.4.1 | Decorative compass rose renders on screen. |
-| [ ] 8.5.7 | Make compass rose dynamic (wind/heading) | 8.5.6, 3.4.1 | Rose indicates current wind direction and optional player heading. |
+| [x] 8.5.7 | Create `CompassRose` UI component | 1.4.1 | Decorative compass rose renders on screen. |
+| [x] 8.5.7.1 | Make compass rose dynamic | 8.5.7 | Rose implementation uses Overlay Camera (RenderLayers). |
 | [ ] 8.5.8 | Create `ScaleBar` UI component | 1.4.1 | "Scale of Miles" bar renders on map. |
 | [ ] 8.5.9 | Make scale bar zoom-responsive | 8.5.8, 1.3.3 | Bar adjusts label/length based on camera zoom. |
 | [ ] 8.5.10 | Define `WaterDepth` tile attribute | 3.1.4 | Tilemap stores depth values for water tiles. |
