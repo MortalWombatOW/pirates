@@ -87,7 +87,7 @@ fn trace_contour(
     let mut points = Vec::new();
     let mut x = start_x;
     let mut y = start_y;
-    let mut dir = start_dir;
+    let mut l_dir = start_dir; // Direction to the land tile
     
     // Direction vectors: 0=N(+Y), 1=E(+X), 2=S(-Y), 3=W(-X)
     let dir_vectors: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
@@ -96,93 +96,81 @@ fn trace_contour(
     // N edge: (0.5, 1.0), E edge: (1.0, 0.5), S edge: (0.5, 0.0), W edge: (0.0, 0.5)
     let edge_midpoints: [(f32, f32); 4] = [(0.5, 1.0), (1.0, 0.5), (0.5, 0.0), (0.0, 0.5)];
     
-    let max_iterations = (width * height * 4) as usize; // Safety limit
+    let max_iterations = (width * height * 8) as usize; // Safety limit
     
+    // Helper to check land
+    let check_is_land = |tx: i32, ty: i32| -> bool {
+        if tx < 0 || ty < 0 || tx >= width || ty >= height {
+            true // Border is land
+        } else {
+            is_land(map_data.get(tx as u32, ty as u32).unwrap_or(TileType::DeepWater))
+        }
+    };
+
     for _ in 0..max_iterations {
-        // Mark this edge as visited
-        visited.insert((x, y, dir));
+        // Mark current edge as visited
+        visited.insert((x, y, l_dir));
         
-        // Add the midpoint of this edge to our polygon
-        let (mx, my) = edge_midpoints[dir as usize];
+        // Add point
+        let (mx, my) = edge_midpoints[l_dir as usize];
         let world_x = offset_x + (x as f32 + mx) * tile_size;
         let world_y = offset_y + (y as f32 + my) * tile_size;
         points.push(Vec2::new(world_x, world_y));
+
+        // Determine next move based on neighbors
+        // L = Vector to Land
+        // F = Vector Forward (Right relative to L, i.e., CCW walk) -> (l_dir + 1) % 4
         
-        // Find the next edge to follow (CCW traversal with land on left)
-        // Try turning left first, then straight, then right
-        let turn_order = [3, 0, 1, 2]; // Left, straight, right, back
+        let f_dir = (l_dir + 1) % 4;
+        let (fdx, fdy) = dir_vectors[f_dir as usize];
+        let (ldx, ldy) = dir_vectors[l_dir as usize];
         
-        let mut found_next = false;
-        for turn in turn_order {
-            let next_dir = (dir + turn) % 4;
-            let (dx, dy) = dir_vectors[next_dir as usize];
-            let nx = x + dx;
-            let ny = y + dy;
+        // Check 1: Inner/Convex Corner (Pivot)
+        // Check `pos + F` is Land?
+        let fx = x + fdx;
+        let fy = y + fdy;
+        
+        if check_is_land(fx, fy) {
+            // Blocked by land, must turn to follow it.
+            // Stay in current tile, new Land direction is F.
+            l_dir = f_dir;
             
-            // Check if this direction leads to land
-            let neighbor_is_land = if nx < 0 || ny < 0 || nx >= width || ny >= height {
-                true
-            } else {
-                is_land(map_data.get(nx as u32, ny as u32).unwrap_or(TileType::DeepWater))
-            };
-            
-            if neighbor_is_land {
-                // This edge is a coastline, continue tracing
-                if !visited.contains(&(x, y, next_dir)) {
-                    dir = next_dir;
-                    found_next = true;
-                    break;
-                } else if x == start_x && y == start_y && next_dir == start_dir {
-                    // We've completed the loop
-                    return Some(CoastlinePolygon { points });
-                }
-            } else {
-                // Move to the neighboring water tile and adjust direction
-                x = nx;
-                y = ny;
-                // When entering a new tile, we came from the opposite direction
-                dir = (next_dir + 2) % 4;
-                
-                // Find the next coastline edge in this tile
-                for check_turn in turn_order {
-                    let check_dir = (dir + check_turn) % 4;
-                    let (cdx, cdy) = dir_vectors[check_dir as usize];
-                    let cnx = x + cdx;
-                    let cny = y + cdy;
-                    
-                    let check_is_land = if cnx < 0 || cny < 0 || cnx >= width || cny >= height {
-                        true
-                    } else {
-                        is_land(map_data.get(cnx as u32, cny as u32).unwrap_or(TileType::DeepWater))
-                    };
-                    
-                    if check_is_land && !visited.contains(&(x, y, check_dir)) {
-                        dir = check_dir;
-                        found_next = true;
-                        break;
-                    }
-                }
-                if found_next {
-                    break;
-                }
-            }
-        }
-        
-        if !found_next {
-            // Check if we're back at start
-            if x == start_x && y == start_y {
+            // Check loop closure
+            if x == start_x && y == start_y && l_dir == start_dir {
                 return Some(CoastlinePolygon { points });
             }
-            break;
+            continue;
         }
         
-        // Check if we've returned to the start
-        if x == start_x && y == start_y && dir == start_dir && points.len() > 2 {
+        // Check 2: Straight vs Outer Corner
+        // Need to check the diagonal `pos + F + L`
+        let diag_x = x + fdx + ldx;
+        let diag_y = y + fdy + ldy;
+        
+        if check_is_land(diag_x, diag_y) {
+            // Case 2: Straight Edge. 
+            // `pos + F` is Water (from check 1), and `pos + F + L` is Land.
+            // Move to `pos + F`. Land direction unchanged.
+            x = fx;
+            y = fy;
+        } else {
+            // Case 3: Outer/Concave Corner (Wrap).
+            // Both `pos + F` and `pos + F + L` are Water.
+            // We wrap around the corner of the land at `pos + L`.
+            // Move to diagonal `pos + F + L`.
+            x = diag_x;
+            y = diag_y;
+            // Land direction rotates -90 deg (Left) -> (l_dir + 3) % 4
+            l_dir = (l_dir + 3) % 4;
+        }
+        
+        // Check loop closure
+        if x == start_x && y == start_y && l_dir == start_dir {
             return Some(CoastlinePolygon { points });
         }
     }
     
-    // Return partial polygon if we have enough points
+    // If not closed after max iterations, return what we have (shouldn't happen for closed topology)
     if points.len() >= 3 {
         Some(CoastlinePolygon { points })
     } else {
@@ -205,23 +193,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_island() {
-        // Create a 5x5 map with a 3x3 island in the center
-        let mut map = MapData::new(5, 5);
+    fn test_complex_island() {
+        // Create a 10x10 map
+        let mut map = MapData::new(10, 10);
         
-        // Fill center with land
-        for y in 1..4 {
-            for x in 1..4 {
-                map.set(x, y, TileType::Land);
-            }
-        }
+        // Create a 'C' shaped island (concave)
+        // Land at (3,3) to (3,7)
+        for y in 3..=7 { map.set(3, y, TileType::Land); }
+        // Top arm (4,7) to (6,7)
+        for x in 4..=6 { map.set(x, 7, TileType::Land); }
+        // Bottom arm (4,3) to (6,3)
+        for x in 4..=6 { map.set(x, 3, TileType::Land); }
+        
+        // This shape has both convex (outer) and concave (inner) corners
         
         let polygons = extract_contours(&map, 64.0);
         
-        // Should find exactly one polygon (the island coastline)
-        assert_eq!(polygons.len(), 1);
+        // Should find 2 polygons:
+        // 1. The Map Border (since border is treated as land)
+        // 2. The Island coastline
+        assert_eq!(polygons.len(), 2, "Should extract 2 polygons (Board + Island)");
         
-        // Polygon should have multiple points forming a closed loop
-        assert!(polygons[0].points.len() >= 4);
+        // Check island polygon point count
+        // The island polygon should be the one with points within the map (not on border)
+        // or simply check that we have a polygon with the expected complexity
+        let island_poly = polygons.iter().find(|p| p.points.len() < 30).unwrap();
+        assert!(island_poly.points.len() > 10);
     }
 }
