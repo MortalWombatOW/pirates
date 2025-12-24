@@ -5,8 +5,12 @@ use crate::components::hit_flash::HitFlash;
 use crate::components::Ship;
 use crate::events::ShipHitEvent;
 
+/// Bright red flash color for damage feedback.
+/// Using red instead of white because sprites default to white color.
+const FLASH_COLOR: Color = Color::srgb(1.0, 0.3, 0.3);
+
 /// System that triggers hit flash effect when ships take damage.
-/// Immediately sets the sprite to white.
+/// Immediately sets the sprite to bright red.
 pub fn trigger_hit_flash_system(
     mut commands: Commands,
     mut events: EventReader<ShipHitEvent>,
@@ -18,8 +22,8 @@ pub fn trigger_hit_flash_system(
             // Store original color and add flash component
             let original_color = sprite.color;
             
-            // Immediately set sprite to white
-            sprite.color = Color::WHITE;
+            // Immediately set sprite to flash color
+            sprite.color = FLASH_COLOR;
             
             commands.entity(entity).insert(HitFlash::new(
                 HitFlash::DEFAULT_DURATION,
@@ -44,9 +48,9 @@ pub fn update_hit_flash_system(
         // Calculate lerp progress (0 = start of flash, 1 = end)
         let progress = hit_flash.timer.fraction();
 
-        // Lerp from white to original color
-        // At progress 0: full white, at progress 1: original color
-        let lerped = lerp_color(Color::WHITE, hit_flash.original_color, progress);
+        // Lerp from flash color to original color
+        // At progress 0: full flash color, at progress 1: original color
+        let lerped = lerp_color(FLASH_COLOR, hit_flash.original_color, progress);
         sprite.color = lerped;
 
         // Remove component when flash completes
