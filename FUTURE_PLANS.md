@@ -15,6 +15,16 @@ Not to be implemented currently. Must be moved to WORK_PLAN.md when ready.
 - Names of coastal locations were written perpendicular to the coastline, extending inland. The size of the text represents the relative importance of the location. Use the font Quintessential, found at `assets/fonts/Quintessential-Regular.ttf`.
 
 
+### Epic 8.2: Audio Integration
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 8.2.1 | Integrate `bevy_kira_audio` | 1.1.2 | Plugin added, no errors. |
+| [ ] 8.2.2 | Create `AudioPlugin` | 8.2.1 | Manages music and SFX. |
+| [ ] 8.2.3 | Implement scene-based music | 8.2.2, 1.2.2 | Different tracks for Port, High Seas, Combat. |
+| [ ] 8.2.4 | Add placeholder music tracks | 8.2.3 | MP3/OGG files in `assets/audio/music/`. |
+| [ ] 8.2.5 | Implement ambient sounds | 8.2.2 | Layered loops (waves, wind). |
+| [ ] 8.2.6 | Implement SFX triggers | 8.2.2 | Cannon fire, hit, purchase, UI click. |
+| [ ] 8.2.7 | Add placeholder SFX files | 8.2.6 | Files in `assets/audio/sfx/`. |
 
 ## Phase 9: Steam Integration
 ### Epic 9.1: Steamworks
