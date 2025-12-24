@@ -73,6 +73,8 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **State**: Use `App::init_state` and `.run_if(in_state(...))`.
 *   **Input**: For `FixedUpdate` logic, use a "sticky" input buffer pattern.
 *   **2D Physics**: Use `z` coordinate for layering. Use `avian2d` components.
+*   **Collision Deduplication**: Physics engines report multiple collision events per entity pair per frame. When handling collisions that trigger immediate despawn, use `Local<HashSet<Entity>>` to track processed entities and skip duplicates within the same frame.
+*   **Sprite Color**: Sprites default to white (1.0, 1.0, 1.0). When implementing visual effects like flash-on-hit, use a contrasting color (e.g., red) since flashing to white is invisible.
 *   **GPU Particles**: Use `bevy_hanabi` v0.14. Note: `ParticleEffect` does not have `with_spawner()` - particle count is defined in the `EffectAsset` spawner configuration.
 *   **Coastline Geometry**: `CoastlinePolygon` uses CCW winding with "land on left" invariant. Map borders are treated as land to guarantee closed contours.
 *   **Vector UI**: For high-quality vector graphics in UI (e.g. compass), use `bevy_prototype_lyon` with a dedicated `Camera2d` (Order 1, `RenderLayers(1)`). Add `MainCamera` marker to primary camera to resolve input ambiguity.

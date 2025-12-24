@@ -1,12 +1,23 @@
 # Work Log
 
+## 2025-12-24: BUG FIX - Projectile Collision Event Duplication
+*   **Issue**: Physics engine (Avian2D) reports multiple collision events per projectile per frame, causing massive multi-hit damage (12 hits instead of 3).
+*   **Cause**: `despawn_recursive()` is deferred, so projectiles trigger multiple collision events before despawn executes.
+*   **Fix**: Added `Local<HashSet<Entity>>` to `projectile_collision_system` to track processed projectiles per frame.
+*   **Documentation**: This is a common physics engine pattern - always deduplicate collision events when immediate despawn is expected.
+
+## 2025-12-24: BUG FIX - Hit Flash Not Visible
+*   **Issue**: Hit flash effect triggered but wasn't visible.
+*   **Cause**: Sprites default to white color (1.0, 1.0, 1.0) in Bevy. Flashing to white has no visible effect.
+*   **Fix**: Changed `FLASH_COLOR` from white to bright red (`Color::srgb(1.0, 0.3, 0.3)`).
+
 ## 2025-12-24: Task 8.1.7 - Hit Flash on Ship Damage
 *   Created `HitFlash` component in `src/components/hit_flash.rs`:
     *   Stores timer and original sprite color
-    *   Default flash duration: 0.15 seconds
+    *   Default flash duration: 0.3 seconds
 *   Created hit flash systems in `src/systems/hit_flash.rs`:
     *   `trigger_hit_flash_system`: Listens for `ShipHitEvent`, adds `HitFlash` component
-    *   `update_hit_flash_system`: Lerps sprite color from white to original, removes component when done
+    *   `update_hit_flash_system`: Lerps sprite color from red to original, removes component when done
     *   `lerp_color()`: Helper function for SRGBA color interpolation
 *   Registered systems in `CombatPlugin` after projectile collision
 
