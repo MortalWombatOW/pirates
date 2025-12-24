@@ -1,5 +1,17 @@
 # Work Log
 
+## 2025-12-23: Epic 8.5 - Historical Cartography (Tasks 8.5.0-8.5.1)
+*   **8.5.0**: Integrated `bevy_prototype_lyon` v0.13 for vector graphics. Registered `ShapePlugin` in `WorldMapPlugin`.
+*   **8.5.1**: Implemented coastline polygon extraction in `src/utils/geometry.rs`:
+    *   `CoastlinePolygon` struct with CCW-ordered points (land-on-left invariant).
+    *   `extract_contours()` function using Moore-neighbor contour tracing.
+    *   Map borders treated as land to ensure closed polygons.
+    *   `CoastlineData` resource stores extracted polygons.
+    *   `extract_coastlines_system` runs on `Startup` after map generation.
+*   **Design Decisions**:
+    *   CCW winding order ensures consistent normal vectors for waterlining (seaward) and labeling (landward).
+    *   Map border = land convention simplifies edge cases and guarantees closed contours.
+
 ## 2025-12-23: Refine Workflow
 *   **Sync**: Updated `INDEX.md` with 5 new Epic 8.5 files (ink_reveal, typewriter, wake_effects, shader).
 *   **Friction**: bevy_hanabi v0.14 API differs from docs (no `with_spawner` on ParticleEffect).
