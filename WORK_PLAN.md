@@ -444,7 +444,7 @@
 | [x] 8.5.7 | Create `CompassRose` UI component | 1.4.1 | Decorative compass rose renders on screen. |
 | [x] 8.5.7.1 | Make compass rose dynamic | 8.5.7 | Rose implementation uses Overlay Camera (RenderLayers). |
 | [x] 8.5.8 | Create `ScaleBar` UI component | 1.4.1 | "Scale of Miles" bar renders on map. |
-| [ ] 8.5.9 | Make scale bar zoom-responsive | 8.5.8, 1.3.3 | Bar adjusts label/length based on camera zoom. |
+| [x] 8.5.9 | Make scale bar zoom-responsive | 8.5.8, 1.3.3 | Bar adjusts label/length based on camera zoom. |
 | [ ] 8.5.10 | Define `WaterDepth` tile attribute | 3.1.4 | Tilemap stores depth values for water tiles. |
 | [ ] 8.5.11 | Generate depth data from noise | 8.5.10, 3.2.1 | Depth decreases near coastlines (shallow) and increases offshore. |
 | [ ] 8.5.12 | Create stippling shader (Blue Noise) | 8.5.11 | Shader uses noise texture to render dots based on depth. |

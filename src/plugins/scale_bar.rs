@@ -1,14 +1,16 @@
 //! Scale Bar UI component - an authentic 18th-century nautical chart scale.
 //!
-//! Uses Lyon vector graphics rendered via the Overlay Camera (RenderLayer 1).
+//! Uses Lyon vector graphics rendered via the shared Overlay Camera (RenderLayer 1).
 //! Positioned in the bottom-left corner, complementing the Compass Rose in the bottom-right.
+//! The label dynamically updates based on camera zoom level.
 
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::window::PrimaryWindow;
 use bevy_prototype_lyon::prelude::*;
 
-use crate::plugins::core::GameState;
+use crate::plugins::core::{GameState, MainCamera};
+use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT};
 
 pub struct ScaleBarPlugin;
 
@@ -16,17 +18,13 @@ impl Plugin for ScaleBarPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(GameState::HighSeas), spawn_scale_bar)
-            .add_systems(Update, update_scale_bar_position.run_if(in_state(GameState::HighSeas)))
+            .add_systems(Update, (
+                update_scale_bar_position,
+                update_scale_bar_label,
+            ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnExit(GameState::HighSeas), despawn_scale_bar);
     }
 }
-
-// --- Constants ---
-const UI_LAYER: usize = 1;
-
-// Color Constants (matching compass rose palette)
-const COLOR_INK: Color = Color::srgba(0.15, 0.12, 0.08, 1.0);
-const COLOR_PARCHMENT: Color = Color::srgba(0.94, 0.90, 0.78, 1.0);
 
 // Geometry Constants
 const BAR_WIDTH: f32 = 150.0;
@@ -37,11 +35,17 @@ const END_CAP_HEIGHT: f32 = 14.0;
 // Offset from bottom-left corner
 const MARGIN: Vec2 = Vec2::new(100.0, 60.0);
 
+// Scale conversion: 1 tile = 16px, assume 1 tile ≈ 1 nautical mile
+const PIXELS_PER_MILE: f32 = 16.0;
+
 #[derive(Component)]
 pub struct ScaleBar;
 
 #[derive(Component)]
 pub struct ScaleBarRoot;
+
+#[derive(Component)]
+pub struct ScaleBarLabel;
 
 fn spawn_scale_bar(
     mut commands: Commands,
@@ -65,11 +69,8 @@ fn spawn_scale_bar(
         Name::new("Scale Bar Root"),
         ScaleBar,
         ScaleBarRoot,
-        SpatialBundle {
-            transform: Transform::from_translation(initial_pos),
-            visibility: Visibility::Inherited,
-            ..default()
-        },
+        Transform::from_translation(initial_pos),
+        Visibility::Inherited,
         RenderLayers::layer(UI_LAYER),
     )).id();
 
@@ -137,10 +138,10 @@ fn spawn_scale_bar(
         )).set_parent(root);
     }
 
-    // "SCALE OF MILES" label
+    // Dynamic label (will be updated by update_scale_bar_label system)
     let font = asset_server.load("fonts/Quintessential-Regular.ttf");
     commands.spawn((
-        Text2d::new("SCALE OF MILES"),
+        Text2d::new("10 MILES"),
         TextFont {
             font,
             font_size: 12.0,
@@ -149,6 +150,7 @@ fn spawn_scale_bar(
         TextColor(COLOR_INK),
         Transform::from_xyz(0.0, BAR_HEIGHT / 2.0 + 10.0, 0.3),
         ScaleBar,
+        ScaleBarLabel,
         RenderLayers::layer(UI_LAYER),
     )).set_parent(root);
 
@@ -168,6 +170,49 @@ fn update_scale_bar_position(
     
     transform.translation.x = -half_w + MARGIN.x + BAR_WIDTH / 2.0;
     transform.translation.y = -half_h + MARGIN.y;
+}
+
+/// Updates the scale bar label based on the main camera's zoom level.
+fn update_scale_bar_label(
+    camera_query: Query<&OrthographicProjection, (With<MainCamera>, Changed<OrthographicProjection>)>,
+    mut label_query: Query<&mut Text2d, With<ScaleBarLabel>>,
+) {
+    let Ok(projection) = camera_query.get_single() else { return; };
+    let Ok(mut text) = label_query.get_single_mut() else { return; };
+
+    // Calculate world distance the bar represents at current zoom
+    let world_width = BAR_WIDTH * projection.scale;
+    let miles = world_width / PIXELS_PER_MILE;
+    
+    // Round to nice values for readability
+    let nice_miles = round_to_nice_value(miles);
+    
+    // Update label text
+    if nice_miles >= 1.0 {
+        text.0 = format!("{} MILES", nice_miles as i32);
+    } else {
+        text.0 = format!("{:.1} MILES", nice_miles);
+    }
+}
+
+/// Rounds a value to a "nice" number for display (1, 2, 5, 10, 20, 50, etc.)
+fn round_to_nice_value(value: f32) -> f32 {
+    if value <= 0.0 { return 1.0; }
+    
+    let magnitude = 10_f32.powf(value.log10().floor());
+    let normalized = value / magnitude;
+    
+    let nice = if normalized < 1.5 {
+        1.0
+    } else if normalized < 3.5 {
+        2.0
+    } else if normalized < 7.5 {
+        5.0
+    } else {
+        10.0
+    };
+    
+    nice * magnitude
 }
 
 fn despawn_scale_bar(mut commands: Commands, query: Query<Entity, With<ScaleBar>>) {

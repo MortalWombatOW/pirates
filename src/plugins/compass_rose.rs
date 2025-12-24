@@ -1,18 +1,15 @@
 //! Compass Rose UI component - a traditional 32-point wind rose.
 //!
-//! Uses Lyon vector graphics rendered via a dedicated Overlay Camera (RenderLayer 1).
-//! This ensures the compass is:
-//! 1. Vector quality (not rasterized)
-//! 2. Completely stable (immune to main camera zoom/move jitter)
-//! 3. Properly positioned in the corner
+//! Uses Lyon vector graphics rendered via the shared Overlay Camera (RenderLayer 1).
+//! Positioned in the bottom-right corner.
 
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::render::camera::ClearColorConfig;
 use bevy_prototype_lyon::prelude::*;
-use bevy::window::{PrimaryWindow, WindowResized};
+use bevy::window::PrimaryWindow;
 
 use crate::plugins::core::GameState;
+use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT, COLOR_GOLD, COLOR_GOLD_DARK, COLOR_GREEN, COLOR_RED};
 
 pub struct CompassRosePlugin;
 
@@ -24,17 +21,6 @@ impl Plugin for CompassRosePlugin {
             .add_systems(OnExit(GameState::HighSeas), despawn_compass_rose);
     }
 }
-
-// --- Constants ---
-const UI_LAYER: usize = 1;
-
-// Color Constants
-const COLOR_PRINCIPAL: Color = Color::srgba(0.79, 0.64, 0.15, 1.0);
-const COLOR_PRINCIPAL_DARK: Color = Color::srgba(0.15, 0.12, 0.08, 1.0);
-const COLOR_HALF_WIND: Color = Color::srgba(0.18, 0.35, 0.24, 1.0);
-const COLOR_QUARTER_WIND: Color = Color::srgba(0.69, 0.19, 0.19, 1.0);
-const COLOR_PARCHMENT: Color = Color::srgba(0.94, 0.90, 0.78, 1.0);
-const COLOR_INK: Color = Color::srgba(0.15, 0.12, 0.08, 1.0);
 
 // Geometry Constants
 const OUTER_RING_RADIUS: f32 = 55.0;
@@ -56,30 +42,11 @@ pub struct CompassRose;
 #[derive(Component)]
 pub struct CompassRoseRoot;
 
-#[derive(Component)]
-pub struct CompassOverlayCamera;
-
 fn spawn_compass_rose(
     mut commands: Commands,
     window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
-    // 1. Spawn Overlay Camera
-    // Renders ONLY layer 1, on top of main camera (order 1), with transparent background
-    commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: 1, // Render after main camera (0)
-                clear_color: ClearColorConfig::None,
-                ..default()
-            },
-            ..default()
-        },
-        RenderLayers::layer(UI_LAYER),
-        CompassOverlayCamera,
-        CompassRose, // To be despawned on exit
-    ));
-
-    // 2. Calculate initial position (bottom-right)
+    // Calculate initial position (bottom-right)
     let mut initial_pos = Vec3::new(0.0, 0.0, 0.0);
     if let Ok(window) = window_query.get_single() {
         let half_w = window.width() / 2.0;
@@ -91,17 +58,14 @@ fn spawn_compass_rose(
         );
     }
 
-    // 3. Spawn Compass Root
+    // Spawn Compass Root
     let root = commands.spawn((
         Name::new("Compass Rose Root"),
         CompassRose,
         CompassRoseRoot,
-        SpatialBundle {
-            transform: Transform::from_translation(initial_pos).with_scale(Vec3::splat(0.7)),
-            visibility: Visibility::Inherited,
-            ..default()
-        },
-        RenderLayers::layer(UI_LAYER), // Important!
+        Transform::from_translation(initial_pos).with_scale(Vec3::splat(0.7)),
+        Visibility::Inherited,
+        RenderLayers::layer(UI_LAYER),
     )).id();
 
     // --- Draw Compass Components ---
@@ -133,7 +97,7 @@ fn spawn_compass_rose(
 
             // Handle alternating colors for principal winds
             let final_color = if count == 8 && offset_deg == 0.0 {
-                 if i % 2 == 0 { COLOR_PRINCIPAL } else { COLOR_PRINCIPAL_DARK }
+                 if i % 2 == 0 { COLOR_GOLD } else { COLOR_GOLD_DARK }
             } else {
                 color
             };
@@ -149,11 +113,11 @@ fn spawn_compass_rose(
     };
 
     // Quarter-Winds (Red)
-    helper(16, QUARTER_WIND_LENGTH, QUARTER_WIND_WIDTH, COLOR_QUARTER_WIND, 0.2, 11.25);
+    helper(16, QUARTER_WIND_LENGTH, QUARTER_WIND_WIDTH, COLOR_RED, 0.2, 11.25);
     // Half-Winds (Green)
-    helper(8, HALF_WIND_LENGTH, HALF_WIND_WIDTH, COLOR_HALF_WIND, 0.3, 22.5);
+    helper(8, HALF_WIND_LENGTH, HALF_WIND_WIDTH, COLOR_GREEN, 0.3, 22.5);
     // Principal Winds (Gold/Black)
-    helper(8, PRINCIPAL_LENGTH, PRINCIPAL_WIDTH, COLOR_PRINCIPAL, 0.4, 0.0);
+    helper(8, PRINCIPAL_LENGTH, PRINCIPAL_WIDTH, COLOR_GOLD, 0.4, 0.0);
 
     // Center Circle
     let center_circle = shapes::Circle { radius: CENTER_RADIUS, center: Vec2::ZERO };
@@ -170,14 +134,13 @@ fn spawn_compass_rose(
     // Cross
     spawn_cross(&mut commands, root, Vec2::new(OUTER_RING_RADIUS + 8.0, 0.0), 0.6);
 
-    info!("Spawned Compass Rose (Overlay Mode)");
+    info!("Spawned Compass Rose");
 }
 
 /// Helper for Fleur-de-lis spawning with RenderLayer
 fn spawn_fleur_de_lis(commands: &mut Commands, parent: Entity, position: Vec2, z: f32) {
     let scale = 0.8;
     let mut path = PathBuilder::new();
-    // ... curve geometry ...
     // Central petal
     path.move_to(Vec2::new(0.0, 0.0) * scale + position);
     path.cubic_bezier_to(Vec2::new(-4.0, 8.0) * scale + position, Vec2::new(-3.0, 14.0) * scale + position, Vec2::new(0.0, 18.0) * scale + position);
@@ -199,7 +162,7 @@ fn spawn_fleur_de_lis(commands: &mut Commands, parent: Entity, position: Vec2, z
 
     commands.spawn((
         ShapeBundle { path: path.build(), transform: Transform::from_xyz(0.0, 0.0, z), ..default() },
-        Fill::color(COLOR_PRINCIPAL),
+        Fill::color(COLOR_GOLD),
         Stroke::new(COLOR_INK, 0.8),
         CompassRose,
         RenderLayers::layer(UI_LAYER),
@@ -251,5 +214,3 @@ fn despawn_compass_rose(mut commands: Commands, query: Query<Entity, With<Compas
         commands.entity(entity).despawn_recursive();
     }
 }
-
-
