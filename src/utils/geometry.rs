@@ -188,9 +188,98 @@ fn is_land(tile: TileType) -> bool {
     matches!(tile, TileType::Land | TileType::Sand | TileType::Port)
 }
 
+/// Number of subdivisions per segment (higher = smoother but more vertices)
+pub const COASTLINE_SUBDIVISIONS: usize = 4;
+/// Spline tension (0.0 = Catmull-Rom/Smooth, 1.0 = Linear/Sharp)
+pub const COASTLINE_TENSION: f32 = 0.0;
+
+/// Smooths a coastline polygon using Cardinal Splines.
+/// 
+/// Uses the constants `COASTLINE_SUBDIVISIONS` and `COASTLINE_TENSION` for configuration.
+/// 
+/// # Arguments
+/// * `points` - The original closed loop of points.
+/// 
+/// Returns a new vector of points defining the smoothed loop.
+pub fn smooth_coastline(points: &[Vec2]) -> Vec<Vec2> {
+    if points.len() < 3 || COASTLINE_SUBDIVISIONS == 0 {
+        return points.to_vec();
+    }
+
+    let mut smoothed = Vec::with_capacity(points.len() * COASTLINE_SUBDIVISIONS);
+    let len = points.len();
+
+    // Cardinal Spline parameter s = (1 - t) / 2
+    let s = (1.0 - COASTLINE_TENSION) / 2.0;
+
+    // Iterate through all segments of the closed loop
+    for i in 0..len {
+        // We interpolate between P1 (i) and P2 (i+1)
+        // using P0 (i-1) and P3 (i+2) as control points
+        
+        let p0 = points[(i + len - 1) % len];
+        let p1 = points[i];
+        let p2 = points[(i + 1) % len];
+        let p3 = points[(i + 2) % len];
+
+        for step in 0..COASTLINE_SUBDIVISIONS {
+            let t = step as f32 / COASTLINE_SUBDIVISIONS as f32;
+            let t2 = t * t;
+            let t3 = t2 * t;
+
+            // Identity: 1
+            // t: s(p2 - p0)
+            // t^2: 2sp0 + (s-3)p1 + (3-2s)p2 - sp3
+            // t^3: -sp0 + (2-s)p1 + (s-2)p2 + sp3
+            
+            // Group coefficients by point:
+            // P0: -s*t^3 + 2s*t^2 - s*t
+            // P1: (2-s)*t^3 + (s-3)*t^2 + 1
+            // P2: (s-2)*t^3 + (3-2s)*t^2 + s*t
+            // P3: s*t^3 - s*t^2
+
+            // Polynomial Basis:
+            let h0 = -s * t3 + 2.0 * s * t2 - s * t; // Coeff for P0
+            let h1 = (2.0 - s) * t3 + (s - 3.0) * t2 + 1.0; // Coeff for P1
+            let h2 = (s - 2.0) * t3 + (3.0 - 2.0 * s) * t2 + s * t; // Coeff for P2
+            let h3 = s * t3 - s * t2; // Coeff for P3
+            
+            let x = p0.x * h0 + p1.x * h1 + p2.x * h2 + p3.x * h3;
+            let y = p0.y * h0 + p1.y * h1 + p2.y * h2 + p3.y * h3;
+            
+            smoothed.push(Vec2::new(x, y));
+        }
+    }
+
+    smoothed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_catmull_rom_smoothing() {
+        // Square
+        let points = vec![
+             Vec2::new(0.0, 0.0),
+             Vec2::new(10.0, 0.0),
+             Vec2::new(10.0, 10.0),
+             Vec2::new(0.0, 10.0),
+        ];
+
+        let smoothed = smooth_coastline(&points);
+
+        // Should have original_len * subdivisions points
+        assert_eq!(smoothed.len(), 4 * COASTLINE_SUBDIVISIONS);
+        
+        // First point should match original start (t=0 => h1=1, others=0)
+        // With floats, we expect approx equal
+        let start = smoothed[0];
+        assert!((start.x - points[0].x).abs() < 0.001);
+        assert!((start.y - points[0].y).abs() < 0.001);
+    }
+
 
     #[test]
     fn test_complex_island() {

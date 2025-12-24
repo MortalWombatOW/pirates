@@ -955,10 +955,20 @@ fn extract_coastlines_system(
     map_data: Res<MapData>,
     mut coastline_data: ResMut<CoastlineData>,
 ) {
-    let polygons = extract_contours(&map_data, COASTLINE_TILE_SIZE);
+    let raw_polygons = extract_contours(&map_data, COASTLINE_TILE_SIZE);
     
+    // Apply smoothing
+    use crate::utils::geometry::smooth_coastline;
+    let polygons: Vec<CoastlinePolygon> = raw_polygons
+        .into_iter()
+        .filter(|poly| poly.points.len() >= 3)
+        .map(|poly| CoastlinePolygon {
+            points: smooth_coastline(&poly.points), // Uses COASTLINE_SUBDIVISIONS/TENSION constants
+        })
+        .collect();
+
     info!(
-        "Extracted {} coastline polygons with {} total points",
+        "Extracted {} coastline polygons with {} total points (smoothed)",
         polygons.len(),
         polygons.iter().map(|p| p.points.len()).sum::<usize>()
     );
