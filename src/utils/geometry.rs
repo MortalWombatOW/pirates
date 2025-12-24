@@ -92,9 +92,9 @@ fn trace_contour(
     // Direction vectors: 0=N(+Y), 1=E(+X), 2=S(-Y), 3=W(-X)
     let dir_vectors: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
     
-    // Edge midpoints relative to tile corner (0,0) for each direction
-    // N edge: (0.5, 1.0), E edge: (1.0, 0.5), S edge: (0.5, 0.0), W edge: (0.0, 0.5)
-    let edge_midpoints: [(f32, f32); 4] = [(0.5, 1.0), (1.0, 0.5), (0.5, 0.0), (0.0, 0.5)];
+    // Edge midpoints relative to tile center (0,0) for each direction
+    // N edge: (0.0, 0.5), E edge: (0.5, 0.0), S edge: (0.0, -0.5), W edge: (-0.5, 0.0)
+    let edge_midpoints: [(f32, f32); 4] = [(0.0, 0.5), (0.5, 0.0), (0.0, -0.5), (-0.5, 0.0)];
     
     let max_iterations = (width * height * 8) as usize; // Safety limit
     
