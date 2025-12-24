@@ -1172,3 +1172,8 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
     *   Ensures consistent vector quality at all zoom levels.
     *   Decouples UI positioning from world camera transform.
 *   **Fix**: Resolved input ambiguity (click-through issue) by adding `MainCamera` marker component to the primary world camera.
+
+## 2025-12-23: Phase 8 - Refine
+*   **Sync**: Updated `INDEX.md` to include `src/plugins/compass_rose.rs`.
+*   **Retrospective**: Identified that adding an Overlay Camera inherently introduces input ambiguity for world-space queries (clicks, mouse position).
+*   **Evolution**: Documented the "Vector UI / Overlay Camera" architectural pattern in `AGENT.md`, specifically noting the need for a `MainCamera` marker component to disambiguate input handling.
