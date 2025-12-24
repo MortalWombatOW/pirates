@@ -32,6 +32,10 @@
 | `src/systems/navigation.rs` | Pathfinding (Theta*), Clicking | Fixing movement bugs or path smoothing. |
 | `src/systems/ink_reveal.rs` | `spawn_ink_reveals`, `animate_ink_reveals` | Fog-of-war fade animation. |
 | `src/systems/wake_effects.rs` | Ship wake particles, damage splatter | GPU particle effects (bevy_hanabi). |
+| `src/systems/camera.rs` | `camera_shake_system`, trauma-based shake | Screen shake on cannon fire. |
+| `src/systems/hit_flash.rs` | `trigger_hit_flash_system`, color lerp | Ship sprite flash on damage. |
+| `src/components/camera.rs` | `CameraShake` component | Camera shake trauma/decay state. |
+| `src/components/hit_flash.rs` | `HitFlash` component | Hit flash timer and original color. |
 | `src/resources/map_data.rs` | Tile grid, Navigability checks | Changing how the map is stored/accessed. |
 | `src/utils/pathfinding.rs` | A*/Theta* algorithms | Optimizing pathfinding or LOS checks. |
 
