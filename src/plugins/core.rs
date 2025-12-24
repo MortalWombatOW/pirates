@@ -35,6 +35,7 @@ impl Plugin for CorePlugin {
                 init_meta_profile,
                 check_archetype_unlocks.after(init_meta_profile),
             ))
+            .insert_resource(ClearColor(Color::srgba(0.94, 0.9, 0.78, 1.0))) // Parchment background
             .add_systems(Update, (
                 debug_state_transitions,
                 log_state_transitions,
