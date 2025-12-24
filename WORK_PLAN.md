@@ -394,7 +394,7 @@
 | [x] 8.1.4 | Style UI panels with parchment texture | 8.1.3, 1.4.1 | Egui panels have parchment bg. |
 | [x] 8.1.5 | Add scroll/dagger decorations to UI | 8.1.4 | Decorative elements on panels. |
 | [x] 8.1.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
-| [ ] 8.1.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
+| [x] 8.1.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
 | [ ] 8.1.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
 
 ### Epic 8.2: The Weathered Document (Paper Physicality)

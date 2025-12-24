@@ -27,6 +27,7 @@ use crate::systems::{
     ShipPhysicsConfig,
 };
 use crate::systems::camera::{camera_shake_system, trigger_camera_shake_on_fire};
+use crate::systems::hit_flash::{trigger_hit_flash_system, update_hit_flash_system};
 use crate::resources::CannonState;
 
 /// Plugin that manages all combat-related systems.
@@ -85,6 +86,9 @@ impl Plugin for CombatPlugin {
                 // Camera shake visual effects
                 trigger_camera_shake_on_fire,
                 camera_shake_system.after(trigger_camera_shake_on_fire),
+                // Hit flash visual effects
+                trigger_hit_flash_system.after(projectile_collision_system),
+                update_hit_flash_system.after(trigger_hit_flash_system),
             ).run_if(in_state(GameState::Combat)),
         );
 

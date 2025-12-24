@@ -1,5 +1,15 @@
 # Work Log
 
+## 2025-12-24: Task 8.1.7 - Hit Flash on Ship Damage
+*   Created `HitFlash` component in `src/components/hit_flash.rs`:
+    *   Stores timer and original sprite color
+    *   Default flash duration: 0.15 seconds
+*   Created hit flash systems in `src/systems/hit_flash.rs`:
+    *   `trigger_hit_flash_system`: Listens for `ShipHitEvent`, adds `HitFlash` component
+    *   `update_hit_flash_system`: Lerps sprite color from white to original, removes component when done
+    *   `lerp_color()`: Helper function for SRGBA color interpolation
+*   Registered systems in `CombatPlugin` after projectile collision
+
 ## 2025-12-24: Task 8.1.6 - Screen Shake on Cannon Fire
 *   Created `CameraShake` component in `src/components/camera.rs`:
     *   Trauma-based intensity system (shake intensity = trauma²)
