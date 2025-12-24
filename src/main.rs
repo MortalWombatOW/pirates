@@ -40,7 +40,7 @@ fn main() {
         .add_plugins(CompanionPlugin)
         .add_plugins(MainMenuPlugin)
         .add_plugins(PersistencePlugin)
-        .add_plugins(GraphicsPlugin)
+        // .add_plugins(GraphicsPlugin) // Disabled to test raw rendering
         // Particle effect systems (8.5)
         .add_systems(Startup, (setup_wake_effects, setup_splatter_effects))
         .add_systems(

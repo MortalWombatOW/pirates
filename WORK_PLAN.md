@@ -397,49 +397,34 @@
 | [ ] 8.1.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
 | [ ] 8.1.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
 
-### Epic 8.2: Audio Integration
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 8.2.1 | Integrate `bevy_kira_audio` | 1.1.2 | Plugin added, no errors. |
-| [ ] 8.2.2 | Create `AudioPlugin` | 8.2.1 | Manages music and SFX. |
-| [ ] 8.2.3 | Implement scene-based music | 8.2.2, 1.2.2 | Different tracks for Port, High Seas, Combat. |
-| [ ] 8.2.4 | Add placeholder music tracks | 8.2.3 | MP3/OGG files in `assets/audio/music/`. |
-| [ ] 8.2.5 | Implement ambient sounds | 8.2.2 | Layered loops (waves, wind). |
-| [ ] 8.2.6 | Implement SFX triggers | 8.2.2 | Cannon fire, hit, purchase, UI click. |
-| [ ] 8.2.7 | Add placeholder SFX files | 8.2.6 | Files in `assets/audio/sfx/`. |
-
-### Epic 8.3: The Weathered Document (Paper Physicality)
+### Epic 8.2: The Weathered Document (Paper Physicality)
 > Make the screen feel like a physical piece of aged parchment.
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [x] 8.3.1 | Add paper texture to post-process shader | 8.1.2 | Shader samples `parchment.png` overlay. |
-| [x] 8.3.2 | Implement vignette darkening | 8.3.1 | Screen edges darken like aged paper. |
-| [x] 8.3.3 | Add procedural paper grain noise | 8.3.1 | Subtle fiber texture via FBM noise. |
-| [ ] 8.3.4 | Implement ink feathering/absorption | 8.3.1 | Dark edges slightly fuzzy, not crisp. |
-| [ ] 8.3.5 | Add procedural stain spots | 8.3.3 | Coffee/foxing stains via Voronoi noise. |
-| [ ] 8.3.6 | Implement fold crease overlay | 8.3.1 | Subtle fold lines with shadow. |
-| [ ] 8.3.7 | Create torn edge frame (UI) | 8.3.1 | Screen border has torn paper look. |
+| [x] 8.2.1 | Add paper texture to post-process shader | 8.1.2 | Shader samples `parchment.png` overlay. |
+| [x] 8.2.2 | Implement vignette darkening | 8.2.1 | Screen edges darken like aged paper. |
+| [x] 8.2.3 | Add procedural paper grain noise | 8.2.1 | Subtle fiber texture via FBM noise. |
 
-### Epic 8.4: The Cartographer's Sketch (Edge Detection)
+### Epic 8.3: The Cartographer's Sketch (Edge Detection)
 > Make everything look hand-drawn with quill and ink.
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [x] 8.4.1 | Implement Sobel edge detection | 8.1.2 | Shader extracts edges from scene. |
-| [x] 8.4.2 | Render edges as ink strokes | 8.4.1 | Edges drawn in ink color, fill muted. |
-| [x] 8.4.3 | Add line wobble displacement | 8.4.2 | Edges have hand-drawn imperfection. |
-| [x] 8.4.4 | Implement variable line weight | 8.4.2 | Important edges thicker than details. |
-| [x] 8.4.5 | Add crosshatch shading for shadows | 8.4.1 | Dark areas show crosshatch pattern. |
+| [x] 8.3.1 | Implement Sobel edge detection | 8.1.2 | Shader extracts edges from scene. |
+| [x] 8.3.2 | Render edges as ink strokes | 8.3.1 | Edges drawn in ink color, fill muted. |
+| [x] 8.3.3 | Add line wobble displacement | 8.3.2 | Edges have hand-drawn imperfection. |
+| [x] 8.3.4 | Implement variable line weight | 8.3.2 | Important edges thicker than details. |
+| [x] 8.3.5 | Add crosshatch shading for shadows | 8.3.1 | Dark areas show crosshatch pattern. |
 
-### Epic 8.5: Living Ink (Dynamic Fluid Effects)
+### Epic 8.4: Living Ink (Dynamic Fluid Effects)
 > Make the ink feel alive and responsive.
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [x] 8.5.1 | Create `InkReveal` component | 3.3.1 | Tracks reveal animation progress. |
-| [x] 8.5.2 | Implement fog reveal ink animation | 8.5.1 | New areas "draw in" with spreading ink. |
-| [x] 8.5.3 | Add ship wake ink trails | 2.3.1 | Ships leave fading ink strokes. |
-| [x] 8.5.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
-| [x] 8.5.5 | Add water area ink wash effect | 8.3.1 | Ocean has watercolor bleeding at edges. |
-| [x] 8.5.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |
+| [x] 8.4.1 | Create `InkReveal` component | 3.3.1 | Tracks reveal animation progress. |
+| [x] 8.4.2 | Implement fog reveal ink animation | 8.4.1 | New areas "draw in" with spreading ink. |
+| [x] 8.4.3 | Add ship wake ink trails | 2.3.1 | Ships leave fading ink strokes. |
+| [x] 8.4.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
+| [x] 8.4.5 | Add water area ink wash effect | 8.2.1 | Ocean has watercolor bleeding at edges. |
+| [x] 8.4.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |

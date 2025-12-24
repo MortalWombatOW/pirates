@@ -4,8 +4,20 @@ use bevy_egui::{egui, EguiContexts};
 use crate::plugins::core::GameState;
 use crate::resources::{Wind, WorldClock, MapData};
 use crate::components::{Ship, AI, Health, Order, OrderQueue, FactionId, Faction};
-use crate::plugins::worldmap::HighSeasAI;
+use crate::plugins::worldmap::{HighSeasAI, WorldMap, FogMap};
 use crate::utils::pathfinding::tile_to_world;
+
+/// Resource to track debug visibility toggles.
+#[derive(Resource)]
+pub struct DebugToggles {
+    pub show_tilemap: bool,
+}
+
+impl Default for DebugToggles {
+    fn default() -> Self {
+        Self { show_tilemap: true }
+    }
+}
 
 pub struct DebugUiPlugin;
 
@@ -15,10 +27,32 @@ impl Plugin for DebugUiPlugin {
             app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         }
         
-        app.add_systems(Update, (
-            debug_panel,
-            spawn_scale_test_ships.run_if(in_state(GameState::HighSeas)),
-        ));
+        app.init_resource::<DebugToggles>()
+            .add_systems(Update, (
+                debug_panel,
+                apply_tilemap_visibility,
+                spawn_scale_test_ships.run_if(in_state(GameState::HighSeas)),
+            ));
+    }
+}
+
+/// Applies tilemap visibility based on DebugToggles resource.
+fn apply_tilemap_visibility(
+    toggles: Res<DebugToggles>,
+    mut tilemap_query: Query<&mut Visibility, Or<(With<WorldMap>, With<FogMap>)>>,
+) {
+    if !toggles.is_changed() {
+        return;
+    }
+    
+    let visibility = if toggles.show_tilemap {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
+    
+    for mut vis in &mut tilemap_query {
+        *vis = visibility;
     }
 }
 
@@ -30,6 +64,7 @@ fn debug_panel(
     wind: Option<Res<Wind>>,
     world_clock: Res<WorldClock>,
     ship_query: Query<Entity, With<Ship>>,
+    mut toggles: ResMut<DebugToggles>,
 ) {
     egui::Window::new("Debug Panel").show(contexts.ctx_mut(), |ui| {
         ui.label(format!("Current State: {:?}", state.get()));
@@ -60,6 +95,11 @@ fn debug_panel(
             ));
             ui.label(format!("Strength: {:.0}%", wind.strength * 100.0));
         }
+
+        // Visibility toggles
+        ui.separator();
+        ui.heading("Visibility");
+        ui.checkbox(&mut toggles.show_tilemap, "Show Tilemap");
 
         ui.separator();
         ui.heading("State Transitions");

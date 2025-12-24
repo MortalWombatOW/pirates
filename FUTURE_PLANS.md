@@ -1,6 +1,20 @@
 # Future Plans
 Not to be implemented currently. Must be moved to WORK_PLAN.md when ready.
 
+# Phase X: Graphics revamp for historical fidelity
+### Epic X.2 Features (TBD how to organize/decompose into tasks)
+- compass rose ui element, dynamic, need more detail on design
+- scale of miles
+- coastal outline is one of the primary data layers
+  - first extract the coastline from the tiles, make sure they are closed or hit the border of the map so that they are orientable (we know what side is sea and what side is land). Convert to a polygon
+  - smooth with catmull rom splines
+  - add waterlining to the coastline to visually distinguish between land and sea by drawing a series of lines parallel to the coastline:
+    - shape is established by taking the coastline and extruding it outwards by a fixed distance
+    - there are three lines total, each one is farther away and lighter in color than the last
+- stippling shallow water - many tiny dots can be used to indicate shallow water - need to figure out how to smoothly interpolate on density of dots based on the depth of the water
+- Names of coastal locations were written perpendicular to the coastline, extending inland. The size of the text represents the relative importance of the location. Use the font Quintessential, found at `assets/fonts/Quintessential-Regular.ttf`.
+
+
 
 ## Phase 9: Steam Integration
 ### Epic 9.1: Steamworks
