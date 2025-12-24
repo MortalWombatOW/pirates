@@ -16,7 +16,7 @@ use crate::systems::{
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
-use crate::utils::geometry::{extract_contours, CoastlinePolygon};
+use crate::utils::geometry::{extract_contours, CoastlinePolygon, offset_polygon};
 use crate::events::CombatTriggeredEvent;
 
 /// Plugin managing the world map tilemap for the High Seas view.
@@ -981,6 +981,11 @@ const COASTLINE_INK_COLOR: Color = Color::srgba(0.2, 0.15, 0.1, 0.8);
 /// Stroke width for coastline lines
 const COASTLINE_STROKE_WIDTH: f32 = 2.0;
 
+/// Number of decorative waterlines to draw around coastlines
+const WATERLINE_COUNT: usize = 3;
+/// Distance between waterlines in world units
+const WATERLINE_SPACING: f32 = 10.0;
+
 /// Spawns Lyon shape entities for each coastline polygon.
 /// Runs when entering HighSeas state.
 fn spawn_coastline_shapes(
@@ -1000,24 +1005,16 @@ fn spawn_coastline_shapes(
             continue;
         }
 
-        // Build a path from the polygon points
+        // --- 1. Spawn Main Coastline ---
         let mut path_builder = PathBuilder::new();
-        
-        // Move to first point
         let first = polygon.points[0];
         path_builder.move_to(Vec2::new(first.x, first.y));
-        
-        // Line to each subsequent point
         for point in polygon.points.iter().skip(1) {
             path_builder.line_to(Vec2::new(point.x, point.y));
         }
-        
-        // Close the path back to start
         path_builder.close();
-        
         let path = path_builder.build();
 
-        // Spawn the shape entity
         commands.spawn((
             CoastlineShape,
             ShapeBundle {
@@ -1027,11 +1024,55 @@ fn spawn_coastline_shapes(
             },
             Stroke::new(COASTLINE_INK_COLOR, COASTLINE_STROKE_WIDTH),
         ));
-
         shapes_spawned += 1;
+
+        // --- 2. Spawn Waterlines (Ripples) ---
+        // Cascade: each waterline offsets from the previous one
+        let mut current_points = polygon.points.clone();
+        
+        for i in 1..=WATERLINE_COUNT {
+            // Offset from previous waterline (not original)
+            let offset_points = offset_polygon(&current_points, WATERLINE_SPACING);
+            
+            if offset_points.len() < 3 {
+                break; // Polygon collapsed, stop spawning more waterlines
+            }
+
+            // Build path for waterline
+            let mut wb = PathBuilder::new();
+            let p0 = offset_points[0];
+            wb.move_to(Vec2::new(p0.x, p0.y));
+            for p in offset_points.iter().skip(1) {
+                wb.line_to(Vec2::new(p.x, p.y));
+            }
+            wb.close();
+            let water_path = wb.build();
+
+            // Calculate fading color and width
+            // Alpha decreases: 0.4 -> 0.27 -> 0.2
+            let alpha = 0.5 / (i as f32 + 0.2); 
+            let color = Color::srgba(0.2, 0.15, 0.1, alpha);
+            // Width decreases slightly
+            let width = (COASTLINE_STROKE_WIDTH - (i as f32 * 0.4)).max(0.5);
+
+            commands.spawn((
+                CoastlineShape, // Managed by same cleanup/toggle system
+                ShapeBundle {
+                    path: water_path,
+                    // Slightly lower z-index for each successive line
+                    transform: Transform::from_xyz(0.0, 0.0, -8.1 - (i as f32 * 0.01)), 
+                    ..default()
+                },
+                Stroke::new(color, width),
+            ));
+            shapes_spawned += 1;
+            
+            // Update for next iteration
+            current_points = offset_points;
+        }
     }
 
-    info!("Spawned {} coastline shape entities", shapes_spawned);
+    info!("Spawned {} coastline shape entities (including waterlines)", shapes_spawned);
 }
 
 /// Despawns all coastline shape entities when leaving HighSeas.
@@ -1067,4 +1108,3 @@ fn coastline_visibility_system(
         *vis = visibility;
     }
 }
-

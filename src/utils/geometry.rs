@@ -266,6 +266,151 @@ pub fn smooth_coastline(points: &[Vec2]) -> Vec<Vec2> {
     smoothed
 }
 
+/// Computes the intersection point of two line segments if they cross.
+/// Returns None if segments don't intersect or are collinear.
+fn line_intersect(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2) -> Option<Vec2> {
+    let d1 = a2 - a1;
+    let d2 = b2 - b1;
+    
+    let cross = d1.x * d2.y - d1.y * d2.x;
+    
+    // Parallel or collinear
+    if cross.abs() < 1e-10 {
+        return None;
+    }
+    
+    let delta = b1 - a1;
+    let t = (delta.x * d2.y - delta.y * d2.x) / cross;
+    let u = (delta.x * d1.y - delta.y * d1.x) / cross;
+    
+    // Check if intersection is within both segments (exclusive of endpoints to avoid corner issues)
+    if t > 0.001 && t < 0.999 && u > 0.001 && u < 0.999 {
+        Some(a1 + d1 * t)
+    } else {
+        None
+    }
+}
+
+/// Removes self-intersections from a polygon by detecting edge crossings
+/// and keeping only the outer boundary.
+/// 
+/// Algorithm:
+/// 1. Scan all edge pairs for intersections
+/// 2. When an intersection is found, "skip" the looped section
+/// 3. Continue building the result from the other side of the loop
+fn remove_self_intersections(points: &[Vec2]) -> Vec<Vec2> {
+    if points.len() < 4 {
+        return points.to_vec();
+    }
+
+    let n = points.len();
+    let mut result = Vec::new();
+    let mut i = 0;
+    let mut visited = vec![false; n];
+    
+    // Maximum iterations to prevent infinite loops
+    let max_iter = n * 2;
+    let mut iter_count = 0;
+    
+    while i < n && iter_count < max_iter {
+        iter_count += 1;
+        
+        if visited[i] {
+            i += 1;
+            continue;
+        }
+        
+        visited[i] = true;
+        let a1 = points[i];
+        let a2 = points[(i + 1) % n];
+        
+        // Check for intersection with all non-adjacent edges ahead
+        let mut found_intersection = false;
+        
+        for j in (i + 2)..n {
+            // Skip adjacent edges
+            if j == (i + n - 1) % n {
+                continue;
+            }
+            
+            let b1 = points[j];
+            let b2 = points[(j + 1) % n];
+            
+            if let Some(intersection) = line_intersect(a1, a2, b1, b2) {
+                // Found intersection - add current point and intersection
+                result.push(a1);
+                result.push(intersection);
+                
+                // Skip the loop by jumping to edge j+1
+                // Mark all skipped vertices as visited
+                for k in (i + 1)..=j {
+                    visited[k] = true;
+                }
+                
+                i = (j + 1) % n;
+                found_intersection = true;
+                break;
+            }
+        }
+        
+        if !found_intersection {
+            result.push(a1);
+            i += 1;
+        }
+    }
+    
+    // Clean up duplicate/very close points
+    if result.len() < 3 {
+        return points.to_vec(); // Failed to simplify, return original
+    }
+    
+    let mut cleaned = Vec::with_capacity(result.len());
+    for (idx, p) in result.iter().enumerate() {
+        let prev = if idx == 0 { result.last().unwrap() } else { &result[idx - 1] };
+        if p.distance(*prev) > 0.1 {
+            cleaned.push(*p);
+        }
+    }
+    
+    if cleaned.len() >= 3 {
+        cleaned
+    } else {
+        points.to_vec()
+    }
+}
+
+/// Offsets a polygon by a fixed distance outwards (to the right, assuming CCW winding).
+/// 
+/// # Arguments
+/// * `points` - The CCW polygon points.
+/// * `distance` - Distance to offset (positive = right/outwards, negative = left/inwards).
+/// 
+/// Returns a new polygon with self-intersections removed.
+pub fn offset_polygon(points: &[Vec2], distance: f32) -> Vec<Vec2> {
+    if points.len() < 3 {
+        return points.to_vec();
+    }
+
+    let mut offset_points = Vec::with_capacity(points.len());
+    let len = points.len();
+
+    for i in 0..len {
+        // Calculate tangent at current point using neighbors
+        let prev = points[(i + len - 1) % len];
+        let next = points[(i + 1) % len];
+        
+        let tangent = (next - prev).normalize_or_zero();
+        
+        // Normal is tangent rotated 90 degrees CW (Right) for CCW polygons
+        let normal = Vec2::new(tangent.y, -tangent.x);
+        
+        offset_points.push(points[i] + normal * distance);
+    }
+
+    // Remove any self-intersections caused by the offset
+    remove_self_intersections(&offset_points)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,5 +467,42 @@ mod tests {
         // or simply check that we have a polygon with the expected complexity
         let island_poly = polygons.iter().find(|p| p.points.len() < 30).unwrap();
         assert!(island_poly.points.len() > 10);
+    }
+
+    #[test]
+    fn test_offset_polygon() {
+        // Square CCW: (0,0) -> (10,0) -> (10,10) -> (0,10)
+        let points = vec![
+             Vec2::new(0.0, 0.0),
+             Vec2::new(10.0, 0.0),
+             Vec2::new(10.0, 10.0),
+             Vec2::new(0.0, 10.0),
+        ];
+
+        let offset_dist = 1.0;
+        let offset = offset_polygon(&points, offset_dist);
+
+        assert_eq!(offset.len(), 4);
+
+        // For a square, normals at corners are 45 degrees outwards if using average of adjacent edges?
+        // Wait, the implementation uses:
+        // tangent = (next - prev).normalize()
+        // normal = (tangent.y, -tangent.x)
+        
+        // For point 0 (0,0): prev=(0,10), next=(10,0)
+        // next-prev = (10, -10). normalize -> (0.707, -0.707)
+        // normal -> (-0.707, -0.707) -> Pointing South-West. Correct for bottom-left corner.
+        
+        let p0 = offset[0];
+        assert!(p0.x < 0.0);
+        assert!(p0.y < 0.0);
+        
+        // For point 1 (10,0): prev=(0,0), next=(10,10)
+        // next-prev = (10, 10). normalize -> (0.707, 0.707)
+        // normal -> (0.707, -0.707) -> Pointing South-East. Correct.
+        
+        let p1 = offset[1];
+        assert!(p1.x > 10.0);
+        assert!(p1.y < 0.0);
     }
 }
