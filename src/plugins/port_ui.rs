@@ -107,6 +107,10 @@ fn port_ui_system(
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         // Draw parchment background
         crate::plugins::ui_theme::draw_parchment_bg(ui, texture_id);
+        
+        // Draw decorative corner flourishes
+        let panel_rect = ui.max_rect().shrink(20.0);
+        crate::plugins::ui_theme::draw_corner_flourishes(ui, panel_rect, 40.0);
 
         let port_name = current_port.entity
             .and_then(|e| port_query.get(e).ok())
@@ -123,7 +127,8 @@ fn port_ui_system(
             });
         });
         
-        ui.separator();
+        // Ornamental anchor divider instead of plain separator
+        crate::plugins::ui_theme::draw_ornamental_divider(ui, ui.available_width());
         
         ui.horizontal(|ui| {
             if ui.selectable_label(ui_state.selected_tab == 0, "Market").clicked() { ui_state.selected_tab = 0; }
@@ -132,7 +137,8 @@ fn port_ui_system(
             if ui.selectable_label(ui_state.selected_tab == 3, "Contracts").clicked() { ui_state.selected_tab = 3; }
         });
         
-        ui.separator();
+        // Rope divider for tab section
+        crate::plugins::ui_theme::draw_rope_divider(ui, ui.available_width());
 
         egui::ScrollArea::vertical().show(ui, |ui| {
             match ui_state.selected_tab {

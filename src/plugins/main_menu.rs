@@ -106,6 +106,10 @@ fn main_menu_ui_system(
     egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
         // Draw parchment background
         crate::plugins::ui_theme::draw_parchment_bg(ui, texture_id);
+        
+        // Draw decorative corner flourishes
+        let panel_rect = ui.max_rect().shrink(20.0);
+        crate::plugins::ui_theme::draw_corner_flourishes(ui, panel_rect, 50.0);
 
         ui.vertical_centered(|ui| {
             ui.add_space(40.0);
@@ -138,7 +142,8 @@ fn main_menu_ui_system(
             );
 
             ui.add_space(40.0);
-            ui.separator();
+            // Ornamental anchor divider
+            crate::plugins::ui_theme::draw_ornamental_divider(ui, ui.available_width().min(400.0));
             ui.add_space(20.0);
 
             // Archetype Selection Header
@@ -262,7 +267,7 @@ fn main_menu_ui_system(
 
             // Selected archetype info
             if let Some(config) = registry.get(selected.0) {
-                ui.separator();
+                crate::plugins::ui_theme::draw_rope_divider(ui, ui.available_width().min(300.0));
                 ui.add_space(10.0);
                 ui.label(
                     egui::RichText::new(format!("Selected: {}", config.name))

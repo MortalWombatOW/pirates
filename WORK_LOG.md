@@ -1,5 +1,18 @@
 # Work Log
 
+## 2025-12-24: Task 8.1.5 - UI Scroll/Dagger Decorations
+*   Implemented decorative helper functions in `src/plugins/ui_theme.rs`:
+    *   `draw_corner_flourishes()`: L-shaped scroll patterns with bezier curls at panel corners.
+    *   `draw_ornamental_divider()`: Horizontal line with anchor symbol centerpiece and diamond endpoints.
+    *   `draw_rope_divider()`: Wavy rope pattern with end knots for lighter separations.
+    *   `draw_panel_border()`: Combines border stroke with corner flourishes.
+    *   `draw_bezier_curve()`: Utility for quadratic bezier rendering via line segments.
+    *   `INK_COLOR` constant for consistent sepia/ink styling.
+*   Applied decorations to:
+    *   `port_ui.rs`: Corner flourishes on panel, anchor divider after title, rope divider after tabs.
+    *   `main_menu.rs`: Corner flourishes, anchor divider after title, rope divider before selection.
+*   All decorations use egui's `Painter` API for procedural vector drawing.
+
 ## 2025-12-23: Epic 8.5 - Historical Cartography (Tasks 8.5.0-8.5.1)
 *   **8.5.0**: Integrated `bevy_prototype_lyon` v0.13 for vector graphics. Registered `ShapePlugin` in `WorldMapPlugin`.
 *   **8.5.1**: Implemented coastline polygon extraction in `src/utils/geometry.rs`:
