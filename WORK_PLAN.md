@@ -428,3 +428,29 @@
 | [x] 8.4.4 | Implement damage ink splatter | 2.5.4 | Hits cause brief ink splatter VFX. |
 | [x] 8.4.5 | Add water area ink wash effect | 8.2.1 | Ocean has watercolor bleeding at edges. |
 | [x] 8.4.6 | Implement UI text write-on animation | 4.2.1 | Text appears stroke-by-stroke. |
+
+### Epic 8.5: Historical Cartography
+> Make the map feel like an authentic 18th-century nautical chart.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [x] 8.5.0 | Integrate `bevy_prototype_lyon` | 1.1.2 | Crate added (`v0.13`), `ShapePlugin` registered. |
+| [x] 8.5.1 | Extract coastline polygons from tilemap | 3.1.5 | System converts land/water tiles to closed polygon paths. |
+| [ ] 8.5.2 | Ensure coastline polygons are orientable | 8.5.1 | Polygons closed or hit map border; sea/land sides identifiable. |
+| [ ] 8.5.3 | Smooth coastline with Catmull-Rom splines | 8.5.2 | Raw tile edges become smooth curves. |
+| [ ] 8.5.4 | Render base coastline stroke (Lyon) | 8.5.0, 8.5.3 | Main coastal outline drawn with variable width path. |
+| [ ] 8.5.5 | Implement waterlining effect (Lyon) | 8.5.4 | Three offset strokes, progressively lighter/thinner. |
+| [ ] 8.5.6 | Create `CompassRose` UI component | 1.4.1 | Decorative compass rose renders on screen. |
+| [ ] 8.5.7 | Make compass rose dynamic (wind/heading) | 8.5.6, 3.4.1 | Rose indicates current wind direction and optional player heading. |
+| [ ] 8.5.8 | Create `ScaleBar` UI component | 1.4.1 | "Scale of Miles" bar renders on map. |
+| [ ] 8.5.9 | Make scale bar zoom-responsive | 8.5.8, 1.3.3 | Bar adjusts label/length based on camera zoom. |
+| [ ] 8.5.10 | Define `WaterDepth` tile attribute | 3.1.4 | Tilemap stores depth values for water tiles. |
+| [ ] 8.5.11 | Generate depth data from noise | 8.5.10, 3.2.1 | Depth decreases near coastlines (shallow) and increases offshore. |
+| [ ] 8.5.12 | Create stippling shader (Blue Noise) | 8.5.11 | Shader uses noise texture to render dots based on depth. |
+| [ ] 8.5.13 | Integrate stippling into map rendering | 8.5.12 | Shallow water shows dense dots, deep water sparse/none. |
+| [ ] 8.5.14 | Load Quintessential font | None | `assets/fonts/Quintessential-Regular.ttf` available. |
+| [ ] 8.5.15 | Create `LocationLabel` component | 4.1.1 | Component with name, importance rank, position. |
+| [ ] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.3 | System computes angle perpendicular to nearest coastline. |
+| [ ] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
+| [ ] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
+| [ ] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |

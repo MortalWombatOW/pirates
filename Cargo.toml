@@ -39,6 +39,9 @@ bytemuck = { version = "1.14", features = ["derive"] }
 # GPU Particles
 bevy_hanabi = { version = "0.14", default-features = false, features = ["2d"] }
 
+# Vector Graphics (for coastlines, ink strokes)
+bevy_prototype_lyon = "0.13"
+
 
 [profile.dev]
 opt-level = 1

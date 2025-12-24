@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_prototype_lyon::prelude::*;
 use crate::plugins::core::GameState;
 use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::resources::{MapData, FogOfWar, RouteCache};
@@ -14,6 +15,7 @@ use crate::systems::{
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
+use crate::utils::geometry::{extract_contours, CoastlinePolygon};
 use crate::events::CombatTriggeredEvent;
 
 /// Plugin managing the world map tilemap for the High Seas view.
@@ -27,17 +29,20 @@ pub struct WorldMapPlugin;
 impl Plugin for WorldMapPlugin {
     fn build(&self, app: &mut App) {
         app
+            // Vector graphics for coastlines
+            .add_plugins(ShapePlugin)
             // Initialize resources
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
             .init_resource::<RouteCache>()
+            .init_resource::<CoastlineData>()
             .init_resource::<EncounterSpatialHash>()
             .init_resource::<EncounterCooldown>()
             .init_resource::<EncounteredEnemy>()
             .init_resource::<crate::resources::PlayerFleet>()
             .init_resource::<crate::resources::FleetEntities>()
             .add_event::<CombatTriggeredEvent>()
-            .add_systems(Startup, (generate_procedural_map, create_tileset_texture))
+            .add_systems(Startup, (generate_procedural_map, create_tileset_texture, extract_coastlines_system.after(generate_procedural_map)))
             .add_systems(OnEnter(GameState::HighSeas), (
                 spawn_tilemap_from_map_data,
                 spawn_high_seas_player,
@@ -133,6 +138,14 @@ pub struct EncounterCooldown {
 pub struct EncounteredEnemy {
     /// Faction of the encountered enemy.
     pub faction: Option<FactionId>,
+}
+
+/// Resource storing extracted coastline polygons for rendering.
+/// Populated on startup after map generation.
+#[derive(Resource, Default)]
+pub struct CoastlineData {
+    /// CCW-ordered coastline polygons (land on left)
+    pub polygons: Vec<CoastlinePolygon>,
 }
 
 /// Creates a procedural tileset texture with colors for each tile type.
@@ -924,3 +937,22 @@ fn clear_fleet_entities(mut fleet_entities: ResMut<crate::resources::FleetEntiti
     fleet_entities.entities.clear();
 }
 
+/// Tile size in pixels for coastline extraction
+const COASTLINE_TILE_SIZE: f32 = 64.0;
+
+/// Extracts coastline polygons from the generated map data.
+/// Runs on startup after procedural map generation.
+fn extract_coastlines_system(
+    map_data: Res<MapData>,
+    mut coastline_data: ResMut<CoastlineData>,
+) {
+    let polygons = extract_contours(&map_data, COASTLINE_TILE_SIZE);
+    
+    info!(
+        "Extracted {} coastline polygons with {} total points",
+        polygons.len(),
+        polygons.iter().map(|p| p.points.len()).sum::<usize>()
+    );
+    
+    coastline_data.polygons = polygons;
+}

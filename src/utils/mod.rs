@@ -3,3 +3,4 @@
 pub mod procgen;
 pub mod pathfinding;
 pub mod spatial_hash;
+pub mod geometry;
