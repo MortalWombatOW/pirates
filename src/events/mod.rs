@@ -100,3 +100,11 @@ pub struct ShipHitEvent {
     pub damage: f32,
 }
 
+/// Event emitted when the player fires cannons.
+#[derive(Event, Debug)]
+pub struct CannonFiredEvent {
+    /// World position of the firing ship.
+    pub position: Vec2,
+    /// Which side the broadside was fired from (positive = starboard, negative = port).
+    pub side: f32,
+}

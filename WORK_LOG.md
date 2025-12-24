@@ -1,5 +1,18 @@
 # Work Log
 
+## 2025-12-24: Task 8.1.6 - Screen Shake on Cannon Fire
+*   Created `CameraShake` component in `src/components/camera.rs`:
+    *   Trauma-based intensity system (shake intensity = trauma²)
+    *   Configurable decay rate, max offset, max rotation
+    *   Noise-based offset for smooth, organic shake pattern
+*   Created `CannonFiredEvent` in `src/events/mod.rs`
+*   Created camera shake systems in `src/systems/camera.rs`:
+    *   `camera_shake_system`: Applies random offset/rotation based on trauma
+    *   `trigger_camera_shake_on_fire`: Adds 0.3 trauma on cannon fire
+*   Modified `cannon_firing_system` to emit `CannonFiredEvent`
+*   Added `CameraShake::new()` to main camera spawn in `CorePlugin`
+*   Registered event and systems in `CombatPlugin`
+
 ## 2025-12-24: Task 8.1.5 - UI Scroll/Dagger Decorations
 *   Implemented decorative helper functions in `src/plugins/ui_theme.rs`:
     *   `draw_corner_flourishes()`: L-shaped scroll patterns with bezier curls at panel corners.

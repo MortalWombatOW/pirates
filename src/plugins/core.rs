@@ -91,6 +91,7 @@ fn spawn_camera(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 100.0),
         GlobalTransform::default(),
         InputManagerBundle::with_map(get_default_input_map()),
+        crate::components::camera::CameraShake::new(),
     ));
 }
 

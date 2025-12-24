@@ -393,7 +393,7 @@
 | [x] 8.1.3 | Create parchment texture for UI | None | PNG in `assets/sprites/ui/`. |
 | [x] 8.1.4 | Style UI panels with parchment texture | 8.1.3, 1.4.1 | Egui panels have parchment bg. |
 | [x] 8.1.5 | Add scroll/dagger decorations to UI | 8.1.4 | Decorative elements on panels. |
-| [ ] 8.1.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
+| [x] 8.1.6 | Add screen shake on cannon fire | 2.4.4 | Camera shakes briefly. |
 | [ ] 8.1.7 | Add hit flash on ship damage | 2.5.4 | Ship sprite flashes white. |
 | [ ] 8.1.8 | Add dynamic wake behind ships | 2.5.4 | Beautiful wake effect. |
 

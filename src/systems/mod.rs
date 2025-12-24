@@ -14,6 +14,7 @@ pub mod order_execution;
 pub mod intel;
 pub mod wake_effects;
 pub mod ink_reveal;
+pub mod camera;
 
 pub use ship::*;
 pub use movement::*;

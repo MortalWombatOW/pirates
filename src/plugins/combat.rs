@@ -26,6 +26,7 @@ use crate::systems::{
     ShipInputBuffer,
     ShipPhysicsConfig,
 };
+use crate::systems::camera::{camera_shake_system, trigger_camera_shake_on_fire};
 use crate::resources::CannonState;
 
 /// Plugin that manages all combat-related systems.
@@ -36,7 +37,8 @@ impl Plugin for CombatPlugin {
         // Register events
         app.add_event::<crate::events::ShipDestroyedEvent>()
             .add_event::<crate::events::CombatEndedEvent>()
-            .add_event::<crate::events::ShipHitEvent>();
+            .add_event::<crate::events::ShipHitEvent>()
+            .add_event::<crate::events::CannonFiredEvent>();
         
         // Initialize resources
         app.init_resource::<ShipInputBuffer>()
@@ -80,6 +82,9 @@ impl Plugin for CombatPlugin {
                 handle_player_death_system.after(ship_destruction_system),
                 combat_victory_system.after(ship_destruction_system),
                 handle_combat_victory_system.after(combat_victory_system),
+                // Camera shake visual effects
+                trigger_camera_shake_on_fire,
+                camera_shake_system.after(trigger_camera_shake_on_fire),
             ).run_if(in_state(GameState::Combat)),
         );
 

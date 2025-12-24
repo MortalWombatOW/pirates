@@ -14,6 +14,7 @@ pub fn cannon_firing_system(
     query: Query<(Entity, &Transform, &LinearVelocity), (With<Ship>, With<Player>)>,
     companion_query: Query<&crate::components::companion::CompanionRole>,
     asset_server: Res<AssetServer>,
+    mut cannon_fired_events: EventWriter<crate::events::CannonFiredEvent>,
 ) {
     // Tick cooldown
     if cannon_state.cooldown_remaining > 0.0 {
@@ -74,8 +75,12 @@ pub fn cannon_firing_system(
             
             cannon_state.cooldown_remaining = cannon_state.base_cooldown * gunner_bonus;
             
-            // CONSUME the sticky input from the buffer
-            // We use a separate mutable variable to clear it
+            // Emit cannon fired event for screen shake
+            cannon_fired_events.send(crate::events::CannonFiredEvent {
+                position: transform.translation.truncate(),
+                side,
+            });
+            
             info!("Broadside fired to {}!", if side > 0.0 { "Starboard" } else { "Port" });
         }
     }

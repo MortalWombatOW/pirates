@@ -13,6 +13,7 @@ pub mod order;
 pub mod intel;
 pub mod ink_reveal;
 pub mod typewriter;
+pub mod camera;
 
 pub use ship::*;
 pub use health::*;
