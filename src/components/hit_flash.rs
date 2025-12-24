@@ -21,6 +21,6 @@ impl HitFlash {
         }
     }
 
-    /// Default flash duration.
-    pub const DEFAULT_DURATION: f32 = 0.15;
+    /// Default flash duration (0.3 seconds for good visibility).
+    pub const DEFAULT_DURATION: f32 = 0.3;
 }

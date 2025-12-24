@@ -6,20 +6,28 @@ use crate::components::Ship;
 use crate::events::ShipHitEvent;
 
 /// System that triggers hit flash effect when ships take damage.
+/// Immediately sets the sprite to white.
 pub fn trigger_hit_flash_system(
     mut commands: Commands,
     mut events: EventReader<ShipHitEvent>,
-    query: Query<(Entity, &Sprite), (With<Ship>, Without<HitFlash>)>,
+    mut query: Query<(Entity, &mut Sprite, Option<&Name>), (With<Ship>, Without<HitFlash>)>,
 ) {
     for event in events.read() {
         // Check if the hit ship exists and doesn't already have a flash
-        if let Ok((entity, sprite)) = query.get(event.ship_entity) {
+        if let Ok((entity, mut sprite, name)) = query.get_mut(event.ship_entity) {
             // Store original color and add flash component
             let original_color = sprite.color;
+            
+            // Immediately set sprite to white
+            sprite.color = Color::WHITE;
+            
             commands.entity(entity).insert(HitFlash::new(
                 HitFlash::DEFAULT_DURATION,
                 original_color,
             ));
+            
+            let ship_name = name.map(|n| n.as_str()).unwrap_or("Ship");
+            info!("Hit flash triggered on {} (original color: {:?})", ship_name, original_color);
         }
     }
 }
@@ -30,8 +38,6 @@ pub fn update_hit_flash_system(
     time: Res<Time>,
     mut query: Query<(Entity, &mut Sprite, &mut HitFlash)>,
 ) {
-    let flash_color = Color::WHITE;
-
     for (entity, mut sprite, mut hit_flash) in &mut query {
         hit_flash.timer.tick(time.delta());
 
@@ -40,7 +46,7 @@ pub fn update_hit_flash_system(
 
         // Lerp from white to original color
         // At progress 0: full white, at progress 1: original color
-        let lerped = lerp_color(flash_color, hit_flash.original_color, progress);
+        let lerped = lerp_color(Color::WHITE, hit_flash.original_color, progress);
         sprite.color = lerped;
 
         // Remove component when flash completes
