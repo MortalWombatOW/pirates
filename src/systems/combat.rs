@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::utils::HashSet;
 use avian2d::prelude::*;
 use crate::components::*;
 use crate::resources::*;
@@ -123,6 +124,7 @@ pub fn projectile_system(
 }
 
 /// System to handle projectile hits on ships.
+/// Uses Local HashSet to deduplicate multiple collision events for same projectile.
 pub fn projectile_collision_system(
     mut commands: Commands,
     mut collision_events: EventReader<Collision>,
@@ -130,7 +132,11 @@ pub fn projectile_collision_system(
     mut ships: Query<(Entity, &mut Health, &Transform, Option<&Name>, Option<&mut WaterIntake>), With<Ship>>,
     asset_server: Res<AssetServer>,
     mut ship_hit_events: EventWriter<crate::events::ShipHitEvent>,
+    mut processed_projectiles: Local<HashSet<Entity>>,
 ) {
+    // Clear the set at start of each frame
+    processed_projectiles.clear();
+    
     for Collision(contacts) in collision_events.read() {
         let e1 = contacts.entity1;
         let e2 = contacts.entity2;
@@ -143,6 +149,12 @@ pub fn projectile_collision_system(
         } else {
             continue;
         };
+
+        // Skip if we've already processed this projectile this frame
+        if processed_projectiles.contains(&proj_ent) {
+            continue;
+        }
+        processed_projectiles.insert(proj_ent);
 
         if let (Ok((projectile, proj_transform)), Ok((entity, mut health, _ship_transform, name, water_intake))) = 
             (projectiles.get(proj_ent), ships.get_mut(ship_ent)) 
