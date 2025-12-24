@@ -188,14 +188,19 @@ fn is_land(tile: TileType) -> bool {
     matches!(tile, TileType::Land | TileType::Sand | TileType::Port)
 }
 
+use rand::Rng;
+
 /// Number of subdivisions per segment (higher = smoother but more vertices)
 pub const COASTLINE_SUBDIVISIONS: usize = 4;
 /// Spline tension (0.0 = Catmull-Rom/Smooth, 1.0 = Linear/Sharp)
 pub const COASTLINE_TENSION: f32 = 0.0;
+/// Strength of random noise added to smoothed points (0.0 = no noise)
+/// Represents max displacement in world units
+pub const COASTLINE_JITTER_AMOUNT: f32 = 5.0;
 
 /// Smooths a coastline polygon using Cardinal Splines.
 /// 
-/// Uses the constants `COASTLINE_SUBDIVISIONS` and `COASTLINE_TENSION` for configuration.
+/// Uses the constants `COASTLINE_SUBDIVISIONS`, `COASTLINE_TENSION`, and `COASTLINE_JITTER_AMOUNT` for configuration.
 /// 
 /// # Arguments
 /// * `points` - The original closed loop of points.
@@ -208,6 +213,7 @@ pub fn smooth_coastline(points: &[Vec2]) -> Vec<Vec2> {
 
     let mut smoothed = Vec::with_capacity(points.len() * COASTLINE_SUBDIVISIONS);
     let len = points.len();
+    let mut rng = rand::thread_rng();
 
     // Cardinal Spline parameter s = (1 - t) / 2
     let s = (1.0 - COASTLINE_TENSION) / 2.0;
@@ -244,8 +250,14 @@ pub fn smooth_coastline(points: &[Vec2]) -> Vec<Vec2> {
             let h2 = (s - 2.0) * t3 + (3.0 - 2.0 * s) * t2 + s * t; // Coeff for P2
             let h3 = s * t3 - s * t2; // Coeff for P3
             
-            let x = p0.x * h0 + p1.x * h1 + p2.x * h2 + p3.x * h3;
-            let y = p0.y * h0 + p1.y * h1 + p2.y * h2 + p3.y * h3;
+            let mut x = p0.x * h0 + p1.x * h1 + p2.x * h2 + p3.x * h3;
+            let mut y = p0.y * h0 + p1.y * h1 + p2.y * h2 + p3.y * h3;
+            
+            // Apply jitter (noise)
+            if COASTLINE_JITTER_AMOUNT > 0.0 {
+                x += rng.gen_range(-COASTLINE_JITTER_AMOUNT..=COASTLINE_JITTER_AMOUNT);
+                y += rng.gen_range(-COASTLINE_JITTER_AMOUNT..=COASTLINE_JITTER_AMOUNT);
+            }
             
             smoothed.push(Vec2::new(x, y));
         }
@@ -273,11 +285,13 @@ mod tests {
         // Should have original_len * subdivisions points
         assert_eq!(smoothed.len(), 4 * COASTLINE_SUBDIVISIONS);
         
-        // First point should match original start (t=0 => h1=1, others=0)
-        // With floats, we expect approx equal
+        // Check that points are roughly near the expected location
+        // Allowing for JITTER_AMOUNT + float error
+        let tolerance = COASTLINE_JITTER_AMOUNT + 0.1;
+        
         let start = smoothed[0];
-        assert!((start.x - points[0].x).abs() < 0.001);
-        assert!((start.y - points[0].y).abs() < 0.001);
+        assert!((start.x - points[0].x).abs() <= tolerance);
+        assert!((start.y - points[0].y).abs() <= tolerance);
     }
 
 
