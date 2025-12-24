@@ -14,6 +14,7 @@ impl Plugin for CompassRosePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(GameState::HighSeas), spawn_compass_rose)
+            .add_systems(Update, update_compass_scale.run_if(in_state(GameState::HighSeas)))
             .add_systems(OnExit(GameState::HighSeas), despawn_compass_rose);
     }
 }
@@ -53,6 +54,10 @@ const COMPASS_OFFSET: Vec3 = Vec3::new(350.0, -250.0, 50.0);
 #[derive(Component)]
 pub struct CompassRose;
 
+/// Marker for the compass rose root entity (for scale updates)
+#[derive(Component)]
+pub struct CompassRoseRoot;
+
 /// Spawns the compass rose as a child of the camera.
 fn spawn_compass_rose(
     mut commands: Commands,
@@ -69,6 +74,7 @@ fn spawn_compass_rose(
     let compass_entity = commands.spawn((
         Name::new("Compass Rose"),
         CompassRose,
+        CompassRoseRoot,
         Transform::from_translation(COMPASS_OFFSET).with_scale(Vec3::splat(0.7)),
         Visibility::Inherited,
         InheritedVisibility::default(),
@@ -265,6 +271,35 @@ fn spawn_cross(commands: &mut Commands, parent: Entity, position: Vec2, z: f32) 
     )).set_parent(parent);
 }
 
+/// Base scale for the compass (applied at projection.scale = 1.0)
+const COMPASS_BASE_SCALE: f32 = 0.7;
+
+/// Updates compass scale to counteract camera zoom, keeping constant screen size.
+/// Also updates position offset to stay in corner regardless of zoom.
+fn update_compass_scale(
+    camera_query: Query<&OrthographicProjection, With<Camera2d>>,
+    mut compass_query: Query<&mut Transform, With<CompassRoseRoot>>,
+) {
+    let Ok(projection) = camera_query.get_single() else {
+        return;
+    };
+    let Ok(mut compass_transform) = compass_query.get_single_mut() else {
+        return;
+    };
+
+    // Counter-scale: when camera zooms out (scale increases), compass gets bigger to compensate
+    let counter_scale = projection.scale * COMPASS_BASE_SCALE;
+    compass_transform.scale = Vec3::splat(counter_scale);
+    
+    // Also update position to stay in corner (offset scales with projection)
+    let offset = Vec3::new(
+        350.0 * projection.scale,
+        -250.0 * projection.scale,
+        50.0,
+    );
+    compass_transform.translation = offset;
+}
+
 /// Despawns the compass rose.
 fn despawn_compass_rose(
     mut commands: Commands,
@@ -274,3 +309,4 @@ fn despawn_compass_rose(
         commands.entity(entity).despawn_recursive();
     }
 }
+
