@@ -4,6 +4,7 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 use crate::plugins::core::GameState;
 use crate::plugins::port::{spawn_port, generate_port_name};
+use crate::plugins::debug_ui::DebugToggles;
 use crate::resources::{MapData, FogOfWar, RouteCache};
 use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue};
 use crate::systems::{
@@ -45,6 +46,7 @@ impl Plugin for WorldMapPlugin {
             .add_systems(Startup, (generate_procedural_map, create_tileset_texture, extract_coastlines_system.after(generate_procedural_map)))
             .add_systems(OnEnter(GameState::HighSeas), (
                 spawn_tilemap_from_map_data,
+                spawn_coastline_shapes,
                 spawn_high_seas_player,
                 spawn_high_seas_ai_ships,
                 spawn_player_fleet,
@@ -59,6 +61,7 @@ impl Plugin for WorldMapPlugin {
                 crate::systems::ink_reveal::spawn_ink_reveals.after(fog_of_war_update_system),
                 crate::systems::ink_reveal::animate_ink_reveals.after(crate::systems::ink_reveal::spawn_ink_reveals),
                 fog_of_war_ai_visibility_system,
+                coastline_visibility_system,
                 rebuild_encounter_spatial_hash,
                 encounter_detection_system.after(rebuild_encounter_spatial_hash),
                 handle_combat_trigger_system.after(encounter_detection_system),
@@ -80,6 +83,7 @@ impl Plugin for WorldMapPlugin {
                 despawn_high_seas_ai_ships,
                 despawn_port_entities,
                 despawn_legacy_wrecks,
+                despawn_coastline_shapes,
                 clear_fleet_entities,
             ));
     }
@@ -147,6 +151,11 @@ pub struct CoastlineData {
     /// CCW-ordered coastline polygons (land on left)
     pub polygons: Vec<CoastlinePolygon>,
 }
+
+/// Marker component for coastline shape entities.
+/// Used to toggle visibility and clean up on state exit.
+#[derive(Component)]
+pub struct CoastlineShape;
 
 /// Creates a procedural tileset texture with colors for each tile type.
 /// 
@@ -956,3 +965,96 @@ fn extract_coastlines_system(
     
     coastline_data.polygons = polygons;
 }
+
+/// Ink color for coastline rendering (dark brown, like old maps)
+const COASTLINE_INK_COLOR: Color = Color::srgba(0.2, 0.15, 0.1, 0.8);
+/// Stroke width for coastline lines
+const COASTLINE_STROKE_WIDTH: f32 = 2.0;
+
+/// Spawns Lyon shape entities for each coastline polygon.
+/// Runs when entering HighSeas state.
+fn spawn_coastline_shapes(
+    mut commands: Commands,
+    coastline_data: Res<CoastlineData>,
+    existing_shapes: Query<Entity, With<CoastlineShape>>,
+) {
+    // Don't spawn if already exists
+    if !existing_shapes.is_empty() {
+        return;
+    }
+
+    let mut shapes_spawned = 0;
+
+    for polygon in &coastline_data.polygons {
+        if polygon.points.len() < 2 {
+            continue;
+        }
+
+        // Build a path from the polygon points
+        let mut path_builder = PathBuilder::new();
+        
+        // Move to first point
+        let first = polygon.points[0];
+        path_builder.move_to(Vec2::new(first.x, first.y));
+        
+        // Line to each subsequent point
+        for point in polygon.points.iter().skip(1) {
+            path_builder.line_to(Vec2::new(point.x, point.y));
+        }
+        
+        // Close the path back to start
+        path_builder.close();
+        
+        let path = path_builder.build();
+
+        // Spawn the shape entity
+        commands.spawn((
+            CoastlineShape,
+            ShapeBundle {
+                path,
+                transform: Transform::from_xyz(0.0, 0.0, -8.0), // Between tilemap (-10) and fog (-5)
+                ..default()
+            },
+            Stroke::new(COASTLINE_INK_COLOR, COASTLINE_STROKE_WIDTH),
+        ));
+
+        shapes_spawned += 1;
+    }
+
+    info!("Spawned {} coastline shape entities", shapes_spawned);
+}
+
+/// Despawns all coastline shape entities when leaving HighSeas.
+fn despawn_coastline_shapes(
+    mut commands: Commands,
+    query: Query<Entity, With<CoastlineShape>>,
+) {
+    let count = query.iter().count();
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+    if count > 0 {
+        info!("Despawned {} coastline shapes", count);
+    }
+}
+
+/// Updates coastline visibility based on debug toggle.
+fn coastline_visibility_system(
+    toggles: Res<DebugToggles>,
+    mut query: Query<&mut Visibility, With<CoastlineShape>>,
+) {
+    if !toggles.is_changed() {
+        return;
+    }
+
+    let visibility = if toggles.show_coastlines {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
+
+    for mut vis in &mut query {
+        *vis = visibility;
+    }
+}
+

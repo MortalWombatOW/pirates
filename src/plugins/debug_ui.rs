@@ -11,11 +11,15 @@ use crate::utils::pathfinding::tile_to_world;
 #[derive(Resource)]
 pub struct DebugToggles {
     pub show_tilemap: bool,
+    pub show_coastlines: bool,
 }
 
 impl Default for DebugToggles {
     fn default() -> Self {
-        Self { show_tilemap: true }
+        Self {
+            show_tilemap: true,
+            show_coastlines: true,
+        }
     }
 }
 
@@ -100,6 +104,7 @@ fn debug_panel(
         ui.separator();
         ui.heading("Visibility");
         ui.checkbox(&mut toggles.show_tilemap, "Show Tilemap");
+        ui.checkbox(&mut toggles.show_coastlines, "Show Coastlines");
 
         ui.separator();
         ui.heading("State Transitions");

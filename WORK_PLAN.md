@@ -436,9 +436,9 @@
 |---|---|---|---|
 | [x] 8.5.0 | Integrate `bevy_prototype_lyon` | 1.1.2 | Crate added (`v0.13`), `ShapePlugin` registered. |
 | [x] 8.5.1 | Extract coastline polygons from tilemap | 3.1.5 | System converts land/water tiles to closed polygon paths. |
-| [ ] 8.5.2 | Ensure coastline polygons are orientable | 8.5.1 | Polygons closed or hit map border; sea/land sides identifiable. |
-| [ ] 8.5.3 | Smooth coastline with Catmull-Rom splines | 8.5.2 | Raw tile edges become smooth curves. |
-| [ ] 8.5.4 | Render base coastline stroke (Lyon) | 8.5.0, 8.5.3 | Main coastal outline drawn with variable width path. |
+| [x] 8.5.2 | Render base coastline stroke (Lyon) | 8.5.0, 8.5.1 | Main coastal outline drawn; debug toggle in UI. |
+| [ ] 8.5.3 | Ensure coastline polygons are orientable | 8.5.2 | Polygons closed or hit map border; sea/land sides identifiable. |
+| [ ] 8.5.4 | Smooth coastline with Catmull-Rom splines | 8.5.3 | Raw tile edges become smooth curves. |
 | [ ] 8.5.5 | Implement waterlining effect (Lyon) | 8.5.4 | Three offset strokes, progressively lighter/thinner. |
 | [ ] 8.5.6 | Create `CompassRose` UI component | 1.4.1 | Decorative compass rose renders on screen. |
 | [ ] 8.5.7 | Make compass rose dynamic (wind/heading) | 8.5.6, 3.4.1 | Rose indicates current wind direction and optional player heading. |
@@ -450,7 +450,7 @@
 | [ ] 8.5.13 | Integrate stippling into map rendering | 8.5.12 | Shallow water shows dense dots, deep water sparse/none. |
 | [ ] 8.5.14 | Load Quintessential font | None | `assets/fonts/Quintessential-Regular.ttf` available. |
 | [ ] 8.5.15 | Create `LocationLabel` component | 4.1.1 | Component with name, importance rank, position. |
-| [ ] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.3 | System computes angle perpendicular to nearest coastline. |
+| [ ] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.4 | System computes angle perpendicular to nearest coastline. |
 | [ ] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
 | [ ] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
 | [ ] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |
