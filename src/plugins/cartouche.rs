@@ -86,10 +86,10 @@ fn spawn_cartouche(
     )).set_parent(root);
 
     // Decorative corner flourishes
-    spawn_corner_flourish(&mut commands, root, Vec2::new(-FRAME_WIDTH / 2.0, FRAME_HEIGHT / 2.0), 0.0);
-    spawn_corner_flourish(&mut commands, root, Vec2::new(FRAME_WIDTH / 2.0, FRAME_HEIGHT / 2.0), 90.0);
-    spawn_corner_flourish(&mut commands, root, Vec2::new(FRAME_WIDTH / 2.0, -FRAME_HEIGHT / 2.0), 180.0);
-    spawn_corner_flourish(&mut commands, root, Vec2::new(-FRAME_WIDTH / 2.0, -FRAME_HEIGHT / 2.0), 270.0);
+    spawn_corner_flourish(&mut commands, root, Vec2::new(-FRAME_WIDTH / 2.0, FRAME_HEIGHT / 2.0), Corner::TopLeft);
+    spawn_corner_flourish(&mut commands, root, Vec2::new(FRAME_WIDTH / 2.0, FRAME_HEIGHT / 2.0), Corner::TopRight);
+    spawn_corner_flourish(&mut commands, root, Vec2::new(FRAME_WIDTH / 2.0, -FRAME_HEIGHT / 2.0), Corner::BottomRight);
+    spawn_corner_flourish(&mut commands, root, Vec2::new(-FRAME_WIDTH / 2.0, -FRAME_HEIGHT / 2.0), Corner::BottomLeft);
 
     // Title text
     let font = asset_server.load("fonts/Quintessential-Regular.ttf");
@@ -172,35 +172,50 @@ fn spawn_baroque_frame(commands: &mut Commands, parent: Entity) {
 }
 
 /// Spawns a decorative curl flourish at a corner.
-fn spawn_corner_flourish(commands: &mut Commands, parent: Entity, position: Vec2, rotation_deg: f32) {
+/// The flourish curls outward from the frame corner.
+fn spawn_corner_flourish(commands: &mut Commands, parent: Entity, position: Vec2, corner: Corner) {
     let mut path = PathBuilder::new();
     
-    // Small decorative curl
+    // Direction vectors based on corner (pointing outward from frame)
+    let (dir_x, dir_y) = match corner {
+        Corner::TopLeft => (-1.0, 1.0),
+        Corner::TopRight => (1.0, 1.0),
+        Corner::BottomRight => (1.0, -1.0),
+        Corner::BottomLeft => (-1.0, -1.0),
+    };
+    
+    // Draw curl extending outward from corner
     path.move_to(Vec2::ZERO);
     path.cubic_bezier_to(
-        Vec2::new(8.0, -4.0),
-        Vec2::new(12.0, -12.0),
-        Vec2::new(6.0, -18.0),
+        Vec2::new(dir_x * 10.0, dir_y * 2.0),
+        Vec2::new(dir_x * 16.0, dir_y * 8.0),
+        Vec2::new(dir_x * 12.0, dir_y * 16.0),
     );
+    // Curl back inward
     path.cubic_bezier_to(
-        Vec2::new(2.0, -14.0),
-        Vec2::new(4.0, -8.0),
-        Vec2::new(0.0, -6.0),
+        Vec2::new(dir_x * 8.0, dir_y * 12.0),
+        Vec2::new(dir_x * 6.0, dir_y * 6.0),
+        Vec2::new(dir_x * 2.0, dir_y * 4.0),
     );
-
-    let rotation = Quat::from_rotation_z(rotation_deg.to_radians());
     
     commands.spawn((
         ShapeBundle {
             path: path.build(),
-            transform: Transform::from_translation(position.extend(0.3))
-                .with_rotation(rotation),
+            transform: Transform::from_translation(position.extend(0.3)),
             ..default()
         },
         Stroke::new(COLOR_INK, 1.5),
         Cartouche,
         RenderLayers::layer(UI_LAYER),
     )).set_parent(parent);
+}
+
+/// Corner identifier for flourish orientation.
+enum Corner {
+    TopLeft,
+    TopRight,
+    BottomRight,
+    BottomLeft,
 }
 
 /// Keeps the cartouche at the top-center when window is resized.
