@@ -17,6 +17,7 @@ use crate::systems::{
     // Landmass velocity-based movement systems
     landmass_player_movement_system, landmass_ai_movement_system,
     arrival_detection_system, sync_destination_to_agent_target,
+    coastline_avoidance_system,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
@@ -99,7 +100,12 @@ impl Plugin for WorldMapPlugin {
             .add_systems(Update, (
                 landmass_player_movement_system,
                 landmass_ai_movement_system,
-                arrival_detection_system.after(landmass_player_movement_system).after(landmass_ai_movement_system),
+                arrival_detection_system
+                    .after(landmass_player_movement_system)
+                    .after(landmass_ai_movement_system),
+                coastline_avoidance_system
+                    .after(landmass_player_movement_system)
+                    .after(landmass_ai_movement_system),
             ).run_if(in_state(GameState::HighSeas)))
             // Visualization and other systems
             .add_systems(Update, (
