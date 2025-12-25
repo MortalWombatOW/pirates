@@ -16,4 +16,5 @@ pub mod compass_rose;
 pub mod ui_theme;
 pub mod scale_bar;
 pub mod overlay_ui;
+pub mod cartouche;
 

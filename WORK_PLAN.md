@@ -456,7 +456,7 @@
 | [x] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.4 | System computes angle perpendicular to nearest coastline. |
 | [x] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
 | [x] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
-| [ ] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |
+| [x] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |
 
 ---
 

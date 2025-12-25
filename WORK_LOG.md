@@ -1,5 +1,14 @@
 # Work Log
 
+## 2025-12-25: Task 8.5.19 - Map Title Cartouche
+*   Created `CartouchePlugin` in `src/plugins/cartouche.rs`:
+    *   Baroque-style ornate frame using Lyon vector graphics
+    *   Gold outer frame with rounded corners and ink border
+    *   Inner parchment panel with decorative border
+    *   Corner curl flourishes using cubic bezier curves
+    *   Title "THE CARIBBEAN" and subtitle "A Nautical Chart" in Quintessential font
+*   Positioned at top-center, complementing CompassRose (bottom-right) and ScaleBar (bottom-left)
+
 ## 2025-12-25: Tasks 8.5.15-8.5.18 - Location Labels
 *   **8.5.15**: Created `LocationLabel` component in `src/components/location_label.rs`:
     *   `LabelImportance` enum with `Major/Standard/Minor` controlling font size (24/18/14pt)

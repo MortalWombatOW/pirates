@@ -18,6 +18,7 @@ use pirates::plugins::graphics::GraphicsPlugin;
 use pirates::plugins::compass_rose::CompassRosePlugin;
 use pirates::plugins::scale_bar::ScaleBarPlugin;
 use pirates::plugins::overlay_ui::OverlayUiPlugin;
+use pirates::plugins::cartouche::CartouchePlugin;
 use pirates::systems::wake_effects::{
     setup_wake_effects, attach_wake_to_moving_ships,
     setup_splatter_effects, spawn_damage_splatter,
@@ -46,6 +47,7 @@ fn main() {
         .add_plugins(OverlayUiPlugin)
         .add_plugins(CompassRosePlugin)
         .add_plugins(ScaleBarPlugin)
+        .add_plugins(CartouchePlugin)
         // .add_plugins(GraphicsPlugin) // Disabled to test raw rendering
         // Particle effect systems (8.5)
         .add_systems(Startup, (setup_wake_effects, setup_splatter_effects))
