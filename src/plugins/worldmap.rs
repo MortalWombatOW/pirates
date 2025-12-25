@@ -75,6 +75,7 @@ impl Plugin for WorldMapPlugin {
                 spawn_high_seas_ai_ships,
                 spawn_player_fleet,
                 spawn_port_entities,
+                spawn_location_labels.after(spawn_port_entities),
                 spawn_legacy_wrecks,
                 reset_encounter_cooldown,
                 show_tilemap,
@@ -124,6 +125,7 @@ impl Plugin for WorldMapPlugin {
                 despawn_high_seas_player,
                 despawn_high_seas_ai_ships,
                 despawn_port_entities,
+                despawn_location_labels,
                 despawn_legacy_wrecks,
                 despawn_coastline_shapes,
                 clear_fleet_entities,
@@ -198,6 +200,11 @@ pub struct CoastlineData {
 /// Used to toggle visibility and clean up on state exit.
 #[derive(Component)]
 pub struct CoastlineShape;
+
+/// Marker component for location label Text2d entities.
+/// Used to clean up labels on state exit.
+#[derive(Component)]
+pub struct LocationLabelMarker;
 
 /// Creates a procedural tileset texture with colors for each tile type.
 /// 
@@ -989,6 +996,120 @@ fn despawn_port_entities(
         commands.entity(entity).despawn_recursive();
     }
     info!("Despawned {} port entities", count);
+}
+
+/// Spawns location labels for all ports, positioned perpendicular to nearby coastlines.
+/// Uses the Quintessential font for authentic 18th-century nautical chart styling.
+fn spawn_location_labels(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    coastline_data: Res<CoastlineData>,
+    port_query: Query<(&Transform, &crate::components::port::PortName), With<crate::components::port::Port>>,
+) {
+    use crate::components::location_label::{LocationLabel, LabelImportance};
+    use rand::Rng;
+
+    let font = asset_server.load("fonts/Quintessential-Regular.ttf");
+    let mut label_count = 0;
+    let mut rng = rand::thread_rng();
+
+    // Ink color matching other cartographic elements
+    let ink_color = Color::srgb(0.25, 0.18, 0.12);
+
+    for (port_transform, port_name) in &port_query {
+        let port_pos = port_transform.translation.truncate();
+
+        // Calculate perpendicular angle to nearest coastline
+        let angle = calculate_coastline_perpendicular(port_pos, &coastline_data);
+
+        // Randomly assign importance (mostly standard, some major/minor)
+        let roll: f32 = rng.gen();
+        let importance = if roll < 0.15 {
+            LabelImportance::Major
+        } else if roll < 0.85 {
+            LabelImportance::Standard
+        } else {
+            LabelImportance::Minor
+        };
+
+        let font_size = importance.font_size();
+        let label = LocationLabel::new(port_name.0.clone(), importance, angle);
+
+        // Offset label position inland (perpendicular to coast)
+        let offset_distance = 40.0 + font_size; // Move label away from port icon
+        let offset = Vec2::from_angle(angle) * offset_distance;
+        let label_pos = port_pos + offset;
+
+        commands.spawn((
+            Text2d::new(label.name.clone()),
+            TextFont {
+                font: font.clone(),
+                font_size,
+                ..default()
+            },
+            TextColor(ink_color),
+            Transform::from_xyz(label_pos.x, label_pos.y, 5.0)
+                .with_rotation(Quat::from_rotation_z(angle - std::f32::consts::FRAC_PI_2)),
+            LocationLabelMarker,
+            label,
+        ));
+
+        label_count += 1;
+    }
+
+    info!("Spawned {} location labels", label_count);
+}
+
+/// Calculates the angle perpendicular to the nearest coastline edge, pointing inland.
+/// Returns the angle in radians.
+fn calculate_coastline_perpendicular(pos: Vec2, coastline_data: &CoastlineData) -> f32 {
+    let mut nearest_dist = f32::MAX;
+    let mut nearest_normal = Vec2::Y; // Default pointing up
+
+    for polygon in &coastline_data.polygons {
+        let points = &polygon.points;
+        if points.len() < 2 {
+            continue;
+        }
+
+        // Check each edge of the polygon
+        for i in 0..points.len() {
+            let a = points[i];
+            let b = points[(i + 1) % points.len()];
+
+            // Find closest point on edge to pos
+            let ab = b - a;
+            let ap = pos - a;
+            let t = (ap.dot(ab) / ab.length_squared()).clamp(0.0, 1.0);
+            let closest = a + ab * t;
+            let dist = pos.distance(closest);
+
+            if dist < nearest_dist {
+                nearest_dist = dist;
+                // Normal perpendicular to edge (CCW winding means land is on left)
+                // So rightward perpendicular points toward water, leftward toward land
+                let edge_dir = ab.normalize_or_zero();
+                // Leftward perpendicular (toward land for CCW polygon)
+                nearest_normal = Vec2::new(-edge_dir.y, edge_dir.x);
+            }
+        }
+    }
+
+    nearest_normal.to_angle()
+}
+
+/// Despawns all location label entities when leaving the High Seas state.
+fn despawn_location_labels(
+    mut commands: Commands,
+    query: Query<Entity, With<LocationLabelMarker>>,
+) {
+    let count = query.iter().count();
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+    if count > 0 {
+        info!("Despawned {} location labels", count);
+    }
 }
 
 /// System to spawn the player's fleet when entering HighSeas.

@@ -162,6 +162,8 @@
 | [x] 3.2.3 | Use Perlin/Simplex noise for landmasses | 3.2.2 | Noise-based threshold determines land vs water. |
 | [x] 3.2.4 | Ensure starting area is navigable | 3.2.2 | Player spawn point is always on water. |
 | [x] 3.2.5 | Place port locations procedurally | 3.2.2 | Ports spawn on coastlines. |
+| [ ] 3.2.6 | Remove forced sea at spawn | 3.2.4 | Remove `ensure_spawn_navigable` that forces water at center. |
+| [ ] 3.2.7 | Dynamic spawn location detection | 3.2.6 | Spiral search from center to find navigable open water; store as `SpawnLocation` resource. |
 
 ### Epic 3.3: Fog of War
 | ID | Task | Dependencies | Acceptance Criteria |
@@ -450,10 +452,10 @@
 | [x] 8.5.12 | Create stippling shader (Blue Noise) | 8.5.11 | Shader uses noise texture to render dots based on depth. |
 | [x] 8.5.13 | Integrate stippling into map rendering | 8.5.12 | Shallow water shows dense dots, deep water sparse/none. |
 | [x] 8.5.14 | Load Quintessential font | None | `assets/fonts/Quintessential-Regular.ttf` available. |
-| [ ] 8.5.15 | Create `LocationLabel` component | 4.1.1 | Component with name, importance rank, position. |
-| [ ] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.4 | System computes angle perpendicular to nearest coastline. |
-| [ ] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
-| [ ] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
+| [x] 8.5.15 | Create `LocationLabel` component | 4.1.1 | Component with name, importance rank, position. |
+| [x] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.4 | System computes angle perpendicular to nearest coastline. |
+| [x] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
+| [x] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
 | [ ] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |
 
 ---

@@ -15,6 +15,7 @@ pub mod ink_reveal;
 pub mod typewriter;
 pub mod camera;
 pub mod hit_flash;
+pub mod location_label;
 
 pub use ship::*;
 pub use health::*;

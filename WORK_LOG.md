@@ -1,5 +1,19 @@
 # Work Log
 
+## 2025-12-25: Tasks 8.5.15-8.5.18 - Location Labels
+*   **8.5.15**: Created `LocationLabel` component in `src/components/location_label.rs`:
+    *   `LabelImportance` enum with `Major/Standard/Minor` controlling font size (24/18/14pt)
+    *   `LocationLabel` struct with name, importance, and angle fields
+    *   Unit tests for font sizes and label creation
+*   **8.5.16**: Implemented `calculate_coastline_perpendicular()` in `worldmap.rs`:
+    *   Finds nearest coastline edge from `CoastlineData` polygons
+    *   Returns angle perpendicular to edge, pointing inland (CCW winding)
+*   **8.5.17-18**: Implemented `spawn_location_labels` system:
+    *   Spawns `Text2d` for each port with Quintessential font
+    *   Labels rotated perpendicular to coastline
+    *   Font size scaled by random importance assignment
+    *   Ink color matches other cartographic elements
+
 ## 2025-12-25: Tasks 8.5.10-8.5.13 - Water Depth & Stippling Shader
 *   **8.5.10**: Refactored `MapData` to use `Tile` struct containing `tile_type` and `depth` (f32).
 *   **8.5.11**: Added depth generation in `procgen.rs`. Depth increases with distance from coastline via Perlin noise.
