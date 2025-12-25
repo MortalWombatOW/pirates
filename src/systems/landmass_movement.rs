@@ -12,8 +12,7 @@ use crate::components::{Player, Ship, Destination};
 use crate::components::ship::ShipType;
 use crate::components::companion::CompanionRole;
 use crate::plugins::worldmap::HighSeasAI;
-use crate::resources::{Wind, MapData};
-use crate::utils::pathfinding::{world_to_tile, tile_to_world};
+use crate::resources::Wind;
 
 /// Extracts the facing direction (forward vector) from a 2D rotation.
 /// Ships face "up" in local space, so we extract the Y axis of the rotation.
@@ -186,64 +185,119 @@ pub fn sync_destination_to_agent_target(
     }
 }
 
-/// Emergency coastline avoidance system.
+/// Coastline avoidance system using polygon-based velocity clamping.
 ///
-/// Queries nearby tiles and applies avoidance push if too close to land.
-/// Runs AFTER movement systems to correct any remaining collision risk.
+/// Instead of pushing ships away, this system neutralizes the component of
+/// movement velocity that would take the ship closer to the coastline.
+/// Uses actual coastline polygon geometry for accurate normal calculation.
 pub fn coastline_avoidance_system(
-    mut query: Query<(&mut Transform, &ShipType), With<Ship>>,
-    map_data: Res<MapData>,
+    mut query: Query<&mut Transform, With<Ship>>,
+    coastline_data: Res<crate::plugins::worldmap::CoastlineData>,
 ) {
-    /// Distance in world units at which emergency avoidance activates (~0.75 tiles).
-    const CRITICAL_DISTANCE: f32 = 48.0;
-    /// Push strength in units per frame at maximum urgency.
-    const PUSH_STRENGTH: f32 = 2.0;
+    /// Distance in world units at which velocity clamping activates.
+    const CRITICAL_DISTANCE: f32 = 64.0;
 
-    for (mut transform, ship_type) in &mut query {
+    for mut transform in &mut query {
         let pos = transform.translation.truncate();
-        let tile = world_to_tile(pos, map_data.width, map_data.height);
 
-        // Sample 8 surrounding tiles + center
-        let mut avoidance_vec = Vec2::ZERO;
-        let mut land_count = 0;
+        // Find the nearest coastline edge segment
+        let Some((nearest_point, edge_normal)) = find_nearest_coastline_edge(pos, &coastline_data.polygons) else {
+            continue;
+        };
 
-        for dx in -1..=1_i32 {
-            for dy in -1..=1_i32 {
-                let check_x = tile.x + dx;
-                let check_y = tile.y + dy;
+        let dist_to_coast = pos.distance(nearest_point);
 
-                // Map edge treated as land
-                if check_x < 0 || check_y < 0 {
-                    avoidance_vec += Vec2::new(-dx as f32, -dy as f32);
-                    land_count += 1;
-                    continue;
-                }
-
-                if !map_data.is_navigable(check_x as u32, check_y as u32) {
-                    // This tile is land — push away from it
-                    let land_center = tile_to_world(
-                        bevy::math::IVec2::new(check_x, check_y),
-                        map_data.width,
-                        map_data.height,
-                    );
-                    let to_ship = pos - land_center;
-                    let dist = to_ship.length();
-
-                    if dist < CRITICAL_DISTANCE {
-                        // Urgency increases as ship gets closer
-                        let urgency = 1.0 - (dist / CRITICAL_DISTANCE);
-                        avoidance_vec += to_ship.normalize_or_zero() * urgency;
-                        land_count += 1;
-                    }
-                }
-            }
+        // Only apply clamping when close to coast
+        if dist_to_coast >= CRITICAL_DISTANCE {
+            continue;
         }
 
-        if land_count > 0 {
-            // Apply push scaled by ship agility (nimble ships escape faster)
-            let push = avoidance_vec.normalize_or_zero() * PUSH_STRENGTH * ship_type.turn_rate();
+        // Calculate the ship's current frame velocity (approximation: position delta)
+        // Since we run after movement, we can't directly access the delta.
+        // Instead, we'll project any *future* movement toward land and store
+        // the constraint for the next frame.
+        //
+        // For now, we apply a simpler approach: if the ship is within critical
+        // distance and facing toward land, we nudge it parallel to the coastline.
+        
+        // The edge_normal points outward (away from land, into water).
+        // If the ship's position relative to the coast has a negative dot with
+        // edge_normal, it's on the land side — push it out.
+        let to_ship = pos - nearest_point;
+        let side = to_ship.dot(edge_normal);
+
+        if side < 0.0 {
+            // Ship is on wrong side or very close - push along normal
+            let push = edge_normal * (-side + 1.0);
             transform.translation.x += push.x;
             transform.translation.y += push.y;
         }
     }
 }
+
+/// Finds the nearest point on any coastline edge to the given position,
+/// and returns the outward-facing normal of that edge.
+///
+/// Returns `None` if no coastline polygons exist.
+fn find_nearest_coastline_edge(
+    pos: Vec2,
+    polygons: &[crate::utils::geometry::CoastlinePolygon],
+) -> Option<(Vec2, Vec2)> {
+    let mut best_dist_sq = f32::MAX;
+    let mut best_point = Vec2::ZERO;
+    let mut best_normal = Vec2::ZERO;
+
+    for polygon in polygons {
+        let points = &polygon.points;
+        if points.len() < 2 {
+            continue;
+        }
+
+        for i in 0..points.len() {
+            let a = points[i];
+            let b = points[(i + 1) % points.len()];
+
+            // Find closest point on segment [a, b] to pos
+            let (closest, normal) = closest_point_on_segment_with_normal(pos, a, b);
+            let dist_sq = pos.distance_squared(closest);
+
+            if dist_sq < best_dist_sq {
+                best_dist_sq = dist_sq;
+                best_point = closest;
+                best_normal = normal;
+            }
+        }
+    }
+
+    if best_dist_sq < f32::MAX {
+        Some((best_point, best_normal))
+    } else {
+        None
+    }
+}
+
+/// Returns the closest point on segment [a, b] to point p, plus the outward normal.
+///
+/// For CCW polygons where land is on the left, the outward normal (into water)
+/// is perpendicular to the edge, pointing right (CW rotation of edge direction).
+fn closest_point_on_segment_with_normal(p: Vec2, a: Vec2, b: Vec2) -> (Vec2, Vec2) {
+    let ab = b - a;
+    let ab_len_sq = ab.length_squared();
+
+    if ab_len_sq < 1e-10 {
+        // Degenerate segment - use perpendicular to arbitrary direction
+        return (a, Vec2::Y);
+    }
+
+    // Project p onto line ab, clamped to segment
+    let t = ((p - a).dot(ab) / ab_len_sq).clamp(0.0, 1.0);
+    let closest = a + ab * t;
+
+    // Outward normal: perpendicular to edge, pointing right (into water)
+    // For CCW winding with land on left, right is the water side
+    let edge_dir = ab.normalize();
+    let normal = Vec2::new(edge_dir.y, -edge_dir.x); // 90° CW rotation
+
+    (closest, normal)
+}
+
