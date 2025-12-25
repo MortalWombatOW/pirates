@@ -16,7 +16,8 @@ use crate::systems::{
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
-use crate::utils::geometry::{extract_contours, CoastlinePolygon, offset_polygon};
+use crate::utils::geometry::{extract_contours, CoastlinePolygon, offset_polygon, build_navmesh_from_polygons};
+use crate::resources::NavMeshResource;
 use crate::events::CombatTriggeredEvent;
 
 /// Plugin managing the world map tilemap for the High Seas view.
@@ -37,6 +38,7 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<FogOfWar>()
             .init_resource::<RouteCache>()
             .init_resource::<CoastlineData>()
+            .init_resource::<NavMeshResource>()
             .init_resource::<EncounterSpatialHash>()
             .init_resource::<EncounterCooldown>()
             .init_resource::<EncounteredEnemy>()
@@ -952,6 +954,7 @@ const COASTLINE_TILE_SIZE: f32 = 64.0;
 /// Extracts coastline polygons from the generated map data.
 /// Runs on startup after procedural map generation.
 fn extract_coastlines_system(
+    mut commands: Commands,
     map_data: Res<MapData>,
     mut coastline_data: ResMut<CoastlineData>,
 ) {
@@ -973,6 +976,25 @@ fn extract_coastlines_system(
         polygons.iter().map(|p| p.points.len()).sum::<usize>()
     );
     
+    // Build NavMesh from coastline polygons
+    // Calculate world bounds
+    let tile_size = COASTLINE_TILE_SIZE;
+    let half_width = map_data.width as f32 * tile_size / 2.0;
+    let half_height = map_data.height as f32 * tile_size / 2.0;
+    let map_bounds = (-half_width, -half_height, half_width, half_height);
+    
+    let navmesh_resource = build_navmesh_from_polygons(&polygons, map_bounds);
+    
+    if navmesh_resource.is_ready() {
+        info!("NavMesh built successfully with {} tiers", navmesh_resource.stats().len());
+        for (tier, verts, tris) in navmesh_resource.stats() {
+            info!("  {:?}: {} vertices, {} triangles", tier, verts, tris);
+        }
+    } else {
+        warn!("NavMesh build failed - falling back to grid pathfinding");
+    }
+    
+    commands.insert_resource(navmesh_resource);
     coastline_data.polygons = polygons;
 }
 

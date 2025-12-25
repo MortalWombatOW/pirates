@@ -411,6 +411,212 @@ pub fn offset_polygon(points: &[Vec2], distance: f32) -> Vec<Vec2> {
     remove_self_intersections(&offset_points)
 }
 
+use crate::resources::navmesh::{NavMeshResource, TieredNavMesh, ShoreBufferTier};
+use spade::{Point2, Triangulation};
+
+/// Builds NavMesh resources from coastline polygons for all shore buffer tiers.
+///
+/// # Arguments
+/// * `polygons` - Coastline polygons with CCW winding (land on left)
+/// * `map_bounds` - World-space bounds of the map (min_x, min_y, max_x, max_y)
+///
+/// # Returns
+/// A NavMeshResource with meshes for each shore buffer tier.
+pub fn build_navmesh_from_polygons(
+    polygons: &[CoastlinePolygon],
+    map_bounds: (f32, f32, f32, f32),
+) -> NavMeshResource {
+    let mut resource = NavMeshResource::new();
+    
+    for &tier in ShoreBufferTier::all() {
+        let buffer = tier.buffer_distance();
+        
+        if let Some(mesh) = build_single_tier_navmesh(polygons, map_bounds, buffer, tier) {
+            info!(
+                "Built NavMesh for {:?} tier: {} vertices, {} triangles",
+                tier, mesh.vertex_count, mesh.triangle_count
+            );
+            resource.set_mesh(tier, mesh);
+        } else {
+            warn!("Failed to build NavMesh for {:?} tier", tier);
+        }
+    }
+    
+    resource
+}
+
+/// Builds a single NavMesh for a specific shore buffer distance.
+/// Uses Delaunay triangulation and filters triangles by centroid location.
+fn build_single_tier_navmesh(
+    polygons: &[CoastlinePolygon],
+    map_bounds: (f32, f32, f32, f32),
+    shore_buffer: f32,
+    tier: ShoreBufferTier,
+) -> Option<TieredNavMesh> {
+    use spade::DelaunayTriangulation;
+    
+    let (min_x, min_y, max_x, max_y) = map_bounds;
+    
+    // Offset land polygons outward by shore buffer (they become obstacles)
+    // Since coastlines are CCW with land on left, offsetting "outward" (positive distance)
+    // expands the land area, which shrinks the navigable water.
+    let obstacle_polygons: Vec<Vec<Vec2>> = polygons
+        .iter()
+        .filter_map(|poly| {
+            if poly.points.len() < 3 {
+                return None;
+            }
+            // Offset outward (positive = away from land = into water)
+            let offset = offset_polygon(&poly.points, shore_buffer);
+            if offset.len() >= 3 {
+                Some(offset)
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    // Build simple Delaunay triangulation (no constraints - more robust)
+    let mut dt: DelaunayTriangulation<Point2<f64>> = DelaunayTriangulation::new();
+    
+    // Add boundary points with margin
+    let margin = shore_buffer;
+    let bounds_with_margin = [
+        Vec2::new(min_x + margin, min_y + margin),
+        Vec2::new(max_x - margin, min_y + margin),
+        Vec2::new(max_x - margin, max_y - margin),
+        Vec2::new(min_x + margin, max_y - margin),
+    ];
+    
+    for p in &bounds_with_margin {
+        let _ = dt.insert(Point2::new(p.x as f64, p.y as f64));
+    }
+    
+    // Add intermediate points along map edges for better triangulation
+    let edge_step = 500.0; // Add points every 500 world units along edges
+    
+    // Bottom edge
+    let mut x = min_x + margin + edge_step;
+    while x < max_x - margin {
+        let _ = dt.insert(Point2::new(x as f64, (min_y + margin) as f64));
+        x += edge_step;
+    }
+    // Top edge
+    x = min_x + margin + edge_step;
+    while x < max_x - margin {
+        let _ = dt.insert(Point2::new(x as f64, (max_y - margin) as f64));
+        x += edge_step;
+    }
+    // Left edge
+    let mut y = min_y + margin + edge_step;
+    while y < max_y - margin {
+        let _ = dt.insert(Point2::new((min_x + margin) as f64, y as f64));
+        y += edge_step;
+    }
+    // Right edge
+    y = min_y + margin + edge_step;
+    while y < max_y - margin {
+        let _ = dt.insert(Point2::new((max_x - margin) as f64, y as f64));
+        y += edge_step;
+    }
+    
+    // Add obstacle polygon vertices (simplified - take every Nth point)
+    let point_stride = 10; // Take every 10th point for performance
+    for obstacle in &obstacle_polygons {
+        for (i, p) in obstacle.iter().enumerate() {
+            if i % point_stride != 0 {
+                continue;
+            }
+            // Skip points outside bounds
+            if p.x < min_x + margin || p.x > max_x - margin 
+                || p.y < min_y + margin || p.y > max_y - margin {
+                continue;
+            }
+            let _ = dt.insert(Point2::new(p.x as f64, p.y as f64));
+        }
+    }
+    
+    // Extract vertices
+    let vertices: Vec<Vec2> = dt
+        .vertices()
+        .map(|v| {
+            let p = v.position();
+            Vec2::new(p.x as f32, p.y as f32)
+        })
+        .collect();
+    
+    if vertices.is_empty() {
+        return None;
+    }
+    
+    // Build vertex index lookup
+    let vertex_lookup: std::collections::HashMap<_, _> = dt
+        .vertices()
+        .enumerate()
+        .map(|(i, v)| (v.fix(), i))
+        .collect();
+    
+    // Extract triangles, filtering out those inside obstacles
+    let mut triangles: Vec<[usize; 3]> = Vec::new();
+    
+    for face in dt.inner_faces() {
+        let verts = face.vertices();
+        
+        // Get vertex indices
+        let Some(&i0) = vertex_lookup.get(&verts[0].fix()) else { continue };
+        let Some(&i1) = vertex_lookup.get(&verts[1].fix()) else { continue };
+        let Some(&i2) = vertex_lookup.get(&verts[2].fix()) else { continue };
+        
+        // Calculate triangle centroid
+        let centroid = (vertices[i0] + vertices[i1] + vertices[i2]) / 3.0;
+        
+        // Check if centroid is inside any obstacle polygon (land)
+        let inside_obstacle = obstacle_polygons
+            .iter()
+            .any(|obs| point_in_polygon(centroid, obs));
+        
+        // Also check if centroid is inside any ORIGINAL polygon (unoffset land)
+        let inside_original_land = polygons
+            .iter()
+            .any(|poly| point_in_polygon(centroid, &poly.points));
+        
+        if !inside_obstacle && !inside_original_land {
+            triangles.push([i0, i1, i2]);
+        }
+    }
+    
+    if triangles.is_empty() {
+        return None;
+    }
+    
+    TieredNavMesh::new(vertices, triangles, tier)
+}
+
+/// Tests if a point is inside a polygon using ray casting.
+fn point_in_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
+    if polygon.len() < 3 {
+        return false;
+    }
+    
+    let mut inside = false;
+    let n = polygon.len();
+    let mut j = n - 1;
+    
+    for i in 0..n {
+        let pi = polygon[i];
+        let pj = polygon[j];
+        
+        if ((pi.y > point.y) != (pj.y > point.y))
+            && (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x)
+        {
+            inside = !inside;
+        }
+        j = i;
+    }
+    
+    inside
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -22,3 +22,5 @@ pub use fleet::*;
 pub mod meta_profile;
 pub use meta_profile::*;
 
+pub mod navmesh;
+pub use navmesh::*;

@@ -45,44 +45,71 @@ pub fn click_to_navigate_system(
           tile_pos.x, tile_pos.y, world_target.x, world_target.y);
 }
 
-/// System that calculates Theta* path when destination changes.
+/// System that calculates paths when destination changes.
+/// Uses NavMesh pathfinding when available, with fallback to grid-based Theta*.
 /// Applies Catmull-Rom spline smoothing for natural, flowing paths.
-/// Shore buffer is enforced in the pathfinding algorithm itself.
 pub fn pathfinding_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform, &Destination), (With<Player>, Changed<Destination>)>,
     map_data: Res<MapData>,
+    navmesh: Option<Res<crate::resources::NavMeshResource>>,
 ) {
+    use crate::components::ship::ShipType;
+    
     for (entity, transform, destination) in &query {
         let current_pos = transform.translation.truncate();
-        let start_tile = world_to_tile(current_pos, map_data.width, map_data.height);
-        let goal_tile = world_to_tile(destination.target, map_data.width, map_data.height);
+        let goal_pos = destination.target;
         
-        if let Some(tile_path) = find_path(start_tile, goal_tile, &map_data) {
-            // Convert tile path to world waypoints
-            let control_points: Vec<Vec2> = tile_path
-                .into_iter()
-                .map(|t| tile_to_world(t, map_data.width, map_data.height))
-                .collect();
-            
-            let num_control_points = control_points.len();
-            
-            // Apply curve smoothing if we have enough points
-            let waypoints = if control_points.len() >= 3 {
-                smooth_path_catmull_rom(&control_points, 8)
+        // Try NavMesh pathfinding first (uses Small tier for player - Sloop equivalent)
+        let navmesh_path = navmesh.as_ref().and_then(|nm| {
+            if nm.is_ready() {
+                nm.find_path_for_ship(current_pos, goal_pos, ShipType::Sloop)
             } else {
-                control_points
-            };
-            
-            info!("Path found with {} waypoints (smoothed from {} control points)", 
-                  waypoints.len(), num_control_points);
-            commands.entity(entity).insert(NavigationPath { waypoints });
+                None
+            }
+        });
+        
+        let waypoints = if let Some(path) = navmesh_path {
+            info!("NavMesh path found with {} waypoints", path.len());
+            // Apply smoothing if enough points
+            if path.len() >= 3 {
+                smooth_path_catmull_rom(&path, 8)
+            } else {
+                path
+            }
         } else {
-            warn!("No path found from ({}, {}) to ({}, {})", 
-                  start_tile.x, start_tile.y, goal_tile.x, goal_tile.y);
-            // Remove destination if no path
-            commands.entity(entity).remove::<Destination>();
-        }
+            // Fallback to grid-based Theta*
+            let start_tile = world_to_tile(current_pos, map_data.width, map_data.height);
+            let goal_tile = world_to_tile(goal_pos, map_data.width, map_data.height);
+            
+            if let Some(tile_path) = find_path(start_tile, goal_tile, &map_data) {
+                // Convert tile path to world waypoints
+                let control_points: Vec<Vec2> = tile_path
+                    .into_iter()
+                    .map(|t| tile_to_world(t, map_data.width, map_data.height))
+                    .collect();
+                
+                let num_control_points = control_points.len();
+                
+                // Apply curve smoothing if we have enough points
+                let smoothed = if control_points.len() >= 3 {
+                    smooth_path_catmull_rom(&control_points, 8)
+                } else {
+                    control_points
+                };
+                
+                info!("Grid path found with {} waypoints (smoothed from {} control points)", 
+                      smoothed.len(), num_control_points);
+                smoothed
+            } else {
+                warn!("No path found to ({:.0}, {:.0})", goal_pos.x, goal_pos.y);
+                // Remove destination if no path
+                commands.entity(entity).remove::<Destination>();
+                continue;
+            }
+        };
+        
+        commands.entity(entity).insert(NavigationPath { waypoints });
     }
 }
 
