@@ -449,9 +449,47 @@
 | [x] 8.5.11 | Generate depth data from noise | 8.5.10, 3.2.1 | Depth decreases near coastlines (shallow) and increases offshore. |
 | [x] 8.5.12 | Create stippling shader (Blue Noise) | 8.5.11 | Shader uses noise texture to render dots based on depth. |
 | [x] 8.5.13 | Integrate stippling into map rendering | 8.5.12 | Shallow water shows dense dots, deep water sparse/none. |
-| [ ] 8.5.14 | Load Quintessential font | None | `assets/fonts/Quintessential-Regular.ttf` available. |
+| [x] 8.5.14 | Load Quintessential font | None | `assets/fonts/Quintessential-Regular.ttf` available. |
 | [ ] 8.5.15 | Create `LocationLabel` component | 4.1.1 | Component with name, importance rank, position. |
 | [ ] 8.5.16 | Calculate label perpendicular angle | 8.5.15, 8.5.4 | System computes angle perpendicular to nearest coastline. |
 | [ ] 8.5.17 | Render location labels with Quintessential font | 8.5.14, 8.5.16 | Labels drawn extending inland, perpendicular to coast. |
 | [ ] 8.5.18 | Scale label text by importance | 8.5.17 | Major ports large, minor locations smaller. |
 | [ ] 8.5.19 | Add decorative cartouche for map title | 8.5.14 | Ornate frame for map title/legend area. |
+
+---
+
+## Phase 9: Infrastructure & Performance
+### Epic 9.1: Performance Profiling
+> Enable measurement and optimization of game performance.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.1.1 | Add `bevy_diagnostics` FrameTimeDiagnostics | 1.1.2 | FPS and frame time logged to console. |
+| [ ] 9.1.2 | Integrate Tracy profiler support | 9.1.1 | Compile with `--features bevy/trace_tracy`, connect Tracy. |
+| [ ] 9.1.3 | Add diagnostic overlay (toggle with F4) | 9.1.1, 1.4.1 | Egui panel shows FPS, entity count, draw calls. |
+| [ ] 9.1.4 | Document profiling workflow in AGENT.md | 9.1.2 | Instructions for running Tracy and interpreting results. |
+
+### Epic 9.2: Scene Management & Entity Cleanup
+> Track entity ownership per scene and despawn correctly on state transitions.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.2.1 | Create `SceneTag` marker components | 1.2.1 | `HighSeasEntity`, `CombatEntity`, `PortEntity` marker components. |
+| [ ] 9.2.2 | Tag entities at spawn time | 9.2.1 | All spawned entities get appropriate `SceneTag`. |
+| [ ] 9.2.3 | Create `despawn_scene_entities` generic system | 9.2.1 | System despawns all entities with given `SceneTag`. |
+| [ ] 9.2.4 | Register despawn systems on `OnExit` for each state | 9.2.3 | Exiting HighSeas/Combat/Port despawns tagged entities. |
+| [ ] 9.2.5 | Audit existing plugins for entity tagging | 9.2.2 | All worldmap, combat, port entities tagged. |
+| [ ] 9.2.6 | Remove redundant per-plugin despawn systems | 9.2.4 | Consolidate to centralized cleanup. |
+
+### Epic 9.3: Loading Screens
+> Show progress indicator during scene transitions.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.3.1 | Create `Loading` state variant | 1.2.1 | `GameState::Loading` exists with target state field. |
+| [ ] 9.3.2 | Create `LoadingScreen` plugin | 9.3.1 | Plugin spawns loading UI on `OnEnter(Loading)`. |
+| [ ] 9.3.3 | Implement loading progress resource | 9.3.2 | `LoadingProgress { current: f32, message: String }`. |
+| [ ] 9.3.4 | Add loading bar UI with progress text | 9.3.2, 9.3.3 | Animated bar and status message displayed. |
+| [ ] 9.3.5 | Transition to target state on completion | 9.3.3 | When progress reaches 1.0, switch to target state. |
+| [ ] 9.3.6 | Integrate loading screen into HighSeas entry | 9.3.5, 3.1.1 | Entering HighSeas shows loading during map gen. |
+| [ ] 9.3.7 | Integrate loading screen into Combat entry | 9.3.5, 2.1.1 | Entering Combat shows brief loading. |

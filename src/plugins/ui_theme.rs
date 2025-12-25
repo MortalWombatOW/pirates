@@ -14,8 +14,33 @@ impl Plugin for UiThemePlugin {
     }
 }
 
-fn configure_ui_theme(mut contexts: EguiContexts) {
+fn configure_ui_theme(mut contexts: EguiContexts, mut fonts_loaded: Local<bool>) {
     let ctx = contexts.ctx_mut();
+    
+    // Load Quintessential font on first run
+    if !*fonts_loaded {
+        if let Ok(font_data) = std::fs::read("assets/fonts/Quintessential-Regular.ttf") {
+            let mut fonts = egui::FontDefinitions::default();
+            
+            // Add Quintessential font
+            fonts.font_data.insert(
+                "Quintessential".to_owned(),
+                egui::FontData::from_owned(font_data).into(),
+            );
+            
+            // Set as primary proportional font (used for body text, buttons, etc.)
+            fonts.families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .insert(0, "Quintessential".to_owned());
+            
+            ctx.set_fonts(fonts);
+            info!("Loaded Quintessential font for egui");
+        } else {
+            warn!("Failed to load Quintessential font from assets/fonts/Quintessential-Regular.ttf");
+        }
+        *fonts_loaded = true;
+    }
     
     // Define Ink & Parchment colors
     let ink_color = egui::Color32::from_rgb(60, 42, 26); // Dark Brown
