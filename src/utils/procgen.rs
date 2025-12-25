@@ -92,10 +92,13 @@ pub fn generate_world_map(config: MapGenConfig) -> MapData {
         }
     }
 
-    // Second pass: Ensure spawn area (center) is navigable
+    // Second pass: Remove lakes (enforce single contiguous ocean)
+    fill_lakes(&mut map_data);
+
+    // Third pass: Ensure spawn area (center) is navigable
     ensure_spawn_navigable(&mut map_data);
 
-    // Third pass: Add shallow water transitions
+    // Fourth pass: Add shallow water transitions
     add_coastal_transitions(&mut map_data);
 
     // Fourth pass: Place ports on coastlines
@@ -122,6 +125,64 @@ fn noise_to_tile(value: f64) -> TileType {
         TileType::Sand
     } else {
         TileType::Land
+    }
+}
+
+/// Removes landlocked water bodies ("lakes") by flood-filling from map edges.
+/// Any navigable tile not reachable from the ocean perimeter is converted to land.
+fn fill_lakes(map_data: &mut MapData) {
+    use std::collections::VecDeque;
+
+    let width = map_data.width;
+    let height = map_data.height;
+
+    // Visited grid for BFS
+    let mut visited = vec![false; (width * height) as usize];
+    let mut queue = VecDeque::new();
+
+    // Seed BFS from all edge tiles that are navigable
+    for x in 0..width {
+        for y in [0, height - 1] {
+            if map_data.is_navigable(x, y) {
+                let idx = (y * width + x) as usize;
+                if !visited[idx] {
+                    visited[idx] = true;
+                    queue.push_back((x, y));
+                }
+            }
+        }
+    }
+    for y in 0..height {
+        for x in [0, width - 1] {
+            if map_data.is_navigable(x, y) {
+                let idx = (y * width + x) as usize;
+                if !visited[idx] {
+                    visited[idx] = true;
+                    queue.push_back((x, y));
+                }
+            }
+        }
+    }
+
+    // BFS to mark all reachable ocean tiles
+    while let Some((x, y)) = queue.pop_front() {
+        for (nx, ny) in neighbors_4(x, y, width, height) {
+            let idx = (ny * width + nx) as usize;
+            if !visited[idx] && map_data.is_navigable(nx, ny) {
+                visited[idx] = true;
+                queue.push_back((nx, ny));
+            }
+        }
+    }
+
+    // Convert unreachable navigable tiles (lakes) to land
+    for y in 0..height {
+        for x in 0..width {
+            let idx = (y * width + x) as usize;
+            if !visited[idx] && map_data.is_navigable(x, y) {
+                map_data.set(x, y, TileType::Land);
+            }
+        }
     }
 }
 

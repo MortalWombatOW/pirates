@@ -80,6 +80,7 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Vector UI**: For high-quality vector graphics in UI (e.g. compass), use `bevy_prototype_lyon` with a dedicated `Camera2d` (Order 1, `RenderLayers(1)`). Add `MainCamera` marker to primary camera to resolve input ambiguity.
 *   **UI Transform Scaling**: When dynamically resizing UI elements (e.g., scale bar), use transform scaling (X/Y axis) instead of geometry rebuild for efficiency. Counter-scale child text entities to prevent stretching.
 *   **Egui Systems**: Any system using `EguiContexts` MUST order itself after `EguiSet::InitContexts` to prevent panics on state transitions. Example: `.after(EguiSet::InitContexts)`.
+*   **Navigation**: Uses `bevy_landmass` v0.8.0 for velocity-based steering. Ships are `Agent2d` entities with `AgentDesiredVelocity2d`. Set destinations via `Destination` component (synced to `AgentTarget2d`). Three archipelagos exist for ship size tiers (Small/Medium/Large shore buffers).
 
 ---
 

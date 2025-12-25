@@ -411,56 +411,99 @@ pub fn offset_polygon(points: &[Vec2], distance: f32) -> Vec<Vec2> {
     remove_self_intersections(&offset_points)
 }
 
-use crate::resources::navmesh::{NavMeshResource, TieredNavMesh, ShoreBufferTier};
+use crate::resources::landmass::{ShoreBufferTier, PendingNavMeshes, build_navigation_mesh_2d};
 use spade::{Point2, Triangulation};
 
-/// Builds NavMesh resources from coastline polygons for all shore buffer tiers.
+/// Raw navigation mesh data (vertices and triangles).
+pub struct RawNavMeshData {
+    pub vertices: Vec<Vec2>,
+    pub triangles: Vec<[usize; 3]>,
+}
+
+/// Builds landmass NavigationMesh2d resources from coastline polygons for all tiers.
 ///
 /// # Arguments
 /// * `polygons` - Coastline polygons with CCW winding (land on left)
 /// * `map_bounds` - World-space bounds of the map (min_x, min_y, max_x, max_y)
 ///
 /// # Returns
-/// A NavMeshResource with meshes for each shore buffer tier.
-pub fn build_navmesh_from_polygons(
+/// A PendingNavMeshes resource with meshes for each shore buffer tier.
+pub fn build_landmass_navmeshes(
     polygons: &[CoastlinePolygon],
     map_bounds: (f32, f32, f32, f32),
-) -> NavMeshResource {
-    let mut resource = NavMeshResource::new();
-    
+) -> PendingNavMeshes {
+    let mut pending = PendingNavMeshes::default();
+
     for &tier in ShoreBufferTier::all() {
         let buffer = tier.buffer_distance();
-        
-        if let Some(mesh) = build_single_tier_navmesh(polygons, map_bounds, buffer, tier) {
-            info!(
-                "Built NavMesh for {:?} tier: {} vertices, {} triangles",
-                tier, mesh.vertex_count, mesh.triangle_count
-            );
-            resource.set_mesh(tier, mesh);
+
+        if let Some(raw) = build_raw_navmesh_data(polygons, map_bounds, buffer) {
+            match build_navigation_mesh_2d(raw.vertices.clone(), raw.triangles.clone()) {
+                Ok(mesh) => {
+                    info!(
+                        "Built NavigationMesh2d for {:?} tier: {} vertices, {} triangles",
+                        tier, raw.vertices.len(), raw.triangles.len()
+                    );
+                    match tier {
+                        ShoreBufferTier::Small => pending.small = Some(mesh),
+                        ShoreBufferTier::Medium => pending.medium = Some(mesh),
+                        ShoreBufferTier::Large => pending.large = Some(mesh),
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to validate NavMesh for {:?} tier: {}", tier, e);
+                }
+            }
         } else {
-            warn!("Failed to build NavMesh for {:?} tier", tier);
+            warn!("Failed to build raw NavMesh for {:?} tier", tier);
         }
     }
-    
-    resource
+
+    pending
 }
 
-/// Builds a single NavMesh for a specific shore buffer distance.
+/// Checks if a polygon touches the map boundary (is a border polygon).
+fn is_border_polygon(points: &[Vec2], map_bounds: (f32, f32, f32, f32), tolerance: f32) -> bool {
+    let (min_x, min_y, max_x, max_y) = map_bounds;
+
+    // A border polygon has points very close to all 4 edges
+    let mut touches_left = false;
+    let mut touches_right = false;
+    let mut touches_top = false;
+    let mut touches_bottom = false;
+
+    for p in points {
+        if (p.x - min_x).abs() < tolerance { touches_left = true; }
+        if (p.x - max_x).abs() < tolerance { touches_right = true; }
+        if (p.y - min_y).abs() < tolerance { touches_bottom = true; }
+        if (p.y - max_y).abs() < tolerance { touches_top = true; }
+    }
+
+    // Must touch all 4 edges to be a border polygon
+    touches_left && touches_right && touches_top && touches_bottom
+}
+
+/// Builds raw navigation mesh data for a specific shore buffer distance.
 /// Uses Delaunay triangulation and filters triangles by centroid location.
-fn build_single_tier_navmesh(
+fn build_raw_navmesh_data(
     polygons: &[CoastlinePolygon],
     map_bounds: (f32, f32, f32, f32),
     shore_buffer: f32,
-    tier: ShoreBufferTier,
-) -> Option<TieredNavMesh> {
+) -> Option<RawNavMeshData> {
     use spade::DelaunayTriangulation;
-    
+
     let (min_x, min_y, max_x, max_y) = map_bounds;
+
+    // Filter out border polygons - they enclose the entire ocean and break point-in-polygon tests
+    let land_polygons: Vec<_> = polygons
+        .iter()
+        .filter(|poly| !is_border_polygon(&poly.points, map_bounds, 100.0))
+        .collect();
     
     // Offset land polygons outward by shore buffer (they become obstacles)
     // Since coastlines are CCW with land on left, offsetting "outward" (positive distance)
     // expands the land area, which shrinks the navigable water.
-    let obstacle_polygons: Vec<Vec<Vec2>> = polygons
+    let obstacle_polygons: Vec<Vec<Vec2>> = land_polygons
         .iter()
         .filter_map(|poly| {
             if poly.points.len() < 3 {
@@ -558,28 +601,29 @@ fn build_single_tier_navmesh(
     
     // Extract triangles, filtering out those inside obstacles
     let mut triangles: Vec<[usize; 3]> = Vec::new();
-    
+
     for face in dt.inner_faces() {
         let verts = face.vertices();
-        
+
         // Get vertex indices
         let Some(&i0) = vertex_lookup.get(&verts[0].fix()) else { continue };
         let Some(&i1) = vertex_lookup.get(&verts[1].fix()) else { continue };
         let Some(&i2) = vertex_lookup.get(&verts[2].fix()) else { continue };
-        
+
         // Calculate triangle centroid
         let centroid = (vertices[i0] + vertices[i1] + vertices[i2]) / 3.0;
-        
-        // Check if centroid is inside any obstacle polygon (land)
+
+        // Check if centroid is inside any obstacle polygon (offset land)
         let inside_obstacle = obstacle_polygons
             .iter()
             .any(|obs| point_in_polygon(centroid, obs));
-        
+
         // Also check if centroid is inside any ORIGINAL polygon (unoffset land)
-        let inside_original_land = polygons
+        // Use filtered land_polygons to exclude border polygon
+        let inside_original_land = land_polygons
             .iter()
             .any(|poly| point_in_polygon(centroid, &poly.points));
-        
+
         if !inside_obstacle && !inside_original_land {
             triangles.push([i0, i1, i2]);
         }
@@ -588,8 +632,8 @@ fn build_single_tier_navmesh(
     if triangles.is_empty() {
         return None;
     }
-    
-    TieredNavMesh::new(vertices, triangles, tier)
+
+    Some(RawNavMeshData { vertices, triangles })
 }
 
 /// Tests if a point is inside a polygon using ray casting.

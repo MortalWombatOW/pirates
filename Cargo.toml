@@ -44,7 +44,8 @@ bevy_prototype_lyon = "0.13"
 
 # Nav Mesh Pathfinding
 spade = "2.15"
-navmesh = "0.12"
+bevy_landmass = "0.8"
+landmass = "0.7"  # For direct path queries (visualization)
 
 
 [profile.dev]

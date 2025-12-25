@@ -7,17 +7,25 @@ use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::plugins::debug_ui::DebugToggles;
 use crate::resources::{MapData, FogOfWar, RouteCache};
 use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue};
+use crate::components::ship::ShipType;
 use crate::systems::{
     fog_of_war_update_system, FogTile,
-    click_to_navigate_system, pathfinding_system, navigation_movement_system,
+    click_to_navigate_system,
     path_visualization_system, port_arrival_system, order_execution_system,
-    ai_pathfinding_system, ai_movement_system, contract_delegation_system,
+    contract_delegation_system,
     intel_visualization_system,
+    // Landmass velocity-based movement systems
+    landmass_player_movement_system, landmass_ai_movement_system,
+    arrival_detection_system, sync_destination_to_agent_target,
 };
 use crate::utils::pathfinding::{tile_to_world, world_to_tile};
 use crate::utils::spatial_hash::SpatialHash;
-use crate::utils::geometry::{extract_contours, CoastlinePolygon, offset_polygon, build_navmesh_from_polygons};
-use crate::resources::NavMeshResource;
+use crate::utils::geometry::{extract_contours, CoastlinePolygon, offset_polygon, build_landmass_navmeshes};
+use crate::resources::{NavMeshResource, PendingNavMeshes, LandmassArchipelagos, ShoreBufferTier};
+use bevy_landmass::prelude::*;
+use bevy_landmass::NavMeshHandle;
+use bevy_landmass::debug::{Landmass2dDebugPlugin, EnableLandmassDebug};
+use std::sync::Arc;
 use crate::events::CombatTriggeredEvent;
 
 /// Plugin managing the world map tilemap for the High Seas view.
@@ -33,6 +41,10 @@ impl Plugin for WorldMapPlugin {
         app
             // Vector graphics for coastlines
             .add_plugins(ShapePlugin)
+            // Landmass navigation plugin
+            .add_plugins(Landmass2dPlugin::default())
+            // Debug visualization (press F3 to toggle)
+            .add_plugins(Landmass2dDebugPlugin { draw_on_start: false, ..Default::default() })
             // Initialize resources
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
@@ -45,7 +57,13 @@ impl Plugin for WorldMapPlugin {
             .init_resource::<crate::resources::PlayerFleet>()
             .init_resource::<crate::resources::FleetEntities>()
             .add_event::<CombatTriggeredEvent>()
-            .add_systems(Startup, (generate_procedural_map, create_tileset_texture, extract_coastlines_system.after(generate_procedural_map)))
+            .add_systems(Startup, (
+                generate_procedural_map,
+                create_tileset_texture,
+                extract_coastlines_system.after(generate_procedural_map),
+                initialize_archipelagos.after(extract_coastlines_system),
+                spawn_navigation_islands.after(initialize_archipelagos),
+            ))
             .add_systems(OnEnter(GameState::HighSeas), (
                 spawn_tilemap_from_map_data,
                 spawn_coastline_shapes,
@@ -57,27 +75,40 @@ impl Plugin for WorldMapPlugin {
                 reset_encounter_cooldown,
                 show_tilemap,
             ))
+            // Fog of war and visibility systems
             .add_systems(Update, (
                 fog_of_war_update_system,
-                // Animated ink reveal replaces static fog update
                 crate::systems::ink_reveal::spawn_ink_reveals.after(fog_of_war_update_system),
                 crate::systems::ink_reveal::animate_ink_reveals.after(crate::systems::ink_reveal::spawn_ink_reveals),
                 fog_of_war_ai_visibility_system,
                 coastline_visibility_system,
+            ).run_if(in_state(GameState::HighSeas)))
+            // Encounter and combat systems
+            .add_systems(Update, (
                 rebuild_encounter_spatial_hash,
                 encounter_detection_system.after(rebuild_encounter_spatial_hash),
                 handle_combat_trigger_system.after(encounter_detection_system),
+            ).run_if(in_state(GameState::HighSeas)))
+            // Navigation systems (landmass-only, no grid fallback)
+            .add_systems(Update, (
                 click_to_navigate_system,
                 order_execution_system,
-                pathfinding_system.after(click_to_navigate_system).after(order_execution_system),
-                ai_pathfinding_system.after(order_execution_system),
-                navigation_movement_system.after(pathfinding_system),
-                ai_movement_system.after(ai_pathfinding_system),
+                sync_destination_to_agent_target.after(click_to_navigate_system).after(order_execution_system),
+            ).run_if(in_state(GameState::HighSeas)))
+            // Movement systems (landmass velocity-based)
+            .add_systems(Update, (
+                landmass_player_movement_system,
+                landmass_ai_movement_system,
+                arrival_detection_system.after(landmass_player_movement_system).after(landmass_ai_movement_system),
+            ).run_if(in_state(GameState::HighSeas)))
+            // Visualization and other systems
+            .add_systems(Update, (
                 path_visualization_system,
                 intel_visualization_system,
                 port_arrival_system,
                 contract_delegation_system,
                 wreck_exploration_system,
+                toggle_navmesh_debug,
             ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnEnter(GameState::Combat), hide_tilemap)
             .add_systems(OnExit(GameState::HighSeas), (
@@ -382,9 +413,9 @@ fn spawn_high_seas_player(
     selected_archetype: Res<crate::plugins::main_menu::SelectedArchetype>,
     registry: Res<crate::resources::ArchetypeRegistry>,
     mut faction_registry: ResMut<crate::resources::FactionRegistry>,
+    archipelagos: Option<Res<LandmassArchipelagos>>,
 ) {
     use crate::components::{Cargo, Gold};
-    use crate::components::ship::ShipType;
 
     // Get archetype configuration
     let archetype_config = registry.get(selected_archetype.0);
@@ -431,10 +462,15 @@ fn spawn_high_seas_player(
         ShipType::Raft => 30,
     };
 
-    commands.spawn((
+    // Get appropriate archipelago for ship type
+    let tier = ShoreBufferTier::from_ship_type(ship_type);
+    let archipelago_entity = archipelagos.as_ref().map(|a| a.get(tier));
+
+    let mut entity_commands = commands.spawn((
         Name::new("High Seas Player"),
         Player,
         Ship,
+        ship_type, // ShipType component for turn rate calculations
         HighSeasPlayer,
         Vision { radius: 10.0 }, // Sight radius in tiles
         Health::default(),       // Required by camera follow
@@ -448,6 +484,22 @@ fn spawn_high_seas_player(
         },
         Transform::from_xyz(center_x, center_y, 2.0), // Above fog
     ));
+
+    // Add landmass agent components if archipelago is available
+    if let Some(arch_entity) = archipelago_entity {
+        entity_commands.insert((
+            Agent2dBundle {
+                agent: Default::default(),
+                settings: AgentSettings {
+                    radius: tier.agent_radius(),
+                    desired_speed: ship_type.base_speed(),
+                    max_speed: ship_type.base_speed() * 1.3,
+                },
+                archipelago_ref: ArchipelagoRef2d::new(arch_entity),
+            },
+        ));
+        info!("Added landmass Agent2dBundle to player (tier: {:?})", tier);
+    }
 }
 
 /// Despawn High Seas player when leaving the state.
@@ -647,35 +699,59 @@ fn spawn_high_seas_ai_ships(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     map_data: Res<MapData>,
+    archipelagos: Option<Res<LandmassArchipelagos>>,
 ) {
     use rand::prelude::*;
-    
+
     let mut rng = rand::thread_rng();
     let num_ships = 50;
-    
+
     let texture_handle: Handle<Image> = asset_server.load("sprites/ships/enemy.png");
-    
+
     // Collect navigable tiles (deep water only for AI ships)
     let navigable_tiles: Vec<(u32, u32)> = map_data.iter()
         .filter(|(_, _, tile)| tile.is_navigable())
         .map(|(x, y, _)| (x, y))
         .collect();
-    
+
     if navigable_tiles.is_empty() {
         warn!("No navigable tiles found for AI ship spawning!");
         return;
     }
-    
+
+    // AI ships use random ship types with weighted distribution
+    let ship_types = [
+        (ShipType::Sloop, 0.4),     // 40% small pirates
+        (ShipType::Schooner, 0.35), // 35% merchants
+        (ShipType::Frigate, 0.15),  // 15% heavy ships
+        (ShipType::Raft, 0.1),      // 10% rafts
+    ];
+
     for i in 0..num_ships {
         let (tile_x, tile_y) = navigable_tiles[rng.gen_range(0..navigable_tiles.len())];
         let world_pos = tile_to_world(IVec2::new(tile_x as i32, tile_y as i32), map_data.width, map_data.height);
-        
+
+        // Select ship type based on weighted distribution
+        let roll: f32 = rng.gen();
+        let mut cumulative = 0.0;
+        let ship_type = ship_types.iter()
+            .find(|(_, weight)| {
+                cumulative += weight;
+                roll < cumulative
+            })
+            .map(|(t, _)| *t)
+            .unwrap_or(ShipType::Sloop);
+
+        let tier = ShoreBufferTier::from_ship_type(ship_type);
+        let archipelago_entity = archipelagos.as_ref().map(|a| a.get(tier));
+
         // All ships are Pirates for now (until reputation system in Phase 5)
         let faction = FactionId::Pirates;
-        
-        commands.spawn((
+
+        let mut entity_commands = commands.spawn((
             Name::new(format!("High Seas AI Ship {}", i)),
             Ship,
+            ship_type, // ShipType component for turn rate calculations
             AI,
             Faction(faction),
             HighSeasAI,
@@ -693,8 +769,23 @@ fn spawn_high_seas_ai_ships(
                 waypoint_index: 0,
             }),
         ));
+
+        // Add landmass agent components if archipelago is available
+        if let Some(arch_entity) = archipelago_entity {
+            entity_commands.insert((
+                Agent2dBundle {
+                    agent: Default::default(),
+                    settings: AgentSettings {
+                        radius: tier.agent_radius(),
+                        desired_speed: ship_type.base_speed() * 0.5, // AI slower than player
+                        max_speed: ship_type.base_speed() * 0.65,
+                    },
+                    archipelago_ref: ArchipelagoRef2d::new(arch_entity),
+                },
+            ));
+        }
     }
-    
+
     info!("Spawned {} AI ships on High Seas map", num_ships);
 }
 
@@ -976,26 +1067,142 @@ fn extract_coastlines_system(
         polygons.iter().map(|p| p.points.len()).sum::<usize>()
     );
     
-    // Build NavMesh from coastline polygons
+    // Build landmass NavigationMesh2d from coastline polygons
     // Calculate world bounds
     let tile_size = COASTLINE_TILE_SIZE;
     let half_width = map_data.width as f32 * tile_size / 2.0;
     let half_height = map_data.height as f32 * tile_size / 2.0;
     let map_bounds = (-half_width, -half_height, half_width, half_height);
-    
-    let navmesh_resource = build_navmesh_from_polygons(&polygons, map_bounds);
-    
-    if navmesh_resource.is_ready() {
-        info!("NavMesh built successfully with {} tiers", navmesh_resource.stats().len());
-        for (tier, verts, tris) in navmesh_resource.stats() {
-            info!("  {:?}: {} vertices, {} triangles", tier, verts, tris);
-        }
+
+    let pending_meshes = build_landmass_navmeshes(&polygons, map_bounds);
+
+    // Check how many tiers were built
+    let tier_count = [&pending_meshes.small, &pending_meshes.medium, &pending_meshes.large]
+        .iter()
+        .filter(|m| m.is_some())
+        .count();
+
+    if tier_count > 0 {
+        info!("Landmass NavMeshes built successfully with {} tiers", tier_count);
     } else {
         warn!("NavMesh build failed - falling back to grid pathfinding");
     }
-    
-    commands.insert_resource(navmesh_resource);
+
+    // Insert pending meshes for archipelago initialization
+    commands.insert_resource(pending_meshes);
+
+    // Insert legacy NavMeshResource stub for backward compatibility during migration
+    commands.insert_resource(NavMeshResource::new());
     coastline_data.polygons = polygons;
+}
+
+/// Initializes the three landmass archipelagos for different ship size tiers.
+/// Each archipelago has a different agent radius corresponding to shore buffer.
+fn initialize_archipelagos(mut commands: Commands) {
+    // Create three archipelagos with different agent radii
+    // Agent radius determines how close ships can get to obstacles
+    // Use custom AgentOptions for better navigation around obstacles
+
+    // Helper to create agent options with larger node_sample_distance
+    // to prevent getting stuck in narrow triangles
+    let make_options = |radius: f32| {
+        AgentOptions {
+            // Larger sample distance = fewer waypoints = smoother paths
+            node_sample_distance: radius * 0.5,
+            // Standard neighborhood for agent avoidance
+            neighbourhood: radius * 10.0,
+            // Standard avoidance horizons
+            avoidance_time_horizon: 1.0,
+            obstacle_avoidance_time_horizon: 0.3, // Lower = less sticky obstacles
+            reached_destination_avoidance_responsibility: 0.1,
+        }
+    };
+
+    let small = commands
+        .spawn(Archipelago2d::new(
+            make_options(ShoreBufferTier::Small.agent_radius()),
+        ))
+        .id();
+
+    let medium = commands
+        .spawn(Archipelago2d::new(
+            make_options(ShoreBufferTier::Medium.agent_radius()),
+        ))
+        .id();
+
+    let large = commands
+        .spawn(Archipelago2d::new(
+            make_options(ShoreBufferTier::Large.agent_radius()),
+        ))
+        .id();
+
+    info!(
+        "Initialized 3 landmass archipelagos: small={:?}, medium={:?}, large={:?}",
+        small, medium, large
+    );
+
+    commands.insert_resource(LandmassArchipelagos { small, medium, large });
+}
+
+/// Spawns navigation islands from pending nav meshes.
+/// Each tier gets its own island attached to its archipelago.
+fn spawn_navigation_islands(
+    mut commands: Commands,
+    pending_meshes: Option<Res<PendingNavMeshes>>,
+    archipelagos: Option<Res<LandmassArchipelagos>>,
+    mut nav_meshes: ResMut<Assets<NavMesh2d>>,
+) {
+    let Some(pending) = pending_meshes else {
+        warn!("No pending nav meshes available for island creation");
+        return;
+    };
+
+    let Some(archs) = archipelagos else {
+        warn!("No archipelagos available for island creation");
+        return;
+    };
+
+    // Helper to spawn an island for a tier
+    let mut spawn_island = |mesh: &NavigationMesh2d, arch_entity: Entity, tier_name: &str| {
+        // Validate and convert to ValidNavigationMesh
+        match mesh.clone().validate() {
+            Ok(valid_mesh) => {
+                let nav_mesh = NavMesh2d {
+                    nav_mesh: Arc::new(valid_mesh),
+                    // Empty map means all polygon types use default cost of 1.0
+                    type_index_to_node_type: std::collections::HashMap::new(),
+                };
+                let handle = nav_meshes.add(nav_mesh);
+
+                commands.spawn((
+                    Island2dBundle {
+                        island: Island,
+                        archipelago_ref: ArchipelagoRef2d::new(arch_entity),
+                        nav_mesh: NavMeshHandle(handle),
+                    },
+                    Transform::default(),
+                ));
+
+                info!("Spawned navigation island for {} tier", tier_name);
+            }
+            Err(e) => {
+                warn!("Failed to validate {} tier nav mesh: {:?}", tier_name, e);
+            }
+        }
+    };
+
+    // Spawn islands for each tier
+    if let Some(mesh) = &pending.small {
+        spawn_island(mesh, archs.small, "small");
+    }
+
+    if let Some(mesh) = &pending.medium {
+        spawn_island(mesh, archs.medium, "medium");
+    }
+
+    if let Some(mesh) = &pending.large {
+        spawn_island(mesh, archs.large, "large");
+    }
 }
 
 /// Ink color for coastline rendering (dark brown, like old maps)
@@ -1128,5 +1335,16 @@ fn coastline_visibility_system(
 
     for mut vis in &mut query {
         *vis = visibility;
+    }
+}
+
+/// Toggles NavMesh debug visualization with F3 key.
+fn toggle_navmesh_debug(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut enable_debug: ResMut<EnableLandmassDebug>,
+) {
+    if keyboard.just_pressed(KeyCode::F3) {
+        enable_debug.0 = !enable_debug.0;
+        info!("NavMesh debug visualization: {}", if enable_debug.0 { "ON" } else { "OFF" });
     }
 }

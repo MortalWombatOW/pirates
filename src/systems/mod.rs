@@ -16,6 +16,7 @@ pub mod wake_effects;
 pub mod ink_reveal;
 pub mod camera;
 pub mod hit_flash;
+pub mod landmass_movement;
 
 pub use ship::*;
 pub use movement::*;
@@ -32,5 +33,6 @@ pub use faction_ai::*;
 pub use order_execution::*;
 pub use intel::*;
 pub use ink_reveal::*;
+pub use landmass_movement::*;
 
 

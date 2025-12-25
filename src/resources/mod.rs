@@ -22,5 +22,9 @@ pub use fleet::*;
 pub mod meta_profile;
 pub use meta_profile::*;
 
+pub mod landmass;
+pub use landmass::*;
+
+// Legacy navmesh module - deprecated, use landmass instead
 pub mod navmesh;
-pub use navmesh::*;
+pub use navmesh::NavMeshResource;

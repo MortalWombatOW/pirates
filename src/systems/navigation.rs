@@ -255,36 +255,46 @@ pub fn navigation_movement_system(
 
 /// System that visualizes the navigation path using old-timey map style.
 /// Draws a dotted line with an X at the destination.
+///
+/// Works with both waypoint-based (NavigationPath) and velocity-based (landmass) navigation.
+/// If NavigationPath is present, draws through waypoints; otherwise draws direct line.
 pub fn path_visualization_system(
-    query: Query<(&Transform, &NavigationPath, &Destination), With<Player>>,
+    query: Query<(&Transform, Option<&NavigationPath>, &Destination), With<Player>>,
     mut gizmos: Gizmos,
 ) {
-    for (transform, path, destination) in &query {
-        if path.waypoints.is_empty() {
-            continue;
-        }
-        
+    for (transform, maybe_path, destination) in &query {
         // Parchment/sepia colors for old-timey map look
         let line_color = Color::srgba(0.6, 0.4, 0.2, 0.9); // Brown/sepia
         let x_color = Color::srgba(0.8, 0.2, 0.1, 1.0); // Red X
-        
+
         let current_pos = transform.translation.truncate();
-        
-        // Build full path for dotted line
-        let mut full_path = vec![current_pos];
-        full_path.extend(&path.waypoints);
-        
+
+        // Build path for dotted line
+        let full_path: Vec<Vec2> = if let Some(path) = maybe_path {
+            // Legacy waypoint-based path
+            if path.waypoints.is_empty() {
+                vec![current_pos, destination.target]
+            } else {
+                let mut p = vec![current_pos];
+                p.extend(&path.waypoints);
+                p
+            }
+        } else {
+            // Landmass velocity-based: draw direct line to destination
+            vec![current_pos, destination.target]
+        };
+
         // Draw dotted line along path
         let dot_spacing = 24.0;
         let dot_radius = 4.0;
-        
+
         for window in full_path.windows(2) {
             let start = window[0];
             let end = window[1];
             let segment = end - start;
             let segment_len = segment.length();
             let segment_dir = segment.normalize_or_zero();
-            
+
             // Draw dots along this segment
             let num_dots = (segment_len / dot_spacing).ceil() as i32;
             for i in 0..num_dots {
@@ -295,7 +305,7 @@ pub fn path_visualization_system(
                 }
             }
         }
-        
+
         // Draw X at destination
         let x_size = 20.0;
         let dest = destination.target;
@@ -309,7 +319,7 @@ pub fn path_visualization_system(
             dest + Vec2::new(x_size, -x_size),
             x_color,
         );
-        
+
         // Draw small circle around X for emphasis
         gizmos.circle_2d(Isometry2d::from_translation(dest), x_size * 1.2, x_color);
     }
