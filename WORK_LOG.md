@@ -1,5 +1,12 @@
 # Work Log
 
+## 2025-12-24: Terrain Generation - Lake Removal
+*   Added `fill_lakes()` function to `src/utils/procgen.rs`:
+    *   BFS flood-fill from all navigable edge tiles to mark contiguous ocean.
+    *   Unreachable navigable tiles (landlocked "lakes") converted to `Land`.
+    *   Runs as second pass after noise generation, before spawn area and coastal transitions.
+*   Ensures exactly one contiguous ocean region for valid pathfinding.
+
 ## 2025-12-24: Tasks 8.5.8-8.5.9 - ScaleBar UI Component
 *   **8.5.8**: Created `ScaleBarPlugin` in `src/plugins/scale_bar.rs`:
     *   Authentic 18th-century nautical chart scale with alternating ink/parchment segments.
