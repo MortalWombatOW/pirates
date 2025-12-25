@@ -402,9 +402,9 @@ mod tests {
     fn create_test_map() -> MapData {
         let mut map = MapData::new(10, 10);
         // Add some land in the middle
-        map.set(5, 5, TileType::Land);
-        map.set(5, 4, TileType::Land);
-        map.set(5, 6, TileType::Land);
+        map.set_type(5, 5, TileType::Land);
+        map.set_type(5, 4, TileType::Land);
+        map.set_type(5, 6, TileType::Land);
         map
     }
 
@@ -468,8 +468,8 @@ mod tests {
     fn test_corner_cutting_prevention() {
         let mut map = MapData::new(10, 10);
         // Create a diagonal wall that should block corner cutting
-        map.set(4, 5, TileType::Land);
-        map.set(5, 4, TileType::Land);
+        map.set_type(4, 5, TileType::Land);
+        map.set_type(5, 4, TileType::Land);
 
         // Trying to go from (3, 4) to (5, 5) should not cut through the diagonal
         // Use (6, 6) as goal - far enough to not affect neighbor calculations

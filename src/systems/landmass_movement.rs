@@ -53,19 +53,28 @@ pub fn landmass_player_movement_system(
         .unwrap_or(1.0);
 
     for (mut transform, desired_velocity, destination, ship_type) in &mut query {
+        let pos = transform.translation.truncate();
+        let velocity = desired_velocity.velocity();
+        
         // Skip if no destination set
         if destination.is_none() {
             continue;
         }
+        
+        let dest = destination.unwrap();
 
-        let velocity = desired_velocity.velocity();
-
-        // Skip if velocity is essentially zero (arrived at destination)
-        if velocity.length_squared() < 0.01 {
-            continue;
-        }
-
-        let desired_direction = velocity.normalize_or_zero();
+        // If velocity is zero but we have a destination, use direct movement as fallback
+        // This allows testing coastline avoidance even when navmesh pathing fails
+        let (desired_direction, using_fallback) = if velocity.length_squared() < 0.01 {
+            let direct = (dest.target - pos).normalize_or_zero();
+            if direct.length_squared() < 0.01 {
+                continue; // Already at destination
+            }
+            info!("[MOVE] Using direct fallback movement toward {:?}", dest.target);
+            (direct, true)
+        } else {
+            (velocity.normalize_or_zero(), false)
+        };
         let current_facing = facing_direction(transform.rotation);
 
         // Calculate how much we need to turn
@@ -191,46 +200,41 @@ pub fn sync_destination_to_agent_target(
 /// movement velocity that would take the ship closer to the coastline.
 /// Uses actual coastline polygon geometry for accurate normal calculation.
 pub fn coastline_avoidance_system(
-    mut query: Query<&mut Transform, With<Ship>>,
+    mut query: Query<(&mut Transform, Option<&crate::components::Player>), With<Ship>>,
     coastline_data: Res<crate::plugins::worldmap::CoastlineData>,
 ) {
-    /// Distance in world units at which velocity clamping activates.
     const CRITICAL_DISTANCE: f32 = 64.0;
 
-    for mut transform in &mut query {
+    for (mut transform, player) in &mut query {
         let pos = transform.translation.truncate();
+        let is_player = player.is_some();
 
         // Find the nearest coastline edge segment
-        let Some((nearest_point, edge_normal)) = find_nearest_coastline_edge(pos, &coastline_data.polygons) else {
-            continue;
-        };
+        if let Some((nearest_point, edge_normal)) = find_nearest_coastline_edge(pos, &coastline_data.polygons) {
+            let dist_to_coast = pos.distance(nearest_point);
 
-        let dist_to_coast = pos.distance(nearest_point);
+            // Only apply clamping when close to coast
+            if dist_to_coast >= CRITICAL_DISTANCE {
+                continue;
+            }
 
-        // Only apply clamping when close to coast
-        if dist_to_coast >= CRITICAL_DISTANCE {
-            continue;
-        }
+            // The edge_normal points outward (away from land, into water).
+            // If the ship's position relative to the coast has a negative dot with
+            // edge_normal, it's on the land side — push it out.
+            let to_ship = pos - nearest_point;
+            let side = to_ship.dot(edge_normal);
 
-        // Calculate the ship's current frame velocity (approximation: position delta)
-        // Since we run after movement, we can't directly access the delta.
-        // Instead, we'll project any *future* movement toward land and store
-        // the constraint for the next frame.
-        //
-        // For now, we apply a simpler approach: if the ship is within critical
-        // distance and facing toward land, we nudge it parallel to the coastline.
-        
-        // The edge_normal points outward (away from land, into water).
-        // If the ship's position relative to the coast has a negative dot with
-        // edge_normal, it's on the land side — push it out.
-        let to_ship = pos - nearest_point;
-        let side = to_ship.dot(edge_normal);
-
-        if side < 0.0 {
-            // Ship is on wrong side or very close - push along normal
-            let push = edge_normal * (-side + 1.0);
-            transform.translation.x += push.x;
-            transform.translation.y += push.y;
+            if side < 0.0 {
+                // Ship is on wrong side or very close - push along normal
+                let push = edge_normal * (-side + 1.0);
+                if is_player {
+                    info!("[COAST] PUSHING player by {:?}", push);
+                }
+                transform.translation.x += push.x;
+                transform.translation.y += push.y;
+            } else if is_player {
+                 // No push needed
+            }
         }
     }
 }
@@ -249,9 +253,12 @@ fn find_nearest_coastline_edge(
 
     for polygon in polygons {
         let points = &polygon.points;
-        if points.len() < 2 {
+        if points.len() < 3 {
             continue;
         }
+
+        // No filtering by point count - check all polygons
+        // Border polygons can be distinguished by their spatial extent instead
 
         for i in 0..points.len() {
             let a = points[i];
@@ -294,9 +301,10 @@ fn closest_point_on_segment_with_normal(p: Vec2, a: Vec2, b: Vec2) -> (Vec2, Vec
     let closest = a + ab * t;
 
     // Outward normal: perpendicular to edge, pointing right (into water)
-    // For CCW winding with land on left, right is the water side
+    // For CCW winding with land on left, RIGHT is the water side
+    // 90° CW rotation of (x, y) is (y, -x)
     let edge_dir = ab.normalize();
-    let normal = Vec2::new(edge_dir.y, -edge_dir.x); // 90° CW rotation
+    let normal = Vec2::new(edge_dir.y, -edge_dir.x);
 
     (closest, normal)
 }

@@ -152,7 +152,7 @@ fn spawn_scale_test_ships(
 
     // Collect all navigable tile positions
     let water_tiles: Vec<(u32, u32)> = map_data.iter()
-        .filter(|(_, _, tile)| tile.is_navigable())
+        .filter(|(_, _, tile)| tile.tile_type.is_navigable())
         .map(|(x, y, _)| (x, y))
         .collect();
 

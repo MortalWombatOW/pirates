@@ -62,6 +62,25 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Verification Priority**: Always run `cargo check` first. It's faster.
 *   **Log Discipline**: `info!` for state changes, `debug!` for occasional diagnostics, `trace!` for per-frame data.
 *   **Artifacts**: Always provide `ArtifactMetadata` when writing files.
+*   **Assumption Verification**: Avoid "magic numbers" for data filtering (e.g., `points.len() > 500`). Verify data properties via logging or tests before applying filters.
+
+### Warning Resolution (Zero Tolerance)
+*   **Root Cause Analysis**: Never suppress or patch over warnings. Investigate *why* the warning exists.
+*   **Unused Variables**: If a variable is unused, determine the *intent*:
+    *   If it *should* be unused (e.g., intentionally ignored return value), remove it or use `_` prefix with a comment explaining why.
+    *   If it *should* be used but isn't, this indicates incomplete implementation—integrate it correctly.
+*   **Dead Code**: Same principle applies. Determine if code was intended to be called but isn't (fix the caller) or is truly obsolete (delete it).
+*   **Build Must Be Warning-Free**: `cargo check` must produce zero warnings before committing.
+
+### No-Fallback Rule (Implementation Persistence)
+*   **CRITICAL**: When implementing a *replacement* for existing functionality, you MUST NOT "fix" problems by reverting to the old implementation.
+*   **Systematic Debugging**: If the new implementation has issues:
+    1.  Add diagnostic logging to understand the failure.
+    2.  Isolate the specific failure case.
+    3.  Fix the root cause in the new implementation.
+    4.  Repeat until the new implementation works correctly.
+*   **Escalation, Not Regression**: If you cannot fix the new implementation, **STOP** and document the issue in `WORK_PLAN.md` as a blocker. Do not silently fall back.
+*   **Old Code Removal**: Once a replacement is working, delete the old implementation. Do not leave it "for reference."
 
 ### Git
 *   **Frequency**: Commit after *every* completed task.
@@ -81,7 +100,8 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **UI Transform Scaling**: When dynamically resizing UI elements (e.g., scale bar), use transform scaling (X/Y axis) instead of geometry rebuild for efficiency. Counter-scale child text entities to prevent stretching.
 *   **Egui Systems**: Any system using `EguiContexts` MUST order itself after `EguiSet::InitContexts` to prevent panics on state transitions. Example: `.after(EguiSet::InitContexts)`.
 *   **Navigation**: Uses `bevy_landmass` v0.8.0 for velocity-based steering. Ships are `Agent2d` entities with `AgentDesiredVelocity2d`. Set destinations via `Destination` component (synced to `AgentTarget2d`). Three archipelagos exist for ship size tiers (Small/Medium/Large shore buffers).
-*   **Coastline Avoidance**: Movement uses facing direction (not desired velocity) for realistic sailing. To prevent shore collisions: (1) speed reduces quadratically with facing/desired misalignment, (2) `coastline_avoidance_system` finds nearest coastline polygon edge and pushes ship to water side if on wrong side of the edge normal.
+*   **Coastline Avoidance**: Movement uses facing direction (not desired velocity) for realistic sailing. To prevent shore collisions: (1) speed reduces quadratically with facing/desired misalignment, (2) `coastline_avoidance_system` finds nearest coastline polygon edge and pushes ship to water side if on wrong side of the edge normal. **CRITICAL**: `CoastlineData` contains ALL polygons including map borders. Do NOT filter polygons by point count (e.g. >500) as smoothed local coastlines can be large. Use spatial bounds if border detection is needed.
+*   **Stippling Shader Pattern**: Uses `Material2d` with dynamically generated density texture from `MapData`. To prevent rings overlapping coastlines, shader samples density at 4 cardinal edge points and discards if any sample indicates land. UV coordinates require Y-flip (texture y=0 is top, UV v=0 is bottom). Constants: MAP_SIZE = 512 tiles × 64 units = 32768 world units.
 
 ---
 

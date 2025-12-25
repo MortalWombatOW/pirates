@@ -32,7 +32,7 @@ pub fn extract_contours(map_data: &MapData, tile_size: f32) -> Vec<CoastlinePoly
     // Scan for boundary edges (water tile adjacent to land tile)
     for y in 0..height {
         for x in 0..width {
-            let tile = map_data.get(x as u32, y as u32).unwrap_or(TileType::DeepWater);
+            let tile = map_data.tile(x as u32, y as u32).map(|t| t.tile_type).unwrap_or(TileType::DeepWater);
             
             // We trace from water tiles looking at land neighbors
             if !is_water(tile) {
@@ -48,7 +48,7 @@ pub fn extract_contours(map_data: &MapData, tile_size: f32) -> Vec<CoastlinePoly
                 let neighbor_is_land = if nx < 0 || ny < 0 || nx >= width || ny >= height {
                     true // Map border treated as land
                 } else {
-                    is_land(map_data.get(nx as u32, ny as u32).unwrap_or(TileType::DeepWater))
+                    is_land(map_data.tile(nx as u32, ny as u32).map(|t| t.tile_type).unwrap_or(TileType::DeepWater))
                 };
                 
                 if neighbor_is_land && !visited_edges.contains(&(x, y, *dir)) {
@@ -103,7 +103,7 @@ fn trace_contour(
         if tx < 0 || ty < 0 || tx >= width || ty >= height {
             true // Border is land
         } else {
-            is_land(map_data.get(tx as u32, ty as u32).unwrap_or(TileType::DeepWater))
+            is_land(map_data.tile(tx as u32, ty as u32).map(|t| t.tile_type).unwrap_or(TileType::DeepWater))
         }
     };
 
@@ -697,11 +697,11 @@ mod tests {
         
         // Create a 'C' shaped island (concave)
         // Land at (3,3) to (3,7)
-        for y in 3..=7 { map.set(3, y, TileType::Land); }
+        for y in 3..=7 { map.set_type(3, y, TileType::Land); }
         // Top arm (4,7) to (6,7)
-        for x in 4..=6 { map.set(x, 7, TileType::Land); }
+        for x in 4..=6 { map.set_type(x, 7, TileType::Land); }
         // Bottom arm (4,3) to (6,3)
-        for x in 4..=6 { map.set(x, 3, TileType::Land); }
+        for x in 4..=6 { map.set_type(x, 3, TileType::Land); }
         
         // This shape has both convex (outer) and concave (inner) corners
         

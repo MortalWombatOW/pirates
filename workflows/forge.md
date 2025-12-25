@@ -20,7 +20,13 @@ description: Implement a single atomic task with high quality. Run after /archit
 
 3.  **Verification**
     * Run `cargo check`.
+    * **Warning Resolution**: If warnings exist, apply `AGENT.md` (Warning Resolution):
+        * For unused variables: Determine intent—remove if truly unused, integrate if implementation is incomplete.
+        * For dead code: Determine if caller is missing (fix it) or code is obsolete (delete it).
+        * **NEVER** prefix with `_` just to silence a warning without understanding the root cause.
+    * **No-Fallback Check**: If you are replacing existing functionality, verify you are NOT reverting to the old implementation. If the new implementation isn't working, debug it systematically per `AGENT.md` (No-Fallback Rule).
     * Verify the implementation meets the criteria in `WORK_PLAN.md`.
+    * **Requirement**: Zero warnings before proceeding to `/audit`.
 
 ## Interrupt Protocol: Bug/Error Discovery
 

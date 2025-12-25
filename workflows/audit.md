@@ -16,6 +16,13 @@ description: Comprehensive code review to ensure technical quality and product a
     * **Bevy Optimization**: Verify compliance with `AGENT.md` (Query filters, Command usage).
     * **Input Handling**: Verify no `.pressed()` on Axis inputs. Verify "sticky input" for FixedUpdate.
     * **Temporal Purity**: Grep for banned words (`Added`, `Fixed`, etc.) per `AGENT.md`.
+    * **Warning Audit**: Run `cargo check`. If any warnings exist:
+        * Verify each warning was addressed via root cause analysis, not suppression.
+        * Check for `#[allow(dead_code)]` or `#[allow(unused)]` attributes—these are red flags unless explicitly justified with a comment.
+        * Check for `_` prefixed variables—verify each has a comment explaining *why* it's intentionally unused.
+    * **No-Fallback Audit**: If this task involved replacing functionality:
+        * Verify the old implementation is deleted or clearly marked for removal.
+        * Verify the new implementation is what's being used, not a silent revert.
 
 3.  **Architectural Integrity**
     * Verify against `AGENT.md`.

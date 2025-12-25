@@ -1,5 +1,15 @@
 # Work Log
 
+## 2025-12-25: Tasks 8.5.10-8.5.13 - Water Depth & Stippling Shader
+*   **8.5.10**: Refactored `MapData` to use `Tile` struct containing `tile_type` and `depth` (f32).
+*   **8.5.11**: Added depth generation in `procgen.rs`. Depth increases with distance from coastline via Perlin noise.
+*   **8.5.12-13**: Created stippling shader with:
+    *   `StipplingMaterial` (`Material2dPlugin`) with dynamically generated density texture.
+    *   Grid-based hollow rings with 15% jitter to break up regularity.
+    *   Multi-sample coastline clipping: samples 4 edge points, discards if any indicates land.
+    *   Density formula: `(1.0 - depth * 6.0).clamp(0,1) * 0.4` - aggressive falloff for shallow-only stippling.
+
+
 ## 2025-12-24: Terrain Generation - Lake Removal
 *   Added `fill_lakes()` function to `src/utils/procgen.rs`:
     *   BFS flood-fill from all navigable edge tiles to mark contiguous ocean.
@@ -1256,3 +1266,23 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
 *   **Sync**: Updated `INDEX.md` to include `src/plugins/compass_rose.rs`.
 *   **Retrospective**: Identified that adding an Overlay Camera inherently introduces input ambiguity for world-space queries (clicks, mouse position).
 *   **Evolution**: Documented the "Vector UI / Overlay Camera" architectural pattern in `AGENT.md`, specifically noting the need for a `MainCamera` marker component to disambiguate input handling.
+
+## 2025-12-25: Bug Fix - Coastline Avoidance System
+*   **Issue**: Coastline avoidance was not working because the system was filtering out local coastlines, assuming they were "map borders" based on point count (>500 points).
+*   **Diagnosis**:
+    *   Player spawn at (0,0) caused zero velocity from `bevy_landmass` (navmesh hole).
+    *   Fallback movement allowed testing, but avoidance never triggered.
+    *   Logs revealed nearest coast was ~2000 units away despite valid nearby coastlines.
+    *   `CoastlineData` resource contains ALL polygons (including borders), and local coastlines can have >500 points due to smoothing.
+*   **Fix**:
+    *   Removed the incorrect `points.len() > 500` filter in `find_nearest_coastline_edge`.
+    *   Now checks all polygons in `CoastlineData`.
+*   **Verification**:
+    *   Logs confirm nearest coast detection at <30 units.
+    *   Avoidance logic correctly identifies "water side" vs "land side".
+    *   System is ready to push ships if they cross into land side.
+
+## 2025-12-25: Refinement
+*   **Sync**: Updated `INDEX.md` to include `src/systems/landmass_movement.rs`.
+*   **Retrospective**: The coastline avoidance bug was caused by an unverified assumption about polygon sizes ("magic number" 500).
+*   **Evolution**: Added "Assumption Verification" rule to `AGENT.md` to prevent similar issues with magic numbers in data filtering.

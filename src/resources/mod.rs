@@ -28,3 +28,6 @@ pub use landmass::*;
 // Legacy navmesh module - deprecated, use landmass instead
 pub mod navmesh;
 pub use navmesh::NavMeshResource;
+
+pub mod stippling_material;
+pub use stippling_material::*;

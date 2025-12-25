@@ -30,6 +30,7 @@
 | `src/components/ink_reveal.rs` | `InkReveal` animation component | Fog reveal animation progress tracking. |
 | `src/components/typewriter.rs` | `TypewriterText`, `TypewriterRegistry` | UI text write-on effects. |
 | `src/systems/movement.rs` | Ship thrust, turn, drag logic | Tuning ship handling or "Keel Effect". |
+| `src/systems/landmass_movement.rs` | Velocity-based steering, Avoidance | Tuning coastline avoidance or path following. |
 | `src/systems/combat.rs` | Damage, Projectiles, Health | Balancing combat, hit detection. |
 | `src/systems/navigation.rs` | Pathfinding (Theta*), Clicking | Fixing movement bugs or path smoothing. |
 | `src/systems/ink_reveal.rs` | `spawn_ink_reveals`, `animate_ink_reveals` | Fog-of-war fade animation. |

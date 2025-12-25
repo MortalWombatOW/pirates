@@ -336,8 +336,8 @@ pub fn port_arrival_system(
         let tile = world_to_tile(pos, map_data.width, map_data.height);
         
         if tile.x >= 0 && tile.y >= 0 {
-            if let Some(tile_type) = map_data.get(tile.x as u32, tile.y as u32) {
-                if tile_type.is_port() {
+            if let Some(t) = map_data.tile(tile.x as u32, tile.y as u32) {
+                if t.tile_type.is_port() {
                     info!("Arrived at port at tile ({}, {})", tile.x, tile.y);
                     next_state.set(GameState::Port);
                 }

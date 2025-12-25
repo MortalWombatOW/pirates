@@ -28,6 +28,7 @@ use bevy_landmass::NavMeshHandle;
 use bevy_landmass::debug::{Landmass2dDebugPlugin, EnableLandmassDebug};
 use std::sync::Arc;
 use crate::events::CombatTriggeredEvent;
+use crate::resources::stippling_material::StipplingMaterial;
 
 /// Plugin managing the world map tilemap for the High Seas view.
 /// 
@@ -46,6 +47,8 @@ impl Plugin for WorldMapPlugin {
             .add_plugins(Landmass2dPlugin::default())
             // Debug visualization (press F3 to toggle)
             .add_plugins(Landmass2dDebugPlugin { draw_on_start: false, ..Default::default() })
+            // Stippling material for water depth visualization
+            .add_plugins(bevy::sprite::Material2dPlugin::<StipplingMaterial>::default())
             // Initialize resources
             .init_resource::<MapData>()
             .init_resource::<FogOfWar>()
@@ -297,11 +300,17 @@ fn spawn_tilemap_from_map_data(
     map_data: Res<MapData>,
     tileset: Option<Res<TilesetHandle>>,
     existing_tilemap: Query<Entity, With<WorldMap>>,
+    mut images: ResMut<Assets<Image>>,
+    mut materials: ResMut<Assets<StipplingMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // Skip if tilemap already exists
     if !existing_tilemap.is_empty() {
         return;
     }
+
+    // Spawn Stippling Overlay
+    spawn_stipple_overlay(&mut commands, &map_data, &mut images, &mut materials, &mut meshes);
 
     let Some(tileset) = tileset else {
         error!("TilesetHandle resource not found! Tilemap cannot be spawned.");
@@ -321,9 +330,9 @@ fn spawn_tilemap_from_map_data(
     let mut tile_storage = TileStorage::empty(map_size);
 
     // Spawn tiles from MapData
-    for (x, y, tile_type) in map_data.iter() {
+    for (x, y, tile) in map_data.iter() {
         let tile_pos = TilePos { x, y };
-        let texture_index = tile_type.texture_index();
+        let texture_index = tile.tile_type.texture_index();
 
         let tile_entity = commands
             .spawn((
@@ -716,7 +725,7 @@ fn spawn_high_seas_ai_ships(
 
     // Collect navigable tiles (deep water only for AI ships)
     let navigable_tiles: Vec<(u32, u32)> = map_data.iter()
-        .filter(|(_, _, tile)| tile.is_navigable())
+        .filter(|(_, _, tile)| tile.tile_type.is_navigable())
         .map(|(x, y, _)| (x, y))
         .collect();
 
@@ -940,8 +949,8 @@ fn spawn_port_entities(
     let mut port_count = 0;
     
     // Find all port tiles and spawn port entities
-    for (x, y, tile_type) in map_data.iter() {
-        if tile_type.is_port() {
+    for (x, y, tile) in map_data.iter() {
+        if tile.tile_type.is_port() {
             // Convert tile coordinates to world position
             let world_pos = tile_to_world(
                 IVec2::new(x as i32, y as i32), 
@@ -1353,4 +1362,79 @@ fn toggle_navmesh_debug(
         enable_debug.0 = !enable_debug.0;
         info!("NavMesh debug visualization: {}", if enable_debug.0 { "ON" } else { "OFF" });
     }
+}
+
+/// Creates a depth/density texture from map data and spawns a stippling overlay.
+fn spawn_stipple_overlay(
+    commands: &mut Commands,
+    map_data: &MapData,
+    images: &mut ResMut<Assets<Image>>,
+    materials: &mut ResMut<Assets<StipplingMaterial>>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+) {
+    use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+
+    let width = map_data.width;
+    let height = map_data.height;
+
+    // Create texture data (R8Unorm)
+    let mut data = vec![0u8; (width * height) as usize];
+
+    for y in 0..height {
+        for x in 0..width {
+            let idx = (y * width + x) as usize;
+            
+            // Calculate density based on tile
+            // Land = 0.0 (Clear)
+            // Water = density increases near coastline (shallow water)
+            let density = if let Some(tile) = map_data.tile(x, y) {
+                if tile.tile_type.is_navigable() {
+                    // Water - density inversely proportional to depth
+                    // Only very shallow water (depth < 0.15) gets dots
+                    // Multiply depth by 6 for aggressive falloff
+                    // Multiply result by 0.4 for lower base rate
+                    ((1.0 - tile.depth * 6.0).clamp(0.0, 1.0) * 0.4 * 255.0) as u8
+                } else {
+                    // Land
+                    0
+                }
+            } else {
+                0
+            };
+            
+            data[idx] = density;
+        }
+    }
+
+    let image = Image::new(
+        Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+        TextureDimension::D2,
+        data,
+        TextureFormat::R8Unorm,
+        bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD | bevy::render::render_asset::RenderAssetUsages::MAIN_WORLD,
+    );
+
+    let image_handle = images.add(image);
+
+    let material_handle = materials.add(StipplingMaterial {
+        color: LinearRgba::new(0.0, 0.0, 0.0, 0.5), // Semi-transparent black dots
+        dot_spacing: 32.0, // Spacing in world units (half a tile)
+        depth_texture: image_handle,
+    });
+
+    let mesh_handle = meshes.add(Rectangle::new(width as f32 * 64.0, height as f32 * 64.0));
+
+    commands.spawn((
+        Mesh2d(mesh_handle),
+        MeshMaterial2d(material_handle),
+        // Align with map - offset by half tile down and left
+        Transform::from_xyz(-32.0, -32.0, -9.0), // Above map (-10), below ships
+        Name::new("StippleOverlay"),
+    ));
+    
+    info!("Spawned Stipple Overlay");
 }

@@ -4,7 +4,7 @@
 //! landmasses, coastlines, and ports.
 
 use noise::{Fbm, MultiFractal, NoiseFn, Perlin};
-use crate::resources::{MapData, TileType};
+use crate::resources::{MapData, Tile, TileType};
 
 /// Configuration for procedural map generation.
 pub struct MapGenConfig {
@@ -88,7 +88,15 @@ pub fn generate_world_map(config: MapGenConfig) -> MapData {
 
             // Map noise to tile types
             let tile_type = noise_to_tile(final_value);
-            map_data.set(x, y, tile_type);
+            
+            // Calculate depth
+            // Sea level is at 0.05 (threshold for Land/Sand vs Water)
+            // Depth is positive distance below sea level
+            // ShallowWater (< 0.05) -> depth > 0.0
+            // DeepWater (< -0.1) -> depth > 0.15
+            let depth = (0.05 - final_value).max(0.0) as f32;
+
+            map_data.set_tile(x, y, Tile::new(tile_type, depth));
         }
     }
 
@@ -180,7 +188,8 @@ fn fill_lakes(map_data: &mut MapData) {
         for x in 0..width {
             let idx = (y * width + x) as usize;
             if !visited[idx] && map_data.is_navigable(x, y) {
-                map_data.set(x, y, TileType::Land);
+                // Convert to land, resetting depth to 0.0
+                map_data.set_tile(x, y, Tile::new(TileType::Land, 0.0));
             }
         }
     }
@@ -199,9 +208,10 @@ fn ensure_spawn_navigable(map_data: &mut MapData) {
             
             // Circular spawn area
             if dx * dx + dy * dy <= (spawn_radius as i32 * spawn_radius as i32) {
-                if let Some(tile) = map_data.get(x, y) {
-                    if !tile.is_navigable() {
-                        map_data.set(x, y, TileType::DeepWater);
+                if let Some(tile) = map_data.tile(x, y) {
+                    if !tile.tile_type.is_navigable() {
+                        // Force deep water spread, giving it significant depth
+                        map_data.set_tile(x, y, Tile::new(TileType::DeepWater, 1.0));
                     }
                 }
             }
@@ -219,16 +229,17 @@ fn add_coastal_transitions(map_data: &mut MapData) {
 
     for y in 0..height {
         for x in 0..width {
-            if let Some(TileType::DeepWater) = map_data.get(x, y) {
-                // Check if adjacent to land or sand
-                let has_land_neighbor = neighbors_4(x, y, width, height)
-                    .iter()
-                    .any(|&(nx, ny)| {
-                        matches!(
-                            map_data.get(nx, ny),
-                            Some(TileType::Land) | Some(TileType::Sand)
-                        )
-                    });
+            if let Some(tile) = map_data.tile(x, y) {
+                if tile.tile_type == TileType::DeepWater {
+                    // Check if adjacent to land or sand
+                    let has_land_neighbor = neighbors_4(x, y, width, height)
+                        .iter()
+                        .any(|&(nx, ny)| {
+                            map_data.tile(nx, ny).map(|t| t.tile_type).map_or(false, |t| matches!(
+                                t,
+                                TileType::Land | TileType::Sand
+                            ))
+                        });
 
                 if has_land_neighbor {
                     transitions.push((x, y));
@@ -236,9 +247,13 @@ fn add_coastal_transitions(map_data: &mut MapData) {
             }
         }
     }
+}
 
     for (x, y) in transitions {
-        map_data.set(x, y, TileType::ShallowWater);
+        if let Some(tile) = map_data.tile(x, y) {
+            // Keep existing depth but change type
+            map_data.set_tile(x, y, Tile::new(TileType::ShallowWater, tile.depth));
+        }
     }
 }
 
@@ -255,19 +270,20 @@ fn place_ports(map_data: &mut MapData, min_ports: usize, max_ports: usize, seed:
 
     for y in 0..height {
         for x in 0..width {
-            if let Some(TileType::Sand) = map_data.get(x, y) {
-                let neighbors = neighbors_4(x, y, width, height);
-                
-                let has_land = neighbors.iter().any(|&(nx, ny)| {
-                    matches!(map_data.get(nx, ny), Some(TileType::Land))
-                });
-                
-                let has_water = neighbors.iter().any(|&(nx, ny)| {
-                    matches!(
-                        map_data.get(nx, ny),
-                        Some(TileType::DeepWater) | Some(TileType::ShallowWater)
-                    )
-                });
+            if let Some(tile) = map_data.tile(x, y) {
+                if tile.tile_type == TileType::Sand {
+                    let neighbors = neighbors_4(x, y, width, height);
+                    
+                    let has_land = neighbors.iter().any(|&(nx, ny)| {
+                        map_data.tile(nx, ny).map(|t| t.tile_type) == Some(TileType::Land)
+                    });
+                    
+                    let has_water = neighbors.iter().any(|&(nx, ny)| {
+                        map_data.tile(nx, ny).map(|t| t.tile_type).map_or(false, |t| matches!(
+                            t,
+                            TileType::DeepWater | TileType::ShallowWater
+                        ))
+                    });
 
                 if has_land && has_water {
                     candidates.push((x, y));
@@ -275,6 +291,7 @@ fn place_ports(map_data: &mut MapData, min_ports: usize, max_ports: usize, seed:
             }
         }
     }
+}
 
     if candidates.is_empty() {
         bevy::log::warn!("No valid port locations found!");
@@ -300,7 +317,8 @@ fn place_ports(map_data: &mut MapData, min_ports: usize, max_ports: usize, seed:
         });
 
         if !too_close {
-            map_data.set(x, y, TileType::Port);
+            // Port on land, depth 0.0
+            map_data.set_tile(x, y, Tile::new(TileType::Port, 0.0));
             placed_ports.push((x, y));
 
             if placed_ports.len() >= num_ports {
@@ -385,7 +403,36 @@ mod tests {
         // Compare a sample of tiles
         for y in 0..64 {
             for x in 0..64 {
-                assert_eq!(map1.get(x, y), map2.get(x, y));
+                assert_eq!(map1.tile(x, y), map2.tile(x, y));
+            }
+        }
+    }
+
+    #[test]
+    fn test_depth_generation() {
+        let config = MapGenConfig {
+            width: 64,
+            height: 64,
+            ..Default::default()
+        };
+        let map = generate_world_map(config);
+        
+        for x in 0..64 {
+            for y in 0..64 {
+                let tile = map.tile(x, y).unwrap();
+                if tile.tile_type.is_navigable() {
+                    // Water should have depth > 0.0 (mostly)
+                    // Allow very shallow water near 0.0, but generally > 0
+                    if tile.tile_type == TileType::DeepWater {
+                        // Deep water threshold was -0.1, sea level 0.05.
+                        // depth = 0.05 - (-0.1) = 0.15
+                        // allowing for some float variance
+                        assert!(tile.depth >= 0.14, "DeepWater at {},{} has insufficient depth {}", x, y, tile.depth);
+                    }
+                } else {
+                    // Land should have depth 0.0
+                    assert_eq!(tile.depth, 0.0, "Land/Port at {},{} has non-zero depth", x, y);
+                }
             }
         }
     }
