@@ -1,5 +1,20 @@
 # Work Log
 
+## 2025-12-24: Tasks 8.5.8-8.5.9 - ScaleBar UI Component
+*   **8.5.8**: Created `ScaleBarPlugin` in `src/plugins/scale_bar.rs`:
+    *   Authentic 18th-century nautical chart scale with alternating ink/parchment segments.
+    *   Uses Lyon vector graphics on RenderLayer 1 (overlay camera).
+    *   Positioned in bottom-left corner, repositions on window resize.
+*   **8.5.9**: Made scale bar zoom-responsive:
+    *   Added `ScaleBarConfig` resource to track segment distance and total miles.
+    *   Bar width dynamically adjusts via transform scaling.
+    *   Label shows total distance (e.g., "10 MILES", "50 MILES").
+    *   Counter-scaled label text to prevent stretching.
+*   **Refactor**: Extracted shared overlay UI utilities:
+    *   Created `overlay_ui.rs` with shared camera and color constants.
+    *   Refactored `compass_rose.rs` to use shared module.
+    *   Added `UI Transform Scaling` pattern to `AGENT.md`.
+
 ## 2025-12-24: BUG FIX - Projectile Collision Event Duplication
 *   **Issue**: Physics engine (Avian2D) reports multiple collision events per projectile per frame, causing massive multi-hit damage (12 hits instead of 3).
 *   **Cause**: `despawn_recursive()` is deferred, so projectiles trigger multiple collision events before despawn executes.

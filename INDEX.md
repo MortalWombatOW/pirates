@@ -21,7 +21,9 @@
 | `src/plugins/physics.rs` | Avian2D config, Gravity | Tuning global physics settings. |
 | `src/plugins/graphics.rs` | PostProcessPlugin, AestheticSettings | Managing shaders, post-processing pipelines. |
 | `src/plugins/save.rs` | PersistencePlugin, bevy_save integration | Implementing save/load functionality. |
-| `src/plugins/compass_rose.rs` | CompassRosePlugin, Overlay Camera | Implementation of vector compass UI. |
+| `src/plugins/compass_rose.rs` | CompassRosePlugin, vector compass | Bottom-right compass rose UI element. |
+| `src/plugins/overlay_ui.rs` | OverlayUiPlugin, shared constants | Shared overlay camera and color palette for cartography UI. |
+| `src/plugins/scale_bar.rs` | ScaleBarPlugin, zoom-responsive bar | Bottom-left scale bar with dynamic width. |
 | `src/resources/meta_profile.rs` | MetaProfile, Archetypes, Unlocks | Changing progression or archetype configs. |
 | `src/components/ship.rs` | `Ship`, `Player`, `AI`, `ShipType` | Modifying what defines a ship entity. |
 | `src/components/cargo.rs` | `Cargo`, `Gold`, `GoodType` | Changing economy data structures. |
