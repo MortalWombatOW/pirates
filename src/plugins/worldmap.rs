@@ -1264,20 +1264,23 @@ fn initialize_archipelagos(mut commands: Commands) {
     };
 
     let small = commands
-        .spawn(Archipelago2d::new(
-            make_options(ShoreBufferTier::Small.agent_radius()),
+        .spawn((
+            Archipelago2d::new(make_options(ShoreBufferTier::Small.agent_radius())),
+            HighSeasEntity,
         ))
         .id();
 
     let medium = commands
-        .spawn(Archipelago2d::new(
-            make_options(ShoreBufferTier::Medium.agent_radius()),
+        .spawn((
+            Archipelago2d::new(make_options(ShoreBufferTier::Medium.agent_radius())),
+            HighSeasEntity,
         ))
         .id();
 
     let large = commands
-        .spawn(Archipelago2d::new(
-            make_options(ShoreBufferTier::Large.agent_radius()),
+        .spawn((
+            Archipelago2d::new(make_options(ShoreBufferTier::Large.agent_radius())),
+            HighSeasEntity,
         ))
         .id();
 
@@ -1326,6 +1329,7 @@ fn spawn_navigation_islands(
                         nav_mesh: NavMeshHandle(handle),
                     },
                     Transform::default(),
+                    HighSeasEntity,
                 ));
 
                 info!("Spawned navigation island for {} tier", tier_name);

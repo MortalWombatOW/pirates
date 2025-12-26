@@ -506,3 +506,30 @@
 | [ ] 9.3.5 | Transition to target state on completion | 9.3.3 | When progress reaches 1.0, switch to target state. |
 | [ ] 9.3.6 | Integrate loading screen into HighSeas entry | 9.3.5, 3.1.1 | Entering HighSeas shows loading during map gen. |
 | [ ] 9.3.7 | Integrate loading screen into Combat entry | 9.3.5, 2.1.1 | Entering Combat shows brief loading. |
+
+### Epic 9.4: Terrain Elevation (Hills & Mountains)
+> Add elevation tiers to the terrain system with hand-drawn cartographic visuals.
+
+**Design Notes:**
+- Current thresholds: DeepWater (<-0.1), ShallowWater (<0.05), Sand (<0.12), Land (>=0.12)
+- New thresholds: Land (<0.22), Hills (<0.35), Mountains (>=0.35)
+- Visual style: Squiggly line symbols drawn procedurally in tileset texture
+- Hills: 2-3 wavy horizontal lines (hachure style)
+- Mountains: Inverted V peaks with wavy edges (traditional cartographic symbol)
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.4.1 | Add `Hills` and `Mountains` to `TileType` enum | 3.1.4 | New variants in `src/resources/map_data.rs`. |
+| [ ] 9.4.2 | Update `texture_index()` for new tile types | 9.4.1 | Hills=6, Mountains=7; update match statement. |
+| [ ] 9.4.3 | Update `is_navigable()` to exclude hills/mountains | 9.4.1 | Ships cannot sail over elevated terrain. |
+| [ ] 9.4.4 | Update `noise_to_tile` thresholds | 9.4.1 | Land <0.22, Hills <0.35, Mountains >=0.35. |
+| [ ] 9.4.5 | Extend tileset to 8 tiles | 9.4.2 | `NUM_TILES` = 8 in `create_tileset_texture`. |
+| [ ] 9.4.6 | Draw hills tile with squiggly hachures | 9.4.5 | Index 6: Green base with 2-3 wavy horizontal lines. |
+| [ ] 9.4.7 | Draw mountains tile with peaked symbols | 9.4.5 | Index 7: Darker base with inverted V peaks, wavy edges. |
+| [ ] 9.4.8 | Add test save for terrain elevation | 9.4.7 | `test_terrain_hills_mountains` verifies generation. |
+
+**Verification:**
+```bash
+cargo run -- --load test_terrain_hills_mountains 2>&1 | grep "Generated procedural map"
+# Visual inspection: Hills appear on moderate elevation, mountains on peaks
+```
