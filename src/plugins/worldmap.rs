@@ -1415,7 +1415,7 @@ fn spawn_elevation_markers(
         return;
     }
 
-    const TILE_SIZE: f32 = 16.0;
+    const TILE_SIZE: f32 = 64.0; // Correct tile size matching tilemap
     let ink_color = Color::srgba(0.15, 0.12, 0.08, 0.7); // Darker ink with transparency
     
     let mut rng = rand::thread_rng();
@@ -1436,7 +1436,7 @@ fn spawn_elevation_markers(
                 continue;
             }
 
-            // Draw 1-2 wavy horizontal hachure lines per hills tile (was 2-3)
+            // Draw 1-2 wavy horizontal hachure lines per hills tile
             let num_lines = rng.gen_range(1..=2);
             for line_idx in 0..num_lines {
                 let mut path_builder = PathBuilder::new();
@@ -1444,30 +1444,29 @@ fn spawn_elevation_markers(
                 // Randomized base y within tile, but keep away from top/bottom edges
                 let step = TILE_SIZE / (num_lines as f32 + 1.0);
                 let base_y = (line_idx as f32 + 1.0) * step;
-                let y_offset: f32 = rng.gen_range(-1.0..1.0);
+                let y_offset: f32 = rng.gen_range(-4.0..4.0); // Scaled jitter
                 
                 // Multi-frequency noise for organic look
                 let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
-                let amp1: f32 = rng.gen_range(1.5..2.5);
-                let freq1: f32 = rng.gen_range(0.3..0.5);
-                let amp2: f32 = rng.gen_range(0.3..0.8);
-                let freq2: f32 = rng.gen_range(1.0..2.0);
+                let amp1: f32 = rng.gen_range(3.0..6.0); // Scaled amplitude
+                let freq1: f32 = rng.gen_range(0.1..0.2); // Adjusted frequency for larger scale
+                let amp2: f32 = rng.gen_range(1.0..2.0);
+                let freq2: f32 = rng.gen_range(0.3..0.6);
                 
-                // Start point: keep within [4, 12] horizontal range to avoid coastline bleed
-                let start_x = 4.0; 
-
+                // Start point: keep within [16, 48] horizontal range to avoid coastline bleed
+                let start_x = 16.0; 
 
                 let noise_y = (start_x * freq1 + phase).sin() * amp1 + (start_x * freq2).cos() * amp2;
                 let start_y = base_y + y_offset + noise_y;
                 path_builder.move_to(Vec2::new(world_x + start_x, world_y + start_y));
                 
                 // Draw wavy line across tile
-                for px in (5..=12).step_by(1) { // 4 to 12 range
+                for px in (20..=48).step_by(2) { // 16 to 48 range
                     let x_f32 = px as f32;
                     let noise = (x_f32 * freq1 + phase).sin() * amp1 + (x_f32 * freq2).cos() * amp2;
                     let local_y = base_y + y_offset + noise;
-                    // Clamp y to stay within vertical tile bounds roughly
-                    let clamped_y = local_y.clamp(2.0, 14.0);
+                    // Clamp y to stay within vertical tile bounds roughly [8, 56]
+                    let clamped_y = local_y.clamp(8.0, 56.0);
                     path_builder.line_to(Vec2::new(world_x + x_f32, world_y + clamped_y));
                 }
                 
@@ -1481,7 +1480,7 @@ fn spawn_elevation_markers(
                         transform: Transform::from_xyz(0.0, 0.0, -7.9), 
                         ..default()
                     },
-                    Stroke::new(ink_color, 1.2),
+                    Stroke::new(ink_color, 2.0), // Thicker stroke for larger resolution
                     HighSeasEntity,
                 ));
                 markers_spawned += 1;
@@ -1492,19 +1491,19 @@ fn spawn_elevation_markers(
                 continue;
             }
 
-            // Draw 1 peak symbol per mountain tile (was 1-2)
+            // Draw 1 peak symbol per mountain tile
             let num_peaks = 1; 
             for _ in 0..num_peaks {
                 let mut path_builder = PathBuilder::new();
                 
                 // Center peak within tile, clamped offset
-                let peak_x_offset: f32 = TILE_SIZE / 2.0 + rng.gen_range(-1.0..1.0);
+                let peak_x_offset: f32 = TILE_SIZE / 2.0 + rng.gen_range(-4.0..4.0);
                 
-                let peak_height: f32 = rng.gen_range(8.0..11.0); // Slightly shorter
-                let base_width: f32 = rng.gen_range(5.0..7.0);  // Slightly narrower
+                let peak_height: f32 = rng.gen_range(24.0..36.0); // Scaled height
+                let base_width: f32 = rng.gen_range(20.0..28.0);  // Scaled width
                 
-                let wave_amp: f32 = rng.gen_range(0.3..0.6);
-                let wave_freq: f32 = rng.gen_range(0.4..0.8);
+                let wave_amp: f32 = rng.gen_range(1.0..2.5);
+                let wave_freq: f32 = rng.gen_range(0.1..0.3);
                 let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
                 
                 // Left base point
@@ -1515,8 +1514,8 @@ fn spawn_elevation_markers(
                 path_builder.move_to(Vec2::new(left_x, base_y));
                 
                 // Draw left slope
-                for i in 1..=4 {
-                    let t = i as f32 / 4.0;
+                for i in 1..=8 {
+                    let t = i as f32 / 8.0;
                     let px = left_x + (base_width / 2.0) * t + ((i as f32) * wave_freq + phase).sin() * wave_amp;
                     let py = base_y + peak_height * t;
                     path_builder.line_to(Vec2::new(px, py));
@@ -1527,8 +1526,8 @@ fn spawn_elevation_markers(
                 path_builder.line_to(peak_top);
                 
                 // Draw right slope
-                let right_slope_points: Vec<Vec2> = (0..=4).rev().map(|i| {
-                    let t = i as f32 / 4.0;
+                let right_slope_points: Vec<Vec2> = (0..=8).rev().map(|i| {
+                    let t = i as f32 / 8.0;
                     let px = world_x + peak_x_offset + (base_width / 2.0) * (1.0 - t) + ((i as f32) * wave_freq + phase + 1.0).sin() * wave_amp;
                     let py = base_y + peak_height * t;
                     Vec2::new(px, py)
@@ -1548,7 +1547,7 @@ fn spawn_elevation_markers(
                         transform: Transform::from_xyz(0.0, 0.0, -7.8),
                         ..default()
                     },
-                    Stroke::new(ink_color, 1.5),
+                    Stroke::new(ink_color, 2.5), // Thicker stroke
                     HighSeasEntity,
                 ));
                 markers_spawned += 1;
