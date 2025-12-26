@@ -7,10 +7,14 @@ pub enum TileType {
     DeepWater,
     /// Shallow water - near coastlines
     ShallowWater,
-    /// Land - impassable terrain
+    /// Land - normal terrain
     Land,
     /// Sand/Beach - coastal transition
     Sand,
+    /// Hills - elevated terrain with hachure marks
+    Hills,
+    /// Mountains - highest elevation with peak symbols
+    Mountains,
     /// Port - docking location
     Port,
 }
@@ -23,6 +27,8 @@ impl TileType {
     /// Index 2: Sand (tan)
     /// Index 3: Land (green)
     /// Index 4: Port (brown)
+    /// Index 5: Hills (green with hachures)
+    /// Index 6: Mountains (dark with peaks)
     pub fn texture_index(&self) -> u32 {
         match self {
             TileType::DeepWater => 0,
@@ -30,6 +36,8 @@ impl TileType {
             TileType::Sand => 2,
             TileType::Land => 3,
             TileType::Port => 4,
+            TileType::Hills => 5,
+            TileType::Mountains => 6,
         }
     }
 

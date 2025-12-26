@@ -1477,7 +1477,7 @@ fn spawn_stipple_overlay(
     let image_handle = images.add(image);
 
     let material_handle = materials.add(StipplingMaterial {
-        color: LinearRgba::new(0.0, 0.0, 0.0, 0.5), // Semi-transparent black dots
+        color: LinearRgba::new(0.15, 0.25, 0.4, 0.45), // Subdued nautical blue dots
         dot_spacing: 32.0, // Spacing in world units (half a tile)
         depth_texture: image_handle,
     });

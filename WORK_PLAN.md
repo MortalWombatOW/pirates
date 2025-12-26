@@ -519,10 +519,10 @@
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 9.4.1 | Add `Hills` and `Mountains` to `TileType` enum | 3.1.4 | New variants in `src/resources/map_data.rs`. |
-| [ ] 9.4.2 | Update `texture_index()` for new tile types | 9.4.1 | Hills=6, Mountains=7; update match statement. |
-| [ ] 9.4.3 | Update `is_navigable()` to exclude hills/mountains | 9.4.1 | Ships cannot sail over elevated terrain. |
-| [ ] 9.4.4 | Update `noise_to_tile` thresholds | 9.4.1 | Land <0.22, Hills <0.35, Mountains >=0.35. |
+| [x] 9.4.1 | Add `Hills` and `Mountains` to `TileType` enum | 3.1.4 | New variants in `src/resources/map_data.rs`. |
+| [x] 9.4.2 | Update `texture_index()` for new tile types | 9.4.1 | Hills=5, Mountains=6; update match statement. |
+| [x] 9.4.3 | Update `is_navigable()` to exclude hills/mountains | 9.4.1 | Ships cannot sail over elevated terrain. |
+| [x] 9.4.4 | Update `noise_to_tile` thresholds | 9.4.1 | Land <0.22, Hills <0.35, Mountains >=0.35. |
 | [ ] 9.4.5 | Extend tileset to 8 tiles | 9.4.2 | `NUM_TILES` = 8 in `create_tileset_texture`. |
 | [ ] 9.4.6 | Draw hills tile with squiggly hachures | 9.4.5 | Index 6: Green base with 2-3 wavy horizontal lines. |
 | [ ] 9.4.7 | Draw mountains tile with peaked symbols | 9.4.5 | Index 7: Darker base with inverted V peaks, wavy edges. |

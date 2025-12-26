@@ -123,7 +123,7 @@ pub fn generate_world_map(config: MapGenConfig) -> MapData {
 }
 
 /// Maps a noise value to a tile type.
-/// Thresholds are tuned for archipelago-style maps with ~30% land coverage.
+/// Thresholds are tuned for archipelago-style maps with varied elevation.
 fn noise_to_tile(value: f64) -> TileType {
     if value < -0.1 {
         TileType::DeepWater
@@ -131,8 +131,12 @@ fn noise_to_tile(value: f64) -> TileType {
         TileType::ShallowWater
     } else if value < 0.12 {
         TileType::Sand
-    } else {
+    } else if value < 0.22 {
         TileType::Land
+    } else if value < 0.35 {
+        TileType::Hills
+    } else {
+        TileType::Mountains
     }
 }
 
@@ -231,13 +235,13 @@ fn add_coastal_transitions(map_data: &mut MapData) {
         for x in 0..width {
             if let Some(tile) = map_data.tile(x, y) {
                 if tile.tile_type == TileType::DeepWater {
-                    // Check if adjacent to land or sand
+                    // Check if adjacent to land, hills, mountains, or sand
                     let has_land_neighbor = neighbors_4(x, y, width, height)
                         .iter()
                         .any(|&(nx, ny)| {
                             map_data.tile(nx, ny).map(|t| t.tile_type).map_or(false, |t| matches!(
                                 t,
-                                TileType::Land | TileType::Sand
+                                TileType::Land | TileType::Sand | TileType::Hills | TileType::Mountains
                             ))
                         });
 
@@ -275,7 +279,10 @@ fn place_ports(map_data: &mut MapData, min_ports: usize, max_ports: usize, seed:
                     let neighbors = neighbors_4(x, y, width, height);
                     
                     let has_land = neighbors.iter().any(|&(nx, ny)| {
-                        map_data.tile(nx, ny).map(|t| t.tile_type) == Some(TileType::Land)
+                        map_data.tile(nx, ny).map(|t| t.tile_type).map_or(false, |t| matches!(
+                            t,
+                            TileType::Land | TileType::Hills | TileType::Mountains
+                        ))
                     });
                     
                     let has_water = neighbors.iter().any(|&(nx, ny)| {
