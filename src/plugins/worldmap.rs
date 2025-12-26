@@ -258,6 +258,69 @@ fn create_tileset_texture(
         }
     }
 
+    // Draw decorative hachures for Hills (tile index 5)
+    let hills_start_x = 5 * TILE_SIZE;
+    let ink_color: (u8, u8, u8) = (40, 35, 30); // Dark brown ink
+    
+    // Draw 3 wavy horizontal lines (hachure style)
+    for line_idx in 0..3 {
+        let base_y = 18 + line_idx * 14; // Spaced at y=18, 32, 46
+        for x in 8..56 {
+            // Sine wave offset for squiggly effect
+            let wave = ((x as f32 * 0.4).sin() * 3.0) as i32;
+            let y = (base_y as i32 + wave).clamp(0, 63) as u32;
+            
+            // Draw 2-pixel thick line
+            for dy in 0..2u32 {
+                let py = (y + dy).min(TILE_SIZE - 1);
+                let px = hills_start_x + x;
+                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
+                data[pixel_idx] = ink_color.0;
+                data[pixel_idx + 1] = ink_color.1;
+                data[pixel_idx + 2] = ink_color.2;
+            }
+        }
+    }
+
+    // Draw decorative peaks for Mountains (tile index 6)
+    let mountains_start_x = 6 * TILE_SIZE;
+    
+    // Draw 3 mountain peak symbols (inverted V)
+    for peak_idx in 0..3 {
+        let peak_x = 12 + peak_idx * 18; // Peaks at x=12, 30, 48
+        let peak_y = 16 + (peak_idx % 2) * 8; // Stagger heights
+        let peak_height = 28;
+        
+        // Draw left and right slopes of the peak
+        for i in 0..peak_height {
+            // Left slope
+            let lx = peak_x as i32 - (i as i32 / 2);
+            let ly = peak_y as i32 + i as i32;
+            if lx >= 0 && ly < 64 {
+                // Add wave to edges
+                let wave = ((ly as f32 * 0.5).sin() * 1.5) as i32;
+                let px = mountains_start_x + (lx + wave).clamp(0, 63) as u32;
+                let py = ly as u32;
+                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
+                data[pixel_idx] = ink_color.0;
+                data[pixel_idx + 1] = ink_color.1;
+                data[pixel_idx + 2] = ink_color.2;
+            }
+            
+            // Right slope
+            let rx = peak_x as i32 + (i as i32 / 2);
+            if rx < 64 && ly < 64 {
+                let wave = ((ly as f32 * 0.5).sin() * 1.5) as i32;
+                let px = mountains_start_x + (rx + wave).clamp(0, 63) as u32;
+                let py = ly as u32;
+                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
+                data[pixel_idx] = ink_color.0;
+                data[pixel_idx + 1] = ink_color.1;
+                data[pixel_idx + 2] = ink_color.2;
+            }
+        }
+    }
+
     // Create the image
     // Use both MAIN_WORLD and RENDER_WORLD to ensure the texture is properly retained
     let image = Image::new(
