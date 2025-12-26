@@ -629,14 +629,24 @@ cargo run -- --load test_terrain_hills_mountains 2>&1 | grep "Generated procedur
 | [ ] 10.1.20 | Delete empty old directories | 10.1.19 | Remove old plugins/, systems/, components/, resources/ |
 | [ ] 10.1.21 | Update lib.rs and main.rs | 10.1.20 | Clean exports, all features accessible |
 
-#### Phase 10.1.6: Validation
+#### Phase 10.1.6: Documentation
 
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
-| [ ] 10.1.22 | Verify no file > 500 lines | 10.1.21 | All files under 500 lines |
-| [ ] 10.1.23 | Run `cargo check` with zero warnings | 10.1.21 | No compiler warnings |
-| [ ] 10.1.24 | Test all game states | 10.1.21 | MainMenu, HighSeas, Combat, Port, GameOver work |
-| [ ] 10.1.25 | Update AGENT.md with new structure | 10.1.24 | Document new organization pattern |
+| [ ] 10.1.22 | Update AGENT.md with new structure | 10.1.21 | Document feature-folders pattern, SystemSets, new file locations |
+| [ ] 10.1.23 | Update INDEX.md module documentation | 10.1.21 | Reflect new `features/`, `core/`, `ui/`, `shared/` modules |
+| [ ] 10.1.24 | Update docs/testing.md file paths | 10.1.21 | All file references point to new locations |
+| [ ] 10.1.25 | Update workflows/*.md file references | 10.1.21 | Workflow docs reference correct paths |
+| [ ] 10.1.26 | Archive docs/refactor.md as completed | 10.1.21 | Mark plan as executed, add completion date |
+
+#### Phase 10.1.7: Validation
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.27 | Verify no file > 500 lines | 10.1.26 | All files under 500 lines |
+| [ ] 10.1.28 | Run `cargo check` with zero warnings | 10.1.26 | No compiler warnings |
+| [ ] 10.1.29 | Test all game states | 10.1.26 | MainMenu, HighSeas, Combat, Port, GameOver work |
+| [ ] 10.1.30 | Verify all docs reference correct paths | 10.1.26 | `grep -r "src/plugins\|src/systems\|src/components" docs/` returns nothing |
 
 **Verification:**
 ```bash
