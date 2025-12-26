@@ -526,7 +526,7 @@
 | [x] 9.4.5 | Extend tileset to 8 tiles | 9.4.2 | `NUM_TILES` = 8 in `create_tileset_texture`. |
 | [x] 9.4.6 | Draw hills tile with squiggly hachures | 9.4.5 | Index 5: Green base (hachures can be added later). |
 | [x] 9.4.7 | Draw mountains tile with peaked symbols | 9.4.5 | Index 6: Dark gray base (peaks can be added later). |
-| [ ] 9.4.8 | Add test save for terrain elevation | 9.4.7 | `test_terrain_hills_mountains` verifies generation. |
+| [x] 9.4.8 | Add test save for terrain elevation | 9.4.7 | `test_terrain_hills_mountains` verifies generation. |
 
 **Verification:**
 ```bash

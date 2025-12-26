@@ -443,4 +443,44 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_terrain_hills_mountains() {
+        // Use a larger map with higher frequency to ensure we get varied terrain
+        let config = MapGenConfig {
+            seed: 99999,
+            width: 256,
+            height: 256,
+            frequency: 0.02, // Slightly higher for more terrain variation
+            ..Default::default()
+        };
+        let map = generate_world_map(config);
+
+        let mut count_land = 0u32;
+        let mut count_hills = 0u32;
+        let mut count_mountains = 0u32;
+
+        for (_, _, tile) in map.iter() {
+            match tile.tile_type {
+                TileType::Land => count_land += 1,
+                TileType::Hills => count_hills += 1,
+                TileType::Mountains => count_mountains += 1,
+                _ => {}
+            }
+        }
+
+        // Verify that we generated some of each elevated terrain type
+        // The exact counts depend on noise, but with this seed we should have variety
+        assert!(count_land > 0, "Expected some Land tiles");
+        assert!(count_hills > 0, "Expected some Hills tiles, got {}", count_hills);
+        assert!(count_mountains > 0, "Expected some Mountains tiles, got {}", count_mountains);
+
+        // Hills/mountains should be impassable
+        for (x, y, tile) in map.iter() {
+            if tile.tile_type == TileType::Hills || tile.tile_type == TileType::Mountains {
+                assert!(!tile.tile_type.is_navigable(), 
+                    "Hills/Mountains at {},{} should not be navigable", x, y);
+            }
+        }
+    }
 }
