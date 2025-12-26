@@ -492,7 +492,7 @@
 | [x] 9.2.3 | Create `despawn_scene_entities` generic system | 9.2.1 | System despawns all entities with given `SceneTag`. |
 | [x] 9.2.4 | Register despawn systems on `OnExit` for each state | 9.2.3 | Exiting HighSeas/Combat/Port despawns tagged entities. |
 | [x] 9.2.5 | Audit existing plugins for entity tagging | 9.2.2 | All worldmap, combat, port entities tagged. |
-| [ ] 9.2.6 | Remove redundant per-plugin despawn systems | 9.2.4 | Consolidate to centralized cleanup. |
+| [x] 9.2.6 | Remove redundant per-plugin despawn systems | 9.2.4 | Consolidate to centralized cleanup. |
 
 ### Epic 9.3: Loading Screens
 > Show progress indicator during scene transitions.
@@ -533,3 +533,40 @@
 cargo run -- --load test_terrain_hills_mountains 2>&1 | grep "Generated procedural map"
 # Visual inspection: Hills appear on moderate elevation, mountains on peaks
 ```
+
+### Epic 9.5: Feature Test Logging
+> Add `info!()` logs to all major systems to enable save-based feature verification per `docs/testing.md`.
+
+**Design Notes:**
+- Each task adds logs to one system/file
+- Logs must match patterns defined in `docs/testing.md`
+- Phase 1 (Core) tests are highest priority
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.5.1 | Add navigation/pathfinding logs | None | `navigation.rs`: "Pathfinding: route found", "destination set to world" |
+| [ ] 9.5.2 | Add coastline avoidance logs | None | `landmass_movement.rs`: "Coastline: within X units, applying avoidance" |
+| [ ] 9.5.3 | Add cannon firing logs | None | `combat.rs`: "Combat: firing port/starboard broadside", "projectile spawned" |
+| [ ] 9.5.4 | Add projectile collision logs | None | `combat.rs`: "Combat: projectile hit", "health now X/Y" |
+| [ ] 9.5.5 | Add ship destruction logs | None | `combat.rs`: "Combat: ship destroyed", "loot dropped at" |
+| [ ] 9.5.6 | Add loot collection logs | None | `combat.rs`: "Loot: collected X gold", "player gold now" |
+| [ ] 9.5.7 | Add movement physics logs | None | `movement.rs`: "Physics: applying thrust", "anchor engaged" |
+| [ ] 9.5.8 | Add combat AI logs | None | `ai.rs`: "AI: state Circling", "firing conditions met", "switching to Flee" |
+| [ ] 9.5.9 | Add fog of war logs | None | `fog_of_war.rs`: "FogOfWar: revealed X new tiles" |
+| [ ] 9.5.10 | Add wind system logs | None | `wind.rs`: "Wind: alignment factor", "speed multiplier" |
+| [ ] 9.5.11 | Add port arrival logs | None | `port.rs` or `worldmap.rs`: "Port: arrived at" |
+| [ ] 9.5.12 | Add world clock logs | None | `world_tick.rs`: "WorldClock: hour boundary crossed" |
+| [ ] 9.5.13 | Add trading logs | None | `port_ui.rs`: "Trade: bought/sold X units" |
+| [ ] 9.5.14 | Add repair logs | None | `port_ui.rs`: "Repair: X restored Y HP" |
+| [ ] 9.5.15 | Add contract logs | None | `contract.rs`: "Contract: accepted", "completed" |
+| [ ] 9.5.16 | Add save/load logs | None | `save.rs`: "Save: game saved to", "Load: restored X entities" |
+| [ ] 9.5.17 | Add meta profile logs | None | `meta_profile.rs`: "Profile: saving to disk", "saved successfully" |
+| [ ] 9.5.18 | Add archetype unlock logs | None | `meta_profile.rs`: "Archetype: X unlocked!" |
+| [ ] 9.5.19 | Add legacy wreck logs | None | `worldmap.rs`: "Wreck: spawned legacy wreck at" |
+| [ ] 9.5.20 | Add companion logs | None | `companion.rs`: "Companion: recruited X for Y gold" |
+| [ ] 9.5.21 | Add faction AI logs | None | `faction_ai.rs`: "FactionAI: hourly tick", "reputation changed" |
+| [ ] 9.5.22 | Add state transition logs | None | `core.rs`: "State: entered X", "transitioning X -> Y" |
+| [ ] 9.5.23 | Add hit flash logs | None | `hit_flash.rs`: "Visual: hit flash triggered" |
+| [ ] 9.5.24 | Add water intake logs | None | `combat.rs`: "Damage: hull hit, adding water intake" |
+
+**Verification:** After each task, run the corresponding test command from `docs/testing.md`.

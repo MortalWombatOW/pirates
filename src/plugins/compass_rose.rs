@@ -18,8 +18,7 @@ impl Plugin for CompassRosePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(GameState::HighSeas), spawn_compass_rose)
-            .add_systems(Update, update_compass_position.run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), despawn_compass_rose);
+            .add_systems(Update, update_compass_position.run_if(in_state(GameState::HighSeas)));
     }
 }
 
@@ -209,10 +208,4 @@ fn update_compass_position(
     
     transform.translation.x = half_w - MARGIN.x;
     transform.translation.y = -half_h + MARGIN.y;
-}
-
-fn despawn_compass_rose(mut commands: Commands, query: Query<Entity, With<CompassRose>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
 }

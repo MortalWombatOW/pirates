@@ -15,8 +15,7 @@ pub struct OverlayUiPlugin;
 impl Plugin for OverlayUiPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(OnEnter(GameState::HighSeas), spawn_overlay_camera)
-            .add_systems(OnExit(GameState::HighSeas), despawn_overlay_camera);
+            .add_systems(OnEnter(GameState::HighSeas), spawn_overlay_camera);
     }
 }
 
@@ -64,10 +63,4 @@ fn spawn_overlay_camera(mut commands: Commands) {
         HighSeasEntity,
     ));
     info!("Spawned Overlay UI Camera");
-}
-
-fn despawn_overlay_camera(mut commands: Commands, query: Query<Entity, With<OverlayCamera>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
 }

@@ -121,15 +121,7 @@ impl Plugin for WorldMapPlugin {
                 toggle_navmesh_debug,
             ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnEnter(GameState::Combat), hide_tilemap)
-            .add_systems(OnExit(GameState::HighSeas), (
-                despawn_high_seas_player,
-                despawn_high_seas_ai_ships,
-                despawn_port_entities,
-                despawn_location_labels,
-                despawn_legacy_wrecks,
-                despawn_coastline_shapes,
-                clear_fleet_entities,
-            ));
+            .add_systems(OnExit(GameState::HighSeas), clear_fleet_entities);
     }
 }
 
@@ -529,16 +521,6 @@ fn spawn_high_seas_player(
     }
 }
 
-/// Despawn High Seas player when leaving the state.
-fn despawn_high_seas_player(
-    mut commands: Commands,
-    query: Query<Entity, With<HighSeasPlayer>>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 /// Spawns legacy wreck entities from previous deaths.
 /// Wrecks are interactable markers on the map containing loot from past runs.
 fn spawn_legacy_wrecks(
@@ -583,16 +565,6 @@ fn spawn_legacy_wrecks(
 
     if !profile.legacy_wrecks.is_empty() {
         info!("Spawned {} legacy wrecks from previous runs", profile.legacy_wrecks.len());
-    }
-}
-
-/// Despawn legacy wrecks when leaving HighSeas state.
-fn despawn_legacy_wrecks(
-    mut commands: Commands,
-    query: Query<Entity, With<LegacyWreckMarker>>,
-) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -818,18 +790,6 @@ fn spawn_high_seas_ai_ships(
     info!("Spawned {} AI ships on High Seas map", num_ships);
 }
 
-/// Despawn AI ships when leaving the High Seas state.
-fn despawn_high_seas_ai_ships(
-    mut commands: Commands,
-    query: Query<Entity, With<HighSeasAI>>,
-) {
-    let count = query.iter().count();
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    info!("Despawned {} AI ships", count);
-}
-
 /// Updates AI ship visibility based on fog of war.
 /// Ships in unexplored tiles are hidden, ships in explored tiles are visible.
 fn fog_of_war_ai_visibility_system(
@@ -993,18 +953,6 @@ fn spawn_port_entities(
     info!("Spawned {} port entities on the map", port_count);
 }
 
-/// Despawns all port entities when leaving the High Seas state.
-fn despawn_port_entities(
-    mut commands: Commands,
-    query: Query<Entity, With<HighSeasPort>>,
-) {
-    let count = query.iter().count();
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    info!("Despawned {} port entities", count);
-}
-
 /// Spawns location labels for all ports, positioned perpendicular to nearby coastlines.
 /// Uses the Quintessential font for authentic 18th-century nautical chart styling.
 fn spawn_location_labels(
@@ -1104,20 +1052,6 @@ fn calculate_coastline_perpendicular(pos: Vec2, coastline_data: &CoastlineData) 
     }
 
     nearest_normal.to_angle()
-}
-
-/// Despawns all location label entities when leaving the High Seas state.
-fn despawn_location_labels(
-    mut commands: Commands,
-    query: Query<Entity, With<LocationLabelMarker>>,
-) {
-    let count = query.iter().count();
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-    if count > 0 {
-        info!("Despawned {} location labels", count);
-    }
 }
 
 /// System to spawn the player's fleet when entering HighSeas.
@@ -1453,20 +1387,6 @@ fn spawn_coastline_shapes(
     }
 
     info!("Spawned {} coastline shape entities (including waterlines)", shapes_spawned);
-}
-
-/// Despawns all coastline shape entities when leaving HighSeas.
-fn despawn_coastline_shapes(
-    mut commands: Commands,
-    query: Query<Entity, With<CoastlineShape>>,
-) {
-    let count = query.iter().count();
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-    if count > 0 {
-        info!("Despawned {} coastline shapes", count);
-    }
 }
 
 /// Updates coastline visibility based on debug toggle.

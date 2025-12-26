@@ -25,8 +25,7 @@ impl Plugin for ScaleBarPlugin {
             .add_systems(Update, (
                 update_scale_bar_position,
                 update_scale_bar_scale,
-            ).run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), despawn_scale_bar);
+            ).run_if(in_state(GameState::HighSeas)));
     }
 }
 
@@ -260,10 +259,4 @@ fn calculate_bar_config(projection_scale: f32) -> (f32, f32, f32) {
     let segment_miles = base_miles / SEGMENT_COUNT as f32;
     
     (1.0, segment_miles, base_miles)
-}
-
-fn despawn_scale_bar(mut commands: Commands, query: Query<Entity, With<ScaleBar>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
 }

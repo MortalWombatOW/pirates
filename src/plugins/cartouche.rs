@@ -22,8 +22,7 @@ impl Plugin for CartouchePlugin {
             .add_systems(Update, (
                 update_cartouche_position,
                 apply_cartouche_fade,
-            ).run_if(in_state(GameState::HighSeas)))
-            .add_systems(OnExit(GameState::HighSeas), despawn_cartouche);
+            ).run_if(in_state(GameState::HighSeas)));
     }
 }
 
@@ -236,12 +235,6 @@ fn update_cartouche_position(
     let half_h = window.height() / 2.0;
     transform.translation.x = 0.0;
     transform.translation.y = half_h - MARGIN_TOP;
-}
-
-fn despawn_cartouche(mut commands: Commands, query: Query<Entity, With<Cartouche>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
 }
 
 /// Applies the root's FadeController alpha to all child cartouche entities.
