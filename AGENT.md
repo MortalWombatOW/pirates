@@ -83,11 +83,13 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Old Code Removal**: Once a replacement is working, delete the old implementation. Do not leave it "for reference."
 
 ### Save-Based Feature Verification
-*   **Test Saves**: Every major feature/invariant requires a corresponding test save in `assets/saves/test_<feature>.sav`.
-*   **CLI Loading**: Game supports `--load <save_name>` to load a specific save on startup for verification.
+*   **Test Saves**: Every major feature/invariant requires a corresponding test save named `test_<feature>` (stored by bevy_save in platform app data directory).
+*   **Creating Test Saves**: Load game, set up conditions, press F5 after modifying `save_game_system` to use `test_<feature>` name, or use debug presets (F6-F8).
+*   **CLI Loading**: Game supports `--load <save_name>` to load a specific save on startup, bypassing main menu.
 *   **Log-Based Proof**: Each feature must emit `info!` logs that prove correct behavior. Document expected log patterns in `WORK_PLAN.md`.
-*   **Verification Command**: `cargo run -- --load test_<feature> | grep "<expected_pattern>"` must succeed for feature to be complete.
+*   **Verification Command**: `cargo run -- --load test_<feature> 2>&1 | grep "<expected_pattern>"` must succeed for feature to be complete.
 *   **Reproducibility**: Test saves enable any agent or developer to verify features without manual setup.
+*   **Save Locations**: Saves are stored in platform-specific app data: `~/Library/Application Support/pirates/` (macOS), `~/.local/share/pirates/` (Linux), `%APPDATA%/pirates/` (Windows).
 
 ### Git
 *   **Frequency**: Commit after *every* completed task.

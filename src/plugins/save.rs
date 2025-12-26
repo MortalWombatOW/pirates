@@ -6,8 +6,13 @@ use crate::components::{
     Health, WaterIntake, Cargo, Gold, GoodType, GoodsTrait,
     Destination, NavigationPath, Projectile, TargetComponent, Order, OrderQueue,
 };
-use crate::resources::{Wind, WorldClock};
+use crate::resources::{Wind, WorldClock, CliArgs};
 use crate::plugins::core::GameState;
+
+/// Marker resource indicating a CLI-triggered load is pending.
+/// Consumed after the load is attempted.
+#[derive(Resource)]
+struct CliLoadPending(String);
 
 /// Plugin that integrates bevy_save for game state persistence.
 /// Enables saving and loading the complete game world (entities, components, resources).
@@ -23,12 +28,16 @@ impl Plugin for PersistencePlugin {
         // Register all game-specific types that need to be saved
         register_saveable_types(app);
 
+        // CLI load check runs at startup
+        app.add_systems(Startup, check_cli_load_arg);
+
         // Add save/load systems
         app.add_systems(
             Update,
             (
                 save_game_system.run_if(in_state(GameState::HighSeas).or(in_state(GameState::Port))),
                 load_game_system,
+                cli_load_system.run_if(resource_exists::<CliLoadPending>),
             ),
         );
 
@@ -89,7 +98,7 @@ fn register_saveable_types(app: &mut App) {
 }
 
 /// System that triggers a quicksave when F5 is pressed.
-/// Saves the current game state to "quicksave" file.
+/// Saves to "quicksave" by default, or to the name specified by --save-as.
 fn save_game_system(world: &mut World) {
     // Check for F5 key press
     let should_save = world
@@ -97,10 +106,16 @@ fn save_game_system(world: &mut World) {
         .just_pressed(KeyCode::F5);
 
     if should_save {
-        info!("Saving game...");
+        // Use --save-as override if provided, otherwise default to "quicksave"
+        let save_name = world
+            .get_resource::<CliArgs>()
+            .and_then(|args| args.save_as.clone())
+            .unwrap_or_else(|| "quicksave".to_string());
 
-        match world.save("quicksave") {
-            Ok(_) => info!("Game saved successfully to 'quicksave'"),
+        info!("Saving game to '{}'...", save_name);
+
+        match world.save(save_name.as_str()) {
+            Ok(_) => info!("Game saved successfully to '{}'", save_name),
             Err(e) => error!("Failed to save game: {:?}", e),
         }
     }
@@ -232,5 +247,47 @@ fn apply_advanced_preset(world: &mut World) {
     if let Some(mut clock) = world.get_resource_mut::<WorldClock>() {
         clock.day = 30;
         clock.hour = 12;
+    }
+}
+
+// ============================================================================
+// CLI LOAD SUPPORT
+// ============================================================================
+
+/// Checks CLI arguments for --load and inserts CliLoadPending if present.
+fn check_cli_load_arg(mut commands: Commands, cli_args: Res<CliArgs>) {
+    if let Some(ref save_name) = cli_args.load_save {
+        info!("CLI: Queueing load of save '{}'", save_name);
+        commands.insert_resource(CliLoadPending(save_name.clone()));
+    }
+}
+
+/// Processes CLI-triggered load. Runs once then removes the pending marker.
+fn cli_load_system(world: &mut World) {
+    // Extract the save name and remove the pending marker
+    let save_name = {
+        let pending = world.remove_resource::<CliLoadPending>();
+        match pending {
+            Some(p) => p.0,
+            None => return,
+        }
+    };
+
+    info!("CLI: Loading save '{}'...", save_name);
+
+    match world.load(save_name.as_str()) {
+        Ok(_) => {
+            info!("CLI: Save '{}' loaded successfully", save_name);
+
+            // Transition to HighSeas state (bypassing main menu)
+            if let Some(mut next_state) = world.get_resource_mut::<NextState<GameState>>() {
+                next_state.set(GameState::HighSeas);
+                info!("CLI: Transitioned to HighSeas state");
+            }
+        }
+        Err(e) => {
+            error!("CLI: Failed to load save '{}': {:?}", save_name, e);
+            error!("CLI: Falling back to main menu");
+        }
     }
 }

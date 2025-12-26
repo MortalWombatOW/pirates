@@ -1,6 +1,13 @@
 # Future Plans
 Not to be implemented currently. Must be moved to WORK_PLAN.md when ready.
 
+### Tracy Profiler Integration
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 9.1.2 | Integrate Tracy profiler support | 9.1.1 | Compile with `--features bevy/trace_tracy`, connect Tracy. |
+| [ ] 9.1.4 | Document profiling workflow in AGENT.md | 9.1.2 | Instructions for running Tracy and interpreting results. |
+
+
 
 ### Epic 8.2: Audio Integration
 | ID | Task | Dependencies | Acceptance Criteria |

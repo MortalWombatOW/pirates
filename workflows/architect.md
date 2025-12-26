@@ -21,12 +21,12 @@ description: Convert requirements into atomic tasks. Run after /init. Run before
 
 4.  **Verification Planning (Save-Based Testing)**
     * For each major feature or invariant, plan a corresponding test save:
-        * **Save File**: `assets/saves/test_<feature_name>.sav` - A save state that sets up the conditions to demonstrate the feature.
-        * **Verification Command**: `cargo run -- --load test_<feature_name>` (or equivalent CLI arg).
+        * **Save Name**: `test_<feature_name>` - stored by bevy_save in app data directory.
+        * **Verification Command**: `cargo run -- --load test_<feature_name>` (bypasses main menu).
         * **Expected Logs**: Document what log output proves the feature works (e.g., `info!("Pathfinding: route found with {} waypoints", n)`).
     * Add a verification subtask to each feature task in `WORK_PLAN.md`:
-        * `- [ ] Create test save for <feature>`
-        * `- [ ] Verify via: cargo run -- --load test_<feature> | grep "<expected log>"`
+        * `- [ ] Create test save: test_<feature>`
+        * `- [ ] Verify: cargo run -- --load test_<feature> 2>&1 | grep "<expected log>"`
     * **Constraint**: A feature is not complete until its test save exists and verification passes.
 
 5.  **Plan Update**

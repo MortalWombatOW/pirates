@@ -480,9 +480,7 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 9.1.1 | Add `bevy_diagnostics` FrameTimeDiagnostics | 1.1.2 | FPS and frame time logged to console. |
-| [ ] 9.1.2 | Integrate Tracy profiler support | 9.1.1 | Compile with `--features bevy/trace_tracy`, connect Tracy. |
 | [x] 9.1.3 | Add diagnostic overlay (toggle with F4) | 9.1.1, 1.4.1 | Egui panel shows FPS, entity count, draw calls. |
-| [ ] 9.1.4 | Document profiling workflow in AGENT.md | 9.1.2 | Instructions for running Tracy and interpreting results. |
 
 ### Epic 9.2: Scene Management & Entity Cleanup
 > Track entity ownership per scene and despawn correctly on state transitions.
