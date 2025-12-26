@@ -185,7 +185,7 @@ fn is_water(tile: TileType) -> bool {
 
 /// Returns true if the tile is considered "land" for coastline purposes.
 fn is_land(tile: TileType) -> bool {
-    matches!(tile, TileType::Land | TileType::Sand | TileType::Port)
+    matches!(tile, TileType::Land | TileType::Sand | TileType::Port | TileType::Hills | TileType::Mountains)
 }
 
 use rand::Rng;

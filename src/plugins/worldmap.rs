@@ -1477,7 +1477,7 @@ fn spawn_elevation_markers(
                     ElevationMarker,
                     ShapeBundle {
                         path,
-                        transform: Transform::from_xyz(0.0, 0.0, -7.9), 
+                        transform: Transform::from_xyz(-32.0, -32.0, -7.9), 
                         ..default()
                     },
                     Stroke::new(ink_color, 2.0), // Thicker stroke for larger resolution
@@ -1544,7 +1544,7 @@ fn spawn_elevation_markers(
                     ElevationMarker,
                     ShapeBundle {
                         path,
-                        transform: Transform::from_xyz(0.0, 0.0, -7.8),
+                        transform: Transform::from_xyz(-32.0, -32.0, -7.8),
                         ..default()
                     },
                     Stroke::new(ink_color, 2.5), // Thicker stroke
@@ -1568,7 +1568,7 @@ fn spawn_elevation_markers(
                         ElevationMarker,
                         ShapeBundle {
                             path: shade_builder.build(),
-                            transform: Transform::from_xyz(0.0, 0.0, -7.85), // Slightly below outline
+                            transform: Transform::from_xyz(-32.0, -32.0, -7.85), // Slightly below outline
                             ..default()
                         },
                         Stroke::new(Color::srgba(0.15, 0.12, 0.08, 0.5), 1.0), // Fainter ink
