@@ -206,12 +206,15 @@ pub struct LocationLabelMarker;
 /// Index 2: Sand (tan/beige)
 /// Index 3: Land (green)
 /// Index 4: Port (brown/wood)
+/// Index 5: Hills (darker green with hachures)
+/// Index 6: Mountains (dark gray with peaks)
+/// Index 7: Fog/Parchment (cream)
 fn create_tileset_texture(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
 ) {
     const TILE_SIZE: u32 = 64;
-    const NUM_TILES: u32 = 6; // Includes Fog/Parchment tile
+    const NUM_TILES: u32 = 8;
     const TEXTURE_WIDTH: u32 = TILE_SIZE * NUM_TILES;
     const TEXTURE_HEIGHT: u32 = TILE_SIZE;
 
@@ -219,13 +222,15 @@ fn create_tileset_texture(
     let mut data = vec![0u8; (TEXTURE_WIDTH * TEXTURE_HEIGHT * 4) as usize];
 
     // Define colors for each tile type (RGBA)
-    let colors: [(u8, u8, u8, u8); 6] = [
+    let colors: [(u8, u8, u8, u8); 8] = [
         (30, 60, 120, 255),    // Index 0: Deep Water - dark blue
         (60, 130, 170, 255),   // Index 1: Shallow Water - teal
         (220, 190, 140, 255),  // Index 2: Sand - tan
         (80, 140, 80, 255),    // Index 3: Land - green
         (120, 80, 50, 255),    // Index 4: Port - brown
-        (240, 230, 200, 255),  // Index 5: Fog/Parchment - cream/dark tan
+        (60, 110, 60, 255),    // Index 5: Hills - darker green
+        (80, 80, 90, 255),     // Index 6: Mountains - dark gray
+        (240, 230, 200, 255),  // Index 7: Fog/Parchment - cream
     ];
 
     // Fill each tile with its color
@@ -388,7 +393,7 @@ fn spawn_tilemap_from_map_data(
                     TileBundle {
                         position: tile_pos,
                         tilemap_id: TilemapId(fog_tilemap_entity),
-                        texture_index: TileTextureIndex(5), // Fog/Parchment tile
+                        texture_index: TileTextureIndex(7), // Fog/Parchment tile
                         ..Default::default()
                     },
                     FogTile,
