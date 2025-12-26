@@ -9,7 +9,7 @@ description: Convert requirements into atomic tasks. Run after /init. Run before
 ## Protocol Steps
 
 1.  **Context Loading**
-    * Ensure context from `/init` is active.
+    * Ensure context from `/init` is active. If not, read it from `workflows/init.md`.
 
 2.  **Architectural Critique**
     * Analyze the request against `AGENT.md` (The Law).

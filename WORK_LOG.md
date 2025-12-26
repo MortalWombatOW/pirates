@@ -1,5 +1,17 @@
 # Work Log
 
+## 2025-12-25: Tasks 8.6.1-8.6.3 - FadeController System
+*   **8.6.1**: Created `FadeController` component in `src/components/fade_controller.rs`:
+    *   `target_alpha`, `current_alpha`, `fade_speed` fields
+    *   `fade_in(duration)` and `fade_out(duration)` API methods
+    *   Unit tests for all state transitions
+*   **8.6.2**: Created `FadeControllerPlugin` in `src/plugins/fade_controller.rs`:
+    *   `animate_fades` system lerps alpha using delta time
+    *   Runs in `Update` schedule, gated to HighSeas state
+*   **8.6.3**: Integrated with `CartouchePlugin`:
+    *   Added `FadeController::visible()` to root entity
+    *   `apply_cartouche_fade` updates TextColor, Stroke, Fill alpha on `Changed<FadeController>`
+
 ## 2025-12-25: Task 8.5.19 - Map Title Cartouche
 *   Created `CartouchePlugin` in `src/plugins/cartouche.rs`:
     *   Baroque-style ornate frame using Lyon vector graphics

@@ -10,6 +10,7 @@ use bevy_prototype_lyon::prelude::*;
 
 use crate::plugins::core::GameState;
 use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT, COLOR_GOLD};
+use crate::components::fade_controller::FadeController;
 
 pub struct CartouchePlugin;
 
@@ -17,7 +18,10 @@ impl Plugin for CartouchePlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(OnEnter(GameState::HighSeas), spawn_cartouche)
-            .add_systems(Update, update_cartouche_position.run_if(in_state(GameState::HighSeas)))
+            .add_systems(Update, (
+                update_cartouche_position,
+                apply_cartouche_fade,
+            ).run_if(in_state(GameState::HighSeas)))
             .add_systems(OnExit(GameState::HighSeas), despawn_cartouche);
     }
 }
@@ -53,6 +57,7 @@ fn spawn_cartouche(
         Name::new("Cartouche Root"),
         Cartouche,
         CartoucheRoot,
+        FadeController::visible(),
         Transform::from_translation(initial_pos),
         Visibility::Inherited,
         RenderLayers::layer(UI_LAYER),
@@ -236,3 +241,31 @@ fn despawn_cartouche(mut commands: Commands, query: Query<Entity, With<Cartouche
         commands.entity(entity).despawn_recursive();
     }
 }
+
+/// Applies the root's FadeController alpha to all child cartouche entities.
+/// Updates TextColor, Stroke, and Fill components.
+fn apply_cartouche_fade(
+    root_query: Query<&FadeController, (With<CartoucheRoot>, Changed<FadeController>)>,
+    mut text_query: Query<&mut TextColor, With<Cartouche>>,
+    mut stroke_query: Query<&mut Stroke, With<Cartouche>>,
+    mut fill_query: Query<&mut Fill, With<Cartouche>>,
+) {
+    let Ok(fade) = root_query.get_single() else { return; };
+    let alpha = fade.current_alpha;
+
+    // Update text colors
+    for mut color in &mut text_query {
+        color.0 = color.0.with_alpha(alpha);
+    }
+
+    // Update strokes
+    for mut stroke in &mut stroke_query {
+        stroke.color = stroke.color.with_alpha(alpha);
+    }
+
+    // Update fills
+    for mut fill in &mut fill_query {
+        fill.color = fill.color.with_alpha(alpha);
+    }
+}
+

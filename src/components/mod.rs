@@ -16,6 +16,7 @@ pub mod typewriter;
 pub mod camera;
 pub mod hit_flash;
 pub mod location_label;
+pub mod fade_controller;
 
 pub use ship::*;
 pub use health::*;

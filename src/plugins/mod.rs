@@ -17,4 +17,5 @@ pub mod ui_theme;
 pub mod scale_bar;
 pub mod overlay_ui;
 pub mod cartouche;
+pub mod fade_controller;
 
