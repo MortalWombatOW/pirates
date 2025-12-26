@@ -131,9 +131,9 @@ fn noise_to_tile(value: f64) -> TileType {
         TileType::ShallowWater
     } else if value < 0.12 {
         TileType::Sand
-    } else if value < 0.22 {
+    } else if value < 0.28 { // Was 0.22
         TileType::Land
-    } else if value < 0.35 {
+    } else if value < 0.45 { // Was 0.35
         TileType::Hills
     } else {
         TileType::Mountains

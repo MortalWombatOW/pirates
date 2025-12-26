@@ -1431,34 +1431,44 @@ fn spawn_elevation_markers(
         let world_y = y as f32 * TILE_SIZE - (map_data.height as f32 * TILE_SIZE / 2.0);
 
         if tile_type == TileType::Hills {
-            // Draw 2-3 wavy horizontal hachure lines per hills tile
-            let num_lines = rng.gen_range(2..=3);
+            // SPARSE: Only spawn hachures on 50% of hill tiles
+            if !rng.gen_bool(0.5) {
+                continue;
+            }
+
+            // Draw 1-2 wavy horizontal hachure lines per hills tile (was 2-3)
+            let num_lines = rng.gen_range(1..=2);
             for line_idx in 0..num_lines {
                 let mut path_builder = PathBuilder::new();
                 
-                // Randomized base y within tile
-                let base_y = (line_idx as f32 + 0.5) * (TILE_SIZE / (num_lines as f32 + 0.5));
-                let y_offset: f32 = rng.gen_range(-1.5..1.5);
+                // Randomized base y within tile, but keep away from top/bottom edges
+                let step = TILE_SIZE / (num_lines as f32 + 1.0);
+                let base_y = (line_idx as f32 + 1.0) * step;
+                let y_offset: f32 = rng.gen_range(-1.0..1.0);
                 
                 // Multi-frequency noise for organic look
                 let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
                 let amp1: f32 = rng.gen_range(1.5..2.5);
                 let freq1: f32 = rng.gen_range(0.3..0.5);
-                let amp2: f32 = rng.gen_range(0.3..0.8); // Detail jitter
+                let amp2: f32 = rng.gen_range(0.3..0.8);
                 let freq2: f32 = rng.gen_range(1.0..2.0);
                 
-                // Start point
-                let start_x = 2.0;
+                // Start point: keep within [4, 12] horizontal range to avoid coastline bleed
+                let start_x = 4.0; 
+
+
                 let noise_y = (start_x * freq1 + phase).sin() * amp1 + (start_x * freq2).cos() * amp2;
                 let start_y = base_y + y_offset + noise_y;
                 path_builder.move_to(Vec2::new(world_x + start_x, world_y + start_y));
                 
                 // Draw wavy line across tile
-                for px in (3..14).step_by(1) { // Finer step for smoother wobble
+                for px in (5..=12).step_by(1) { // 4 to 12 range
                     let x_f32 = px as f32;
                     let noise = (x_f32 * freq1 + phase).sin() * amp1 + (x_f32 * freq2).cos() * amp2;
                     let local_y = base_y + y_offset + noise;
-                    path_builder.line_to(Vec2::new(world_x + x_f32, world_y + local_y));
+                    // Clamp y to stay within vertical tile bounds roughly
+                    let clamped_y = local_y.clamp(2.0, 14.0);
+                    path_builder.line_to(Vec2::new(world_x + x_f32, world_y + clamped_y));
                 }
                 
                 let path = path_builder.build();
@@ -1477,22 +1487,23 @@ fn spawn_elevation_markers(
                 markers_spawned += 1;
             }
         } else if tile_type == TileType::Mountains {
-            // Draw 1-2 inverted V peak symbols per mountain tile
-            let num_peaks = rng.gen_range(1..=2);
-            for peak_idx in 0..num_peaks {
+            // SPARSE: Only spawn mountains on 70% of mountain tiles
+            if !rng.gen_bool(0.7) {
+                continue;
+            }
+
+            // Draw 1 peak symbol per mountain tile (was 1-2)
+            let num_peaks = 1; 
+            for _ in 0..num_peaks {
                 let mut path_builder = PathBuilder::new();
                 
-                // Randomized peak position within tile
-                let peak_x_offset: f32 = if num_peaks == 1 {
-                    TILE_SIZE / 2.0 + rng.gen_range(-2.0..2.0)
-                } else {
-                    (peak_idx as f32 + 0.5) * (TILE_SIZE / num_peaks as f32) + rng.gen_range(-1.5..1.5)
-                };
+                // Center peak within tile, clamped offset
+                let peak_x_offset: f32 = TILE_SIZE / 2.0 + rng.gen_range(-1.0..1.0);
                 
-                let peak_height: f32 = rng.gen_range(9.0..13.0);
-                let base_width: f32 = rng.gen_range(6.0..9.0);
+                let peak_height: f32 = rng.gen_range(8.0..11.0); // Slightly shorter
+                let base_width: f32 = rng.gen_range(5.0..7.0);  // Slightly narrower
                 
-                let wave_amp: f32 = rng.gen_range(0.3..0.8);
+                let wave_amp: f32 = rng.gen_range(0.3..0.6);
                 let wave_freq: f32 = rng.gen_range(0.4..0.8);
                 let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
                 
@@ -1503,7 +1514,7 @@ fn spawn_elevation_markers(
                 
                 path_builder.move_to(Vec2::new(left_x, base_y));
                 
-                // Draw left slope (going up)
+                // Draw left slope
                 for i in 1..=4 {
                     let t = i as f32 / 4.0;
                     let px = left_x + (base_width / 2.0) * t + ((i as f32) * wave_freq + phase).sin() * wave_amp;
@@ -1515,8 +1526,7 @@ fn spawn_elevation_markers(
                 let peak_top = Vec2::new(world_x + peak_x_offset, peak_top_y);
                 path_builder.line_to(peak_top);
                 
-                // Draw right slope (going down)
-                // Add shading: draw distinct hatching lines on the right face
+                // Draw right slope
                 let right_slope_points: Vec<Vec2> = (0..=4).rev().map(|i| {
                     let t = i as f32 / 4.0;
                     let px = world_x + peak_x_offset + (base_width / 2.0) * (1.0 - t) + ((i as f32) * wave_freq + phase + 1.0).sin() * wave_amp;
@@ -1530,7 +1540,6 @@ fn spawn_elevation_markers(
                 
                 let path = path_builder.build();
                 
-                // Spawn main outline
                 commands.spawn((
                     CoastlineShape,
                     ElevationMarker,
