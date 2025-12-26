@@ -11,6 +11,9 @@ description: Officially mark work as complete and persist it. Run after /audit. 
 
 1.  **Final Verification**
     * Run `cargo check` one last time to ensure a compiling state.
+    * **Save-Based Verification**: If this task included a feature with a test save:
+        * Run `cargo run -- --load test_<feature>` and verify expected logs appear.
+        * If verification fails, **ABORT** and return to `/forge`.
 
 2.  **Documentation**
     * Update task status in `WORK_PLAN.md` to `[x]`.

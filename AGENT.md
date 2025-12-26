@@ -82,6 +82,13 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Escalation, Not Regression**: If you cannot fix the new implementation, **STOP** and document the issue in `WORK_PLAN.md` as a blocker. Do not silently fall back.
 *   **Old Code Removal**: Once a replacement is working, delete the old implementation. Do not leave it "for reference."
 
+### Save-Based Feature Verification
+*   **Test Saves**: Every major feature/invariant requires a corresponding test save in `assets/saves/test_<feature>.sav`.
+*   **CLI Loading**: Game supports `--load <save_name>` to load a specific save on startup for verification.
+*   **Log-Based Proof**: Each feature must emit `info!` logs that prove correct behavior. Document expected log patterns in `WORK_PLAN.md`.
+*   **Verification Command**: `cargo run -- --load test_<feature> | grep "<expected_pattern>"` must succeed for feature to be complete.
+*   **Reproducibility**: Test saves enable any agent or developer to verify features without manual setup.
+
 ### Git
 *   **Frequency**: Commit after *every* completed task.
 *   **Consistency**: Push every commit immediately.

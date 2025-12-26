@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_hanabi::prelude::*;
@@ -29,6 +30,8 @@ use pirates::plugins::core::GameState;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(TilemapPlugin)
         .add_plugins(EguiPlugin)
         .add_plugins(HanabiPlugin)
