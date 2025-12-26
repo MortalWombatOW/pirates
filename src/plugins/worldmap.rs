@@ -1446,26 +1446,39 @@ fn spawn_elevation_markers(
                 let base_y = (line_idx as f32 + 1.0) * step;
                 let y_offset: f32 = rng.gen_range(-4.0..4.0); // Scaled jitter
                 
+                // Add an arc for "high in middle, down on edges" shape
+                let arc_height: f32 = rng.gen_range(8.0..12.0); // How pronounced the hill hump is
+                
                 // Multi-frequency noise for organic look
                 let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
-                let amp1: f32 = rng.gen_range(3.0..6.0); // Scaled amplitude
-                let freq1: f32 = rng.gen_range(0.1..0.2); // Adjusted frequency for larger scale
+                let amp1: f32 = rng.gen_range(2.0..4.0); // Slightly reduced noise amplitude so arc dominates
+                let freq1: f32 = rng.gen_range(0.1..0.2); 
                 let amp2: f32 = rng.gen_range(1.0..2.0);
                 let freq2: f32 = rng.gen_range(0.3..0.6);
                 
-                // Start point: keep within [16, 48] horizontal range to avoid coastline bleed
-                let start_x = 16.0; 
+                // Start point
+                let start_val = 16.0; 
+                let end_val = 48.0;
+                let total_width = end_val - start_val;
 
-                let noise_y = (start_x * freq1 + phase).sin() * amp1 + (start_x * freq2).cos() * amp2;
-                let start_y = base_y + y_offset + noise_y;
-                path_builder.move_to(Vec2::new(world_x + start_x, world_y + start_y));
+                // Move to start with arc + noise
+                let t_start = 0.0;
+                let arc_start = (t_start * std::f32::consts::PI).sin() * arc_height;
+                let noise_start = (start_val * freq1 + phase).sin() * amp1 + (start_val * freq2).cos() * amp2;
+                let start_y = base_y + y_offset + noise_start + arc_start;
+                path_builder.move_to(Vec2::new(world_x + start_val, world_y + start_y));
                 
-                // Draw wavy line across tile
-                for px in (20..=48).step_by(2) { // 16 to 48 range
+                // Draw wavy line across tile with arc
+                for px in (20..=48).step_by(2) { 
                     let x_f32 = px as f32;
+                    let t = (x_f32 - start_val) / total_width; // 0.0 to 1.0
+                    
+                    let arc = (t * std::f32::consts::PI).sin() * arc_height;
                     let noise = (x_f32 * freq1 + phase).sin() * amp1 + (x_f32 * freq2).cos() * amp2;
-                    let local_y = base_y + y_offset + noise;
-                    // Clamp y to stay within vertical tile bounds roughly [8, 56]
+                    
+                    let local_y = base_y + y_offset + noise + arc;
+                    
+                    // Clamp y roughly
                     let clamped_y = local_y.clamp(8.0, 56.0);
                     path_builder.line_to(Vec2::new(world_x + x_f32, world_y + clamped_y));
                 }
