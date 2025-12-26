@@ -570,3 +570,81 @@ cargo run -- --load test_terrain_hills_mountains 2>&1 | grep "Generated procedur
 | [ ] 9.5.24 | Add water intake logs | None | `combat.rs`: "Damage: hull hit, adding water intake" |
 
 **Verification:** After each task, run the corresponding test command from `docs/testing.md`.
+
+---
+
+## Phase 10: Architecture Refactoring
+
+### Epic 10.1: Feature-Based Organization
+> Migrate from layered organization to feature folders per `docs/refactor.md`.
+
+**Design Notes:**
+- Organize code by game feature, not abstraction layer
+- Colocate components, systems, resources, events per feature
+- See [Organizing Bevy Projects](https://vladbat00.github.io/blog/001-organising-bevy-projects/)
+
+#### Phase 10.1.1: Infrastructure
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.1 | Create `src/core/sets.rs` with GameSet enum | None | SystemSets: Input, Spawn, AI, Physics, Logic, Sync, Visual |
+| [ ] 10.1.2 | Configure SystemSet ordering in CorePlugin | 10.1.1 | `.configure_sets()` chains sets in order |
+| [ ] 10.1.3 | Create `src/shared/` directory | None | Move `utils/geometry.rs`, `spatial_hash.rs`, `procgen.rs` |
+| [ ] 10.1.4 | Update lib.rs to export shared module | 10.1.3 | `pub mod shared;` compiles |
+
+#### Phase 10.1.2: Extract Small Features
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.5 | Extract `features/companions/` | 10.1.4 | Companion plugin, components, systems in one folder |
+| [ ] 10.1.6 | Extract `features/intel/` | 10.1.4 | Intel plugin, components, systems in one folder |
+| [ ] 10.1.7 | Extract `features/economy/` | 10.1.4 | Cargo, Gold, Contract, price/decay systems |
+| [ ] 10.1.8 | Migrate systems to use GameSet | 10.1.2, 10.1.5-7 | Replace `.after()/.before()` with `.in_set()` |
+
+#### Phase 10.1.3: Extract Large Features
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.9 | Extract `features/combat/` | 10.1.8 | Combat plugin, firing, collision, loot, AI in one folder |
+| [ ] 10.1.10 | Extract `features/ship/` | 10.1.8 | Ship, Health, movement, damage, repair in one folder |
+| [ ] 10.1.11 | Extract `features/ai/` | 10.1.8 | AI, Faction, Orders, behavior systems in one folder |
+
+#### Phase 10.1.4: Extract Core Features
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.12 | Split `worldmap.rs` (1,565 lines) | 10.1.11 | Break into tilemap.rs, coastlines.rs, fog.rs, encounters.rs |
+| [ ] 10.1.13 | Extract `features/worldmap/` | 10.1.12 | WorldMap plugin and submodules in one folder |
+| [ ] 10.1.14 | Extract `features/port/` | 10.1.11 | Port plugin, UI, trading in one folder |
+| [ ] 10.1.15 | Extract `features/navigation/` | 10.1.11 | Navigation, pathfinding, landmass movement in one folder |
+
+#### Phase 10.1.5: Consolidate
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.16 | Extract `features/progression/` | 10.1.15 | MetaProfile, archetypes, wrecks, save/load in one folder |
+| [ ] 10.1.17 | Consolidate `ui/` plugins | 10.1.15 | UiPlugin aggregates compass, scale_bar, cartouche, etc. |
+| [ ] 10.1.18 | Consolidate `graphics/` plugins | 10.1.15 | GraphicsPlugin aggregates shaders, effects, stippling |
+| [ ] 10.1.19 | Move core plugins to `src/core/` | 10.1.15 | CorePlugin, InputPlugin, camera, time in core/ |
+| [ ] 10.1.20 | Delete empty old directories | 10.1.19 | Remove old plugins/, systems/, components/, resources/ |
+| [ ] 10.1.21 | Update lib.rs and main.rs | 10.1.20 | Clean exports, all features accessible |
+
+#### Phase 10.1.6: Validation
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 10.1.22 | Verify no file > 500 lines | 10.1.21 | All files under 500 lines |
+| [ ] 10.1.23 | Run `cargo check` with zero warnings | 10.1.21 | No compiler warnings |
+| [ ] 10.1.24 | Test all game states | 10.1.21 | MainMenu, HighSeas, Combat, Port, GameOver work |
+| [ ] 10.1.25 | Update AGENT.md with new structure | 10.1.24 | Document new organization pattern |
+
+**Verification:**
+```bash
+# After each task
+cargo check 2>&1 | grep -E "^error|^warning"
+# Should output nothing
+
+# After completion
+find src/features -name "*.rs" -exec wc -l {} + | sort -n | tail -10
+# No file > 500 lines
+```

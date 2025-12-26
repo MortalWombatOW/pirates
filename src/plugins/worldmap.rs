@@ -71,6 +71,7 @@ impl Plugin for WorldMapPlugin {
             .add_systems(OnEnter(GameState::HighSeas), (
                 spawn_tilemap_from_map_data,
                 spawn_coastline_shapes,
+                spawn_elevation_markers.after(spawn_coastline_shapes),
                 spawn_high_seas_player,
                 spawn_high_seas_ai_ships,
                 spawn_player_fleet,
@@ -254,69 +255,6 @@ fn create_tileset_texture(
                 data[pixel_idx + 1] = g_var;
                 data[pixel_idx + 2] = b_var;
                 data[pixel_idx + 3] = a;
-            }
-        }
-    }
-
-    // Draw decorative hachures for Hills (tile index 5)
-    let hills_start_x = 5 * TILE_SIZE;
-    let ink_color: (u8, u8, u8) = (40, 35, 30); // Dark brown ink
-    
-    // Draw 3 wavy horizontal lines (hachure style)
-    for line_idx in 0..3 {
-        let base_y = 18 + line_idx * 14; // Spaced at y=18, 32, 46
-        for x in 8..56 {
-            // Sine wave offset for squiggly effect
-            let wave = ((x as f32 * 0.4).sin() * 3.0) as i32;
-            let y = (base_y as i32 + wave).clamp(0, 63) as u32;
-            
-            // Draw 2-pixel thick line
-            for dy in 0..2u32 {
-                let py = (y + dy).min(TILE_SIZE - 1);
-                let px = hills_start_x + x;
-                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
-                data[pixel_idx] = ink_color.0;
-                data[pixel_idx + 1] = ink_color.1;
-                data[pixel_idx + 2] = ink_color.2;
-            }
-        }
-    }
-
-    // Draw decorative peaks for Mountains (tile index 6)
-    let mountains_start_x = 6 * TILE_SIZE;
-    
-    // Draw 3 mountain peak symbols (inverted V)
-    for peak_idx in 0..3 {
-        let peak_x = 12 + peak_idx * 18; // Peaks at x=12, 30, 48
-        let peak_y = 16 + (peak_idx % 2) * 8; // Stagger heights
-        let peak_height = 28;
-        
-        // Draw left and right slopes of the peak
-        for i in 0..peak_height {
-            // Left slope
-            let lx = peak_x as i32 - (i as i32 / 2);
-            let ly = peak_y as i32 + i as i32;
-            if lx >= 0 && ly < 64 {
-                // Add wave to edges
-                let wave = ((ly as f32 * 0.5).sin() * 1.5) as i32;
-                let px = mountains_start_x + (lx + wave).clamp(0, 63) as u32;
-                let py = ly as u32;
-                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
-                data[pixel_idx] = ink_color.0;
-                data[pixel_idx + 1] = ink_color.1;
-                data[pixel_idx + 2] = ink_color.2;
-            }
-            
-            // Right slope
-            let rx = peak_x as i32 + (i as i32 / 2);
-            if rx < 64 && ly < 64 {
-                let wave = ((ly as f32 * 0.5).sin() * 1.5) as i32;
-                let px = mountains_start_x + (rx + wave).clamp(0, 63) as u32;
-                let py = ly as u32;
-                let pixel_idx = ((py * TEXTURE_WIDTH + px) * 4) as usize;
-                data[pixel_idx] = ink_color.0;
-                data[pixel_idx + 1] = ink_color.1;
-                data[pixel_idx + 2] = ink_color.2;
             }
         }
     }
@@ -1455,6 +1393,148 @@ fn spawn_coastline_shapes(
     }
 
     info!("Spawned {} coastline shape entities (including waterlines)", shapes_spawned);
+}
+
+/// Marker for elevation decoration entities (hills hachures, mountain peaks).
+/// Separate from CoastlineShape but toggles with coastlines.
+#[derive(Component)]
+pub struct ElevationMarker;
+
+/// Spawns decorative Lyon shapes for hills (hachures) and mountains (peaks).
+/// Part of the coastline visibility group.
+fn spawn_elevation_markers(
+    mut commands: Commands,
+    map_data: Res<MapData>,
+    existing_markers: Query<Entity, With<ElevationMarker>>,
+) {
+    use rand::prelude::*;
+    use crate::resources::TileType;
+    
+    // Don't spawn if already exists
+    if !existing_markers.is_empty() {
+        return;
+    }
+
+    const TILE_SIZE: f32 = 16.0;
+    let ink_color = Color::srgba(0.15, 0.12, 0.08, 0.7); // Darker ink with transparency
+    
+    let mut rng = rand::thread_rng();
+    let mut markers_spawned = 0;
+
+    for (x, y, tile) in map_data.iter() {
+        let tile_type = tile.tile_type;
+        if tile_type != TileType::Hills && tile_type != TileType::Mountains {
+            continue;
+        }
+
+        let world_x = x as f32 * TILE_SIZE - (map_data.width as f32 * TILE_SIZE / 2.0);
+        let world_y = y as f32 * TILE_SIZE - (map_data.height as f32 * TILE_SIZE / 2.0);
+
+        if tile_type == TileType::Hills {
+            // Draw 2-3 wavy horizontal hachure lines per hills tile
+            let num_lines = rng.gen_range(2..=3);
+            for line_idx in 0..num_lines {
+                let mut path_builder = PathBuilder::new();
+                
+                // Randomized base y within tile
+                let base_y = (line_idx as f32 + 0.5) * (TILE_SIZE / (num_lines as f32 + 0.5));
+                let y_offset: f32 = rng.gen_range(-1.5..1.5);
+                
+                // Random phase for sine wave
+                let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
+                let amplitude: f32 = rng.gen_range(1.5..3.0);
+                let frequency: f32 = rng.gen_range(0.3..0.6);
+                
+                // Start point
+                let start_x = 2.0;
+                let start_y = base_y + y_offset + (start_x * frequency + phase).sin() * amplitude;
+                path_builder.move_to(Vec2::new(world_x + start_x, world_y + start_y));
+                
+                // Draw wavy line across tile
+                for px in (3..14).step_by(2) {
+                    let local_y = base_y + y_offset + ((px as f32) * frequency + phase).sin() * amplitude;
+                    path_builder.line_to(Vec2::new(world_x + px as f32, world_y + local_y));
+                }
+                
+                let path = path_builder.build();
+                
+                commands.spawn((
+                    CoastlineShape, // Toggle with coastlines
+                    ElevationMarker,
+                    ShapeBundle {
+                        path,
+                        transform: Transform::from_xyz(0.0, 0.0, -7.9), // Above coastlines
+                        ..default()
+                    },
+                    Stroke::new(ink_color, 1.2),
+                    HighSeasEntity,
+                ));
+                markers_spawned += 1;
+            }
+        } else if tile_type == TileType::Mountains {
+            // Draw 1-2 inverted V peak symbols per mountain tile
+            let num_peaks = rng.gen_range(1..=2);
+            for peak_idx in 0..num_peaks {
+                let mut path_builder = PathBuilder::new();
+                
+                // Randomized peak position within tile
+                let peak_x_offset: f32 = if num_peaks == 1 {
+                    TILE_SIZE / 2.0 + rng.gen_range(-2.0..2.0)
+                } else {
+                    (peak_idx as f32 + 0.5) * (TILE_SIZE / num_peaks as f32) + rng.gen_range(-1.5..1.5)
+                };
+                
+                let peak_height: f32 = rng.gen_range(8.0..12.0);
+                let base_width: f32 = rng.gen_range(5.0..8.0);
+                
+                // Add waviness to the peak edges
+                let wave_amp: f32 = rng.gen_range(0.3..0.8);
+                let wave_freq: f32 = rng.gen_range(0.4..0.8);
+                let phase: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
+                
+                // Left base
+                let left_x = world_x + peak_x_offset - base_width / 2.0;
+                let base_y = world_y + TILE_SIZE / 2.0 - peak_height / 2.0;
+                path_builder.move_to(Vec2::new(left_x, base_y));
+                
+                // Draw left slope with waviness (going up)
+                for i in 1..=5 {
+                    let t = i as f32 / 5.0;
+                    let px = left_x + (base_width / 2.0) * t + ((i as f32) * wave_freq + phase).sin() * wave_amp;
+                    let py = base_y + peak_height * t;
+                    path_builder.line_to(Vec2::new(px, py));
+                }
+                
+                // Peak point
+                path_builder.line_to(Vec2::new(world_x + peak_x_offset, base_y + peak_height));
+                
+                // Draw right slope with waviness (going down)
+                for i in (1..=5).rev() {
+                    let t = i as f32 / 5.0;
+                    let px = world_x + peak_x_offset + (base_width / 2.0) * (1.0 - t) + ((i as f32) * wave_freq + phase + 1.0).sin() * wave_amp;
+                    let py = base_y + peak_height * t;
+                    path_builder.line_to(Vec2::new(px, py));
+                }
+                
+                let path = path_builder.build();
+                
+                commands.spawn((
+                    CoastlineShape, // Toggle with coastlines  
+                    ElevationMarker,
+                    ShapeBundle {
+                        path,
+                        transform: Transform::from_xyz(0.0, 0.0, -7.8), // Above hills
+                        ..default()
+                    },
+                    Stroke::new(ink_color, 1.5),
+                    HighSeasEntity,
+                ));
+                markers_spawned += 1;
+            }
+        }
+    }
+
+    info!("Spawned {} elevation markers (hills/mountains)", markers_spawned);
 }
 
 /// Updates coastline visibility based on debug toggle.
