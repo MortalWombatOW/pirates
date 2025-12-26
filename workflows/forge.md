@@ -28,6 +28,16 @@ description: Implement a single atomic task with high quality. Run after /archit
     * Verify the implementation meets the criteria in `WORK_PLAN.md`.
     * **Requirement**: Zero warnings before proceeding to `/audit`.
 
+4.  **Test Save Creation** (if task has verification requirement)
+    * Add `info!()` logs that prove the feature works correctly.
+    * Create the test save:
+        1. Run: `cargo run -- --save-as test_<feature>`
+        2. In-game: Set up conditions that demonstrate the feature
+        3. Press F5 to save
+        4. Exit game
+    * Verify: `cargo run -- --load test_<feature> 2>&1 | grep "<expected_log>"`
+    * If verification fails, fix the implementation and repeat.
+
 ## Interrupt Protocol: Bug/Error Discovery
 
 **Trigger**: User identifies a bug or error during implementation.
@@ -46,5 +56,5 @@ description: Implement a single atomic task with high quality. Run after /archit
     *   Mark the subtask as `[x]`.
     *   Resume the original task.
 
-4.  **Handoff**
+5.  **Handoff**
     * Remind the user to run `/audit` to review the code.

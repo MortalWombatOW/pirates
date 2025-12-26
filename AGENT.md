@@ -83,13 +83,41 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Old Code Removal**: Once a replacement is working, delete the old implementation. Do not leave it "for reference."
 
 ### Save-Based Feature Verification
-*   **Test Saves**: Every major feature/invariant requires a corresponding test save named `test_<feature>` (stored by bevy_save in platform app data directory).
-*   **Creating Test Saves**: Load game, set up conditions, press F5 after modifying `save_game_system` to use `test_<feature>` name, or use debug presets (F6-F8).
-*   **CLI Loading**: Game supports `--load <save_name>` to load a specific save on startup, bypassing main menu.
+*   **Test Saves**: Every major feature/invariant requires a corresponding test save named `test_<feature>`.
 *   **Log-Based Proof**: Each feature must emit `info!` logs that prove correct behavior. Document expected log patterns in `WORK_PLAN.md`.
-*   **Verification Command**: `cargo run -- --load test_<feature> 2>&1 | grep "<expected_pattern>"` must succeed for feature to be complete.
-*   **Reproducibility**: Test saves enable any agent or developer to verify features without manual setup.
 *   **Save Locations**: Saves are stored in platform-specific app data: `~/Library/Application Support/pirates/` (macOS), `~/.local/share/pirates/` (Linux), `%APPDATA%/pirates/` (Windows).
+
+#### How to Create a Test Save
+```bash
+# Step 1: Launch game with --save-as to override the F5 save name
+cargo run -- --save-as test_myfeature
+
+# Step 2: In-game, set up the conditions needed to demonstrate the feature
+#         (e.g., sail to a specific location, acquire items, trigger state)
+
+# Step 3: Press F5 to save. Console will show:
+#         "Game saved successfully to 'test_myfeature'"
+
+# Step 4: Exit the game (Cmd+Q / Alt+F4)
+```
+
+#### How to Verify a Feature
+```bash
+# Load the test save and check for expected log output
+cargo run -- --load test_myfeature 2>&1 | grep "Expected log pattern"
+
+# Example: Verify pathfinding finds a route
+cargo run -- --load test_pathfinding 2>&1 | grep "route found"
+
+# Example: Verify combat damage calculation
+cargo run -- --load test_combat 2>&1 | grep "Damage applied"
+```
+
+#### Verification Workflow
+1. Create test save with conditions that exercise the feature
+2. Add `info!()` logs to the feature code that prove correct behavior
+3. Run verification command and confirm expected logs appear
+4. Document the verification command in `WORK_PLAN.md` for the task
 
 ### Git
 *   **Frequency**: Commit after *every* completed task.

@@ -20,14 +20,18 @@ description: Convert requirements into atomic tasks. Run after /init. Run before
     * **Constraint**: Each task must be approx. 1 file change or 1 system.
 
 4.  **Verification Planning (Save-Based Testing)**
-    * For each major feature or invariant, plan a corresponding test save:
-        * **Save Name**: `test_<feature_name>` - stored by bevy_save in app data directory.
-        * **Verification Command**: `cargo run -- --load test_<feature_name>` (bypasses main menu).
-        * **Expected Logs**: Document what log output proves the feature works (e.g., `info!("Pathfinding: route found with {} waypoints", n)`).
-    * Add a verification subtask to each feature task in `WORK_PLAN.md`:
-        * `- [ ] Create test save: test_<feature>`
-        * `- [ ] Verify: cargo run -- --load test_<feature> 2>&1 | grep "<expected log>"`
+    * For each major feature or invariant, plan how to test it:
+        * **Test Save Name**: `test_<feature_name>`
+        * **Setup Conditions**: What game state demonstrates the feature? (e.g., "Ship near coastline with destination set")
+        * **Expected Logs**: What `info!()` output proves it works? (e.g., `"Pathfinding: route found with {} waypoints"`)
+    * Add verification subtasks to `WORK_PLAN.md`:
+        ```
+        - [ ] Add info!() logs to prove feature behavior
+        - [ ] Create test save: `cargo run -- --save-as test_<feature>`, set up conditions, F5
+        - [ ] Verify: `cargo run -- --load test_<feature> 2>&1 | grep "<pattern>"`
+        ```
     * **Constraint**: A feature is not complete until its test save exists and verification passes.
+    * See `AGENT.md` (Save-Based Feature Verification) for detailed instructions.
 
 5.  **Plan Update**
     * Update `WORK_PLAN.md` with the new tasks.

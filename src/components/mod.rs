@@ -18,6 +18,7 @@ pub mod hit_flash;
 pub mod location_label;
 pub mod fade_controller;
 pub mod region;
+pub mod scene;
 
 pub use ship::*;
 pub use health::*;
@@ -33,3 +34,4 @@ pub use order::*;
 pub use intel::*;
 pub use ink_reveal::*;
 pub use typewriter::*;
+pub use scene::*;

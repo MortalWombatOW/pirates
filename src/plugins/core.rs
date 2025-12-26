@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::plugins::input::{get_default_input_map, PlayerAction};
 use crate::plugins::graphics::AestheticSettings;
-use crate::components::{Player, Ship};
+use crate::components::{Player, Ship, HighSeasEntity, CombatEntity, PortEntity};
 use crate::resources::{Wind, WorldClock, FactionRegistry, ArchetypeRegistry, ArchetypeId, MetaProfile, PlayerDeathData};
 use crate::systems::{wind_system, world_tick_system, price_calculation_system, goods_decay_system, contract_expiry_system, intel_expiry_system, faction_ai_system, trade_route_generation_system, faction_ship_spawning_system, faction_threat_response_system, ThreatResponseCooldown, GlobalDemand};
 use crate::events::ContractExpiredEvent;
@@ -59,7 +59,26 @@ impl Plugin for CorePlugin {
                 trade_route_generation_system.after(faction_ai_system),
                 faction_ship_spawning_system.after(trade_route_generation_system),
             ))
+            // Scene cleanup: despawn all entities tagged with scene markers on state exit
+            .add_systems(OnExit(GameState::HighSeas), despawn_scene_entities::<HighSeasEntity>)
+            .add_systems(OnExit(GameState::Combat), despawn_scene_entities::<CombatEntity>)
+            .add_systems(OnExit(GameState::Port), despawn_scene_entities::<PortEntity>)
             .add_systems(OnEnter(GameState::GameOver), save_profile_on_death);
+    }
+}
+
+/// Generic system that despawns all entities with the specified marker component.
+/// Uses despawn_recursive to handle entity hierarchies (children are despawned with parents).
+fn despawn_scene_entities<T: Component>(
+    mut commands: Commands,
+    query: Query<Entity, With<T>>,
+) {
+    let count = query.iter().count();
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+    if count > 0 {
+        info!("Despawned {} entities with scene marker {:?}", count, std::any::type_name::<T>());
     }
 }
 
