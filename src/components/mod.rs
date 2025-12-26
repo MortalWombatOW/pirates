@@ -17,6 +17,7 @@ pub mod camera;
 pub mod hit_flash;
 pub mod location_label;
 pub mod fade_controller;
+pub mod region;
 
 pub use ship::*;
 pub use health::*;

@@ -1,5 +1,13 @@
 # Work Log
 
+## 2025-12-25: Tasks 8.6.4-8.6.7 - Region-Based Fade Triggers
+*   **8.6.4-8.6.5**: Created `RegionResponsive` component and `CurrentRegion` resource in `region.rs`:
+    *   Builder methods: `show_on_enter()`, `hide_on_enter()`, `with_duration()`
+    *   Region defined by tile type: "port_area", "open_sea"
+*   **8.6.6-8.6.7**: Implemented detection and trigger systems in `fade_controller.rs`:
+    *   `update_current_region`: Player position → tile → region name
+    *   `trigger_region_fades`: On `Changed<CurrentRegion>`, updates `FadeController.target_alpha`
+
 ## 2025-12-25: Tasks 8.6.1-8.6.3 - FadeController System
 *   **8.6.1**: Created `FadeController` component in `src/components/fade_controller.rs`:
     *   `target_alpha`, `current_alpha`, `fade_speed` fields

@@ -466,10 +466,10 @@
 | [x] 8.6.1 | Create `FadeController` component | None | Component with target_alpha, current_alpha, fade_speed. |
 | [x] 8.6.2 | Create `animate_fades` system | 8.6.1 | Lerps current_alpha toward target, uses delta time. |
 | [x] 8.6.3 | Apply fade to cartouche entities | 8.6.2, 8.5.19 | Sprites and Text2d adjust color alpha from FadeController. |
-| [ ] 8.6.4 | Create `RegionResponsive` component | 8.6.1 | Links entities to named regions with show/hide behavior. |
-| [ ] 8.6.5 | Create `CurrentRegion` resource | None | Tracks player's current region name (Option<String>). |
-| [ ] 8.6.6 | Implement `update_current_region` system | 8.6.5 | Player position → region lookup (tile type based). |
-| [ ] 8.6.7 | Implement `trigger_region_fades` system | 8.6.4, 8.6.6 | On Changed<CurrentRegion>, sets FadeController.target_alpha. |
+| [x] 8.6.4 | Create `RegionResponsive` component | 8.6.1 | Links entities to named regions with show/hide behavior. |
+| [x] 8.6.5 | Create `CurrentRegion` resource | None | Tracks player's current region name (Option<String>). |
+| [x] 8.6.6 | Implement `update_current_region` system | 8.6.5 | Player position → region lookup (tile type based). |
+| [x] 8.6.7 | Implement `trigger_region_fades` system | 8.6.4, 8.6.6 | On Changed<CurrentRegion>, sets FadeController.target_alpha. |
 
 ---
 
