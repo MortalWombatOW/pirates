@@ -8,7 +8,7 @@
 use bevy::prelude::*;
 use avian2d::prelude::*;
 
-use crate::components::{Ship, Player, Health, AI, Projectile, TargetComponent};
+use crate::components::{Ship, Player, Health, AI, Projectile, TargetComponent, CombatEntity};
 
 /// AI behavior state.
 #[derive(Component, Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -300,6 +300,7 @@ pub fn ai_firing_system(
                         source: entity,
                     },
                     crate::systems::combat::ProjectileTimer::default(),
+                    CombatEntity,
                 ));
             }
 

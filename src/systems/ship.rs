@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use avian2d::prelude::*;
 
-use crate::components::{Ship, Player, Health, Cargo, Gold, AI, Faction, FactionId};
+use crate::components::{Ship, Player, Health, Cargo, Gold, AI, Faction, FactionId, CombatEntity};
 
 /// Spawns the player's ship with all required components.
 /// This function is designed to be called from an `OnEnter(GameState::Combat)` system.
@@ -33,6 +33,7 @@ pub fn spawn_player_ship(
             ..default()
         },
         Transform::from_xyz(0.0, 0.0, 1.0),
+        CombatEntity,
     ))
     .insert((
         // Physics rigid body
@@ -91,6 +92,7 @@ pub fn spawn_enemy_ship(
             ..default()
         },
         Transform::from_xyz(position.x, position.y, 1.0),
+        CombatEntity,
     ))
     .insert((
         // Physics rigid body

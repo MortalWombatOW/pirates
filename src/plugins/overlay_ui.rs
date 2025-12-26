@@ -8,6 +8,7 @@ use bevy::render::view::RenderLayers;
 use bevy::render::camera::ClearColorConfig;
 
 use crate::plugins::core::GameState;
+use crate::components::HighSeasEntity;
 
 pub struct OverlayUiPlugin;
 
@@ -60,6 +61,7 @@ fn spawn_overlay_camera(mut commands: Commands) {
         },
         RenderLayers::layer(UI_LAYER),
         OverlayCamera,
+        HighSeasEntity,
     ));
     info!("Spawned Overlay UI Camera");
 }

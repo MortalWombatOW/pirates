@@ -13,6 +13,7 @@ use bevy_prototype_lyon::prelude::*;
 
 use crate::plugins::core::{GameState, MainCamera};
 use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT};
+use crate::components::HighSeasEntity;
 
 pub struct ScaleBarPlugin;
 
@@ -99,6 +100,7 @@ fn spawn_scale_bar(
         Transform::from_translation(initial_pos),
         Visibility::Inherited,
         RenderLayers::layer(UI_LAYER),
+        HighSeasEntity,
     )).id();
 
     // --- Draw Scale Bar Components ---

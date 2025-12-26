@@ -67,6 +67,7 @@ pub fn cannon_firing_system(
                         source: _player_ent,
                     },
                     ProjectileTimer::default(),
+                    CombatEntity,
                 ));
             }
 
@@ -331,6 +332,7 @@ fn spawn_loot(commands: &mut Commands, asset_server: &Res<AssetServer>, position
         LinearDamping(1.5), // Loot slows down over time
         Loot::gold(loot_value),
         LootTimer::default(),
+        CombatEntity,
     ));
     
     info!("Loot spawned at ({:.1}, {:.1})", position.x, position.y);
@@ -427,6 +429,7 @@ pub fn spawn_test_current_zone(mut commands: Commands) {
             custom_size: Some(half_extents * 2.0), // Full size, not half-extents
             ..default()
         },
+        CombatEntity,
     ));
 }
 

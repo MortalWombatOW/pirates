@@ -10,6 +10,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::plugins::core::GameState;
 use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT, COLOR_GOLD, COLOR_GOLD_DARK, COLOR_GREEN, COLOR_RED};
+use crate::components::HighSeasEntity;
 
 pub struct CompassRosePlugin;
 
@@ -66,6 +67,7 @@ fn spawn_compass_rose(
         Transform::from_translation(initial_pos).with_scale(Vec3::splat(0.7)),
         Visibility::Inherited,
         RenderLayers::layer(UI_LAYER),
+        HighSeasEntity,
     )).id();
 
     // --- Draw Compass Components ---

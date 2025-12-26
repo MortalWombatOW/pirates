@@ -11,6 +11,7 @@ use bevy_prototype_lyon::prelude::*;
 use crate::plugins::core::GameState;
 use crate::plugins::overlay_ui::{UI_LAYER, COLOR_INK, COLOR_PARCHMENT, COLOR_GOLD};
 use crate::components::fade_controller::FadeController;
+use crate::components::HighSeasEntity;
 
 pub struct CartouchePlugin;
 
@@ -61,6 +62,7 @@ fn spawn_cartouche(
         Transform::from_translation(initial_pos),
         Visibility::Inherited,
         RenderLayers::layer(UI_LAYER),
+        HighSeasEntity,
     )).id();
 
     // --- Draw Cartouche Frame ---

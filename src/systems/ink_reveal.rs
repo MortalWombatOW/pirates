@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 
 use crate::components::ink_reveal::InkReveal;
+use crate::components::HighSeasEntity;
 use crate::plugins::worldmap::FogMap;
 use crate::resources::FogOfWar;
 
@@ -29,6 +30,7 @@ pub fn spawn_ink_reveals(
         commands.spawn((
             Name::new(format!("InkReveal_{},{}", tile_pos.x, tile_pos.y)),
             InkReveal::new(tile_pos, current_time),
+            HighSeasEntity,
         ));
     }
 }

@@ -488,10 +488,10 @@
 | ID | Task | Dependencies | Acceptance Criteria |
 |---|---|---|---|
 | [x] 9.2.1 | Create `SceneTag` marker components | 1.2.1 | `HighSeasEntity`, `CombatEntity`, `PortEntity` marker components. |
-| [ ] 9.2.2 | Tag entities at spawn time | 9.2.1 | All spawned entities get appropriate `SceneTag`. |
+| [x] 9.2.2 | Tag entities at spawn time | 9.2.1 | All spawned entities get appropriate `SceneTag`. |
 | [x] 9.2.3 | Create `despawn_scene_entities` generic system | 9.2.1 | System despawns all entities with given `SceneTag`. |
 | [x] 9.2.4 | Register despawn systems on `OnExit` for each state | 9.2.3 | Exiting HighSeas/Combat/Port despawns tagged entities. |
-| [ ] 9.2.5 | Audit existing plugins for entity tagging | 9.2.2 | All worldmap, combat, port entities tagged. |
+| [x] 9.2.5 | Audit existing plugins for entity tagging | 9.2.2 | All worldmap, combat, port entities tagged. |
 | [ ] 9.2.6 | Remove redundant per-plugin despawn systems | 9.2.4 | Consolidate to centralized cleanup. |
 
 ### Epic 9.3: Loading Screens

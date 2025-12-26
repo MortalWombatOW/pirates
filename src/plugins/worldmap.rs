@@ -6,7 +6,7 @@ use crate::plugins::core::GameState;
 use crate::plugins::port::{spawn_port, generate_port_name};
 use crate::plugins::debug_ui::DebugToggles;
 use crate::resources::{MapData, FogOfWar, RouteCache};
-use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue};
+use crate::components::{Player, Ship, Health, Vision, AI, Faction, FactionId, Order, OrderQueue, HighSeasEntity};
 use crate::components::ship::ShipType;
 use crate::systems::{
     fog_of_war_update_system, FogTile,
@@ -350,6 +350,7 @@ fn spawn_tilemap_from_map_data(
                     ..Default::default()
                 },
                 WorldMapTile,
+                HighSeasEntity,
             ))
             .id();
         tile_storage.set(&tile_pos, tile_entity);
@@ -377,6 +378,7 @@ fn spawn_tilemap_from_map_data(
             ..Default::default()
         },
         WorldMap,
+        HighSeasEntity,
     ));
 
     info!("World map tilemap spawned: {}x{} tiles", map_size.x, map_size.y);
@@ -398,6 +400,7 @@ fn spawn_tilemap_from_map_data(
                         ..Default::default()
                     },
                     FogTile,
+                    HighSeasEntity,
                 ))
                 .id();
             fog_storage.set(&tile_pos, tile_entity);
@@ -421,6 +424,7 @@ fn spawn_tilemap_from_map_data(
             ..Default::default()
         },
         FogMap,
+        HighSeasEntity,
     ));
 
     info!("Fog tilemap spawned: {}x{} tiles", map_size.x, map_size.y);
@@ -505,6 +509,7 @@ fn spawn_high_seas_player(
             ..default()
         },
         Transform::from_xyz(center_x, center_y, 2.0), // Above fog
+        HighSeasEntity,
     ));
 
     // Add landmass agent components if archipelago is available
@@ -572,6 +577,7 @@ fn spawn_legacy_wrecks(
                 ..default()
             },
             Transform::from_xyz(world_pos.x, world_pos.y, 1.5), // Between fog and ships
+            HighSeasEntity,
         ));
     }
 
@@ -790,6 +796,7 @@ fn spawn_high_seas_ai_ships(
                 radius: 1500.0, // Approx 23 tiles
                 waypoint_index: 0,
             }),
+            HighSeasEntity,
         ));
 
         // Add landmass agent components if archipelago is available
@@ -977,7 +984,7 @@ fn spawn_port_entities(
             let entity = spawn_port(&mut commands, world_pos, name.clone(), Faction(faction));
             
             // Add the HighSeasPort marker for cleanup
-            commands.entity(entity).insert(HighSeasPort);
+            commands.entity(entity).insert((HighSeasPort, HighSeasEntity));
             
             port_count += 1;
         }
@@ -1052,6 +1059,7 @@ fn spawn_location_labels(
                 .with_rotation(Quat::from_rotation_z(angle - std::f32::consts::FRAC_PI_2)),
             LocationLabelMarker,
             label,
+            HighSeasEntity,
         ));
 
         label_count += 1;
@@ -1159,6 +1167,7 @@ pub fn spawn_player_fleet(
                 target: player_entity,
                 follow_distance: 60.0 + (i as f32 * 20.0),
             }),
+            HighSeasEntity,
         )).id();
 
         // Track entity ID for UI access
@@ -1388,6 +1397,7 @@ fn spawn_coastline_shapes(
                 ..default()
             },
             Stroke::new(COASTLINE_INK_COLOR, COASTLINE_STROKE_WIDTH),
+            HighSeasEntity,
         ));
         shapes_spawned += 1;
 
@@ -1429,6 +1439,7 @@ fn spawn_coastline_shapes(
                     ..default()
                 },
                 Stroke::new(color, width),
+                HighSeasEntity,
             ));
             shapes_spawned += 1;
             
@@ -1555,6 +1566,7 @@ fn spawn_stipple_overlay(
         // Align with map - offset by half tile down and left
         Transform::from_xyz(-32.0, -32.0, -9.0), // Above map (-10), below ships
         Name::new("StippleOverlay"),
+        HighSeasEntity,
     ));
     
     info!("Spawned Stipple Overlay");
