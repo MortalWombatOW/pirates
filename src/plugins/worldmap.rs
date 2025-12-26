@@ -1423,14 +1423,66 @@ fn spawn_elevation_markers(
 
     for (x, y, tile) in map_data.iter() {
         let tile_type = tile.tile_type;
-        if tile_type != TileType::Hills && tile_type != TileType::Mountains {
+        if tile_type != TileType::Hills && tile_type != TileType::Mountains && tile_type != TileType::Land {
             continue;
         }
 
         let world_x = x as f32 * TILE_SIZE - (map_data.width as f32 * TILE_SIZE / 2.0);
         let world_y = y as f32 * TILE_SIZE - (map_data.height as f32 * TILE_SIZE / 2.0);
 
-        if tile_type == TileType::Hills {
+        if tile_type == TileType::Land {
+            // Very SPARSE: Only spawn grass on 10% of land tiles
+            if !rng.gen_bool(0.1) {
+                continue;
+            }
+
+            // Draw 1 grass tuft
+            let mut path_builder = PathBuilder::new();
+            
+            // Random position jitter (anywhere within ~2 tiles range)
+            let jitter_x = rng.gen_range(-64.0..64.0);
+            let jitter_y = rng.gen_range(-64.0..64.0);
+            
+            // Base at nudged center
+            let center_x = world_x - 32.0 + jitter_x;
+            let center_y = world_y - 32.0 + jitter_y;
+            
+            // Draw 2-3 blades of grass
+            let num_blades = rng.gen_range(2..=3);
+            for i in 0..num_blades {
+                let angle_offset = rng.gen_range(-0.3..0.3); // Slight spread
+                let height = rng.gen_range(6.0..10.0);
+                let x_offset = (i as f32 - (num_blades as f32 - 1.0) / 2.0) * 3.0; // Spread horizontally
+                
+                path_builder.move_to(Vec2::new(center_x + x_offset, center_y));
+                // Curve slightly outwards
+                let tip_x = center_x + x_offset + angle_offset * 10.0;
+                let tip_y = center_y + height;
+                
+                // Quadratic bezier for curve? Or simple line.
+                // Simple line with slight curve via 2 segments
+                let mid_x = (center_x + x_offset + tip_x) / 2.0 + rng.gen_range(-1.0..1.0);
+                let mid_y = (center_y + tip_y) / 2.0;
+                
+                path_builder.line_to(Vec2::new(mid_x, mid_y));
+                path_builder.line_to(Vec2::new(tip_x, tip_y));
+            }
+            
+            let path = path_builder.build();
+            
+            commands.spawn((
+                CoastlineShape,
+                ElevationMarker,
+                ShapeBundle {
+                    path,
+                    transform: Transform::from_xyz(0.0, 0.0, -7.95), // Slightly below hills
+                    ..default()
+                },
+                Stroke::new(ink_color, 1.5), 
+                HighSeasEntity,
+            ));
+            markers_spawned += 1;
+        } else if tile_type == TileType::Hills {
             // SPARSE: Only spawn hachures on 50% of hill tiles
             if !rng.gen_bool(0.5) {
                 continue;
