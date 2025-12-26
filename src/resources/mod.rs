@@ -31,3 +31,6 @@ pub use navmesh::NavMeshResource;
 
 pub mod stippling_material;
 pub use stippling_material::*;
+
+pub mod cli;
+pub use cli::*;

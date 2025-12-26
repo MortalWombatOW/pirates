@@ -1,0 +1,44 @@
+use bevy::prelude::*;
+
+/// Command-line arguments parsed at startup.
+/// Used for test automation and save-based feature verification.
+#[derive(Resource, Debug, Default)]
+pub struct CliArgs {
+    /// Save file to load on startup (bypasses main menu).
+    /// Usage: `cargo run -- --load <save_name>`
+    pub load_save: Option<String>,
+}
+
+impl CliArgs {
+    /// Parse command-line arguments.
+    /// Supports:
+    /// - `--load <save_name>`: Load specified save on startup
+    pub fn parse() -> Self {
+        let args: Vec<String> = std::env::args().collect();
+        let mut cli = CliArgs::default();
+
+        let mut i = 1; // Skip program name
+        while i < args.len() {
+            match args[i].as_str() {
+                "--load" => {
+                    if i + 1 < args.len() {
+                        cli.load_save = Some(args[i + 1].clone());
+                        info!("CLI: Will load save '{}' on startup", args[i + 1]);
+                        i += 2;
+                    } else {
+                        warn!("CLI: --load requires a save name argument");
+                        i += 1;
+                    }
+                }
+                arg => {
+                    if arg.starts_with('-') {
+                        warn!("CLI: Unknown argument '{}'", arg);
+                    }
+                    i += 1;
+                }
+            }
+        }
+
+        cli
+    }
+}

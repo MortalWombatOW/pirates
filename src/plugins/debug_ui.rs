@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin};
 use bevy_egui::{egui, EguiContexts, EguiSet};
 use crate::plugins::core::GameState;
 use crate::resources::{Wind, WorldClock, MapData};
@@ -10,6 +10,7 @@ use crate::utils::pathfinding::tile_to_world;
 /// Resource to track debug visibility toggles.
 #[derive(Resource)]
 pub struct DebugToggles {
+    pub show_debug_panel: bool,
     pub show_tilemap: bool,
     pub show_coastlines: bool,
 }
@@ -17,6 +18,7 @@ pub struct DebugToggles {
 impl Default for DebugToggles {
     fn default() -> Self {
         Self {
+            show_debug_panel: false, // Hidden by default, toggle with F4
             show_tilemap: true,
             show_coastlines: true,
         }
@@ -30,13 +32,26 @@ impl Plugin for DebugUiPlugin {
         if !app.is_plugin_added::<FrameTimeDiagnosticsPlugin>() {
             app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         }
+        app.add_plugins(EntityCountDiagnosticsPlugin::default());
         
         app.init_resource::<DebugToggles>()
             .add_systems(Update, (
+                toggle_debug_panel,
                 debug_panel.after(EguiSet::InitContexts),
                 apply_tilemap_visibility,
                 spawn_scale_test_ships.run_if(in_state(GameState::HighSeas)),
             ));
+    }
+}
+
+/// Toggles debug panel visibility with F4 key.
+fn toggle_debug_panel(
+    input: Res<ButtonInput<KeyCode>>,
+    mut toggles: ResMut<DebugToggles>,
+) {
+    if input.just_pressed(KeyCode::F4) {
+        toggles.show_debug_panel = !toggles.show_debug_panel;
+        info!("Debug panel: {}", if toggles.show_debug_panel { "shown" } else { "hidden" });
     }
 }
 
@@ -70,14 +85,34 @@ fn debug_panel(
     ship_query: Query<Entity, With<Ship>>,
     mut toggles: ResMut<DebugToggles>,
 ) {
-    egui::Window::new("Debug Panel").show(contexts.ctx_mut(), |ui| {
+    // Only show if toggled on (F4)
+    if !toggles.show_debug_panel {
+        return;
+    }
+
+    egui::Window::new("Debug Panel (F4 to hide)").show(contexts.ctx_mut(), |ui| {
         ui.label(format!("Current State: {:?}", state.get()));
         
+        // Performance metrics
+        ui.separator();
+        ui.heading("Performance");
         if let Some(fps) = diagnostics
             .get(&FrameTimeDiagnosticsPlugin::FPS)
             .and_then(|diag| diag.smoothed())
         {
             ui.label(format!("FPS: {:.1}", fps));
+        }
+        if let Some(frame_time) = diagnostics
+            .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+            .and_then(|diag| diag.smoothed())
+        {
+            ui.label(format!("Frame Time: {:.2}ms", frame_time * 1000.0));
+        }
+        if let Some(entity_count) = diagnostics
+            .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
+            .and_then(|diag| diag.value())
+        {
+            ui.label(format!("Entities: {:.0}", entity_count));
         }
 
         // Ship count for scale testing

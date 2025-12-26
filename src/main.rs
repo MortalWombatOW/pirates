@@ -26,9 +26,14 @@ use pirates::systems::wake_effects::{
     setup_splatter_effects, spawn_damage_splatter,
 };
 use pirates::plugins::core::GameState;
+use pirates::resources::CliArgs;
 
 fn main() {
+    // Parse CLI arguments before building the app
+    let cli_args = CliArgs::parse();
+
     App::new()
+        .insert_resource(cli_args)
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_plugins(LogDiagnosticsPlugin::default())
