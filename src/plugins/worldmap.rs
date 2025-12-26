@@ -1472,12 +1472,17 @@ fn spawn_elevation_markers(
                 
                 let path = path_builder.build();
                 
+                // Random position jitter (anywhere within ~2 tiles range)
+                let jitter_x = rng.gen_range(-64.0..64.0);
+                let jitter_y = rng.gen_range(-64.0..64.0);
+                
                 commands.spawn((
                     CoastlineShape,
                     ElevationMarker,
                     ShapeBundle {
                         path,
-                        transform: Transform::from_xyz(-32.0, -32.0, -7.9), 
+                        // Nudge half-tile down-left + random jitter
+                        transform: Transform::from_xyz(-32.0 + jitter_x, -32.0 + jitter_y, -7.9), 
                         ..default()
                     },
                     Stroke::new(ink_color, 2.0), // Thicker stroke for larger resolution
@@ -1538,13 +1543,17 @@ fn spawn_elevation_markers(
                 }
                 
                 let path = path_builder.build();
+
+                // Random position jitter for mountains
+                let jitter_x = rng.gen_range(-64.0..64.0);
+                let jitter_y = rng.gen_range(-64.0..64.0);
                 
                 commands.spawn((
                     CoastlineShape,
                     ElevationMarker,
                     ShapeBundle {
                         path,
-                        transform: Transform::from_xyz(-32.0, -32.0, -7.8),
+                        transform: Transform::from_xyz(-32.0 + jitter_x, -32.0 + jitter_y, -7.8),
                         ..default()
                     },
                     Stroke::new(ink_color, 2.5), // Thicker stroke
@@ -1568,7 +1577,7 @@ fn spawn_elevation_markers(
                         ElevationMarker,
                         ShapeBundle {
                             path: shade_builder.build(),
-                            transform: Transform::from_xyz(-32.0, -32.0, -7.85), // Slightly below outline
+                            transform: Transform::from_xyz(-32.0 + jitter_x, -32.0 + jitter_y, -7.85), // Same jitter as parent
                             ..default()
                         },
                         Stroke::new(Color::srgba(0.15, 0.12, 0.08, 0.5), 1.0), // Fainter ink
