@@ -454,12 +454,23 @@ impl Node for FluidSimulationNode {
 
         let pipeline_cache = world.resource::<PipelineCache>();
 
-        // Get the advection pipeline
+        // Get all pipelines (skip if any still compiling)
         let Some(advection_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.advection_pipeline) else {
-            return Ok(()); // Pipeline still compiling
+            return Ok(());
+        };
+        let Some(divergence_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.divergence_pipeline) else {
+            return Ok(());
+        };
+        let Some(jacobi_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.jacobi_pipeline) else {
+            return Ok(());
+        };
+        let Some(subtract_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.subtract_pipeline) else {
+            return Ok(());
         };
 
-        // Run advection pass
+        let workgroups = FLUID_GRID_SIZE / WORKGROUP_SIZE;
+
+        // Pass 1: Advection - moves velocity field along itself
         {
             let mut pass = render_context
                 .command_encoder()
@@ -470,12 +481,58 @@ impl Node for FluidSimulationNode {
 
             pass.set_pipeline(advection_pipeline);
             pass.set_bind_group(0, &bind_groups.advection, &[]);
-
-            let workgroups = FLUID_GRID_SIZE / WORKGROUP_SIZE;
             pass.dispatch_workgroups(workgroups, workgroups, 1);
         }
 
-        // TODO: Add divergence, jacobi, and gradient subtract passes
+        // Pass 2: Divergence - calculate where fluid is compressing
+        {
+            let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("fluid_divergence_pass"),
+                    timestamp_writes: None,
+                });
+
+            pass.set_pipeline(divergence_pipeline);
+            pass.set_bind_group(0, &bind_groups.divergence, &[]);
+            pass.dispatch_workgroups(workgroups, workgroups, 1);
+        }
+
+        // Pass 3: Jacobi Pressure Solve - iteratively solve for pressure
+        // Run 20 iterations, ping-ponging between pressure textures
+        for i in 0..JACOBI_ITERATIONS {
+            let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("fluid_jacobi_pass"),
+                    timestamp_writes: None,
+                });
+
+            pass.set_pipeline(jacobi_pipeline);
+            
+            // Alternate between jacobi_a (writes to B) and jacobi_b (writes to A)
+            if i % 2 == 0 {
+                pass.set_bind_group(0, &bind_groups.jacobi_a, &[]);
+            } else {
+                pass.set_bind_group(0, &bind_groups.jacobi_b, &[]);
+            }
+            
+            pass.dispatch_workgroups(workgroups, workgroups, 1);
+        }
+
+        // Pass 4: Gradient Subtract - subtract pressure gradient for incompressibility
+        {
+            let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("fluid_subtract_pass"),
+                    timestamp_writes: None,
+                });
+
+            pass.set_pipeline(subtract_pipeline);
+            pass.set_bind_group(0, &bind_groups.subtract, &[]);
+            pass.dispatch_workgroups(workgroups, workgroups, 1);
+        }
 
         Ok(())
     }
@@ -485,10 +542,16 @@ impl Node for FluidSimulationNode {
 // Bind Groups (prepared each frame)
 // ============================================================================
 
+/// Jacobi pressure iteration count
+const JACOBI_ITERATIONS: u32 = 20;
+
 #[derive(Resource)]
 struct FluidBindGroups {
     advection: BindGroup,
-    // TODO: Add divergence, jacobi, subtract bind groups
+    divergence: BindGroup,
+    jacobi_a: BindGroup,     // pressure_a -> pressure_b
+    jacobi_b: BindGroup,     // pressure_b -> pressure_a
+    subtract: BindGroup,
 }
 
 fn prepare_fluid_bind_groups(
@@ -504,6 +567,9 @@ fn prepare_fluid_bind_groups(
     // Get GPU textures
     let Some(vel_a) = gpu_images.get(&textures.velocity_a) else { return };
     let Some(vel_b) = gpu_images.get(&textures.velocity_b) else { return };
+    let Some(pres_a) = gpu_images.get(&textures.pressure_a) else { return };
+    let Some(pres_b) = gpu_images.get(&textures.pressure_b) else { return };
+    let Some(div) = gpu_images.get(&textures.divergence) else { return };
 
     // Determine read/write based on ping-pong state
     let (vel_read, vel_write) = if textures.ping {
@@ -512,6 +578,7 @@ fn prepare_fluid_bind_groups(
         (&vel_b.texture_view, &vel_a.texture_view)
     };
 
+    // Advection: read vel_a, write vel_b
     let advection_bind_group = render_device.create_bind_group(
         "fluid_advection_bind_group",
         &pipeline.advection_layout,
@@ -521,8 +588,57 @@ fn prepare_fluid_bind_groups(
         )),
     );
 
+    // Divergence: read vel_b (post-advection), write divergence
+    let divergence_bind_group = render_device.create_bind_group(
+        "fluid_divergence_bind_group",
+        &pipeline.divergence_layout,
+        &BindGroupEntries::sequential((
+            vel_write, // Read from the advected velocity
+            &div.texture_view,
+        )),
+    );
+
+    // Jacobi ping-pong: need both directions
+    // jacobi_a: read pressure_a, read divergence, write pressure_b
+    let jacobi_a_bind_group = render_device.create_bind_group(
+        "fluid_jacobi_a_bind_group",
+        &pipeline.jacobi_layout,
+        &BindGroupEntries::sequential((
+            &pres_a.texture_view,
+            &div.texture_view,
+            &pres_b.texture_view,
+        )),
+    );
+
+    // jacobi_b: read pressure_b, read divergence, write pressure_a
+    let jacobi_b_bind_group = render_device.create_bind_group(
+        "fluid_jacobi_b_bind_group",
+        &pipeline.jacobi_layout,
+        &BindGroupEntries::sequential((
+            &pres_b.texture_view,
+            &div.texture_view,
+            &pres_a.texture_view,
+        )),
+    );
+
+    // Subtract: read vel_b, read pressure_a (final), write vel_a (final output)
+    // After even Jacobi iterations, pressure_a is the result
+    let subtract_bind_group = render_device.create_bind_group(
+        "fluid_subtract_bind_group",
+        &pipeline.subtract_layout,
+        &BindGroupEntries::sequential((
+            vel_write,              // Read advected velocity
+            &pres_a.texture_view,   // Read solved pressure
+            vel_read,               // Write final velocity (back to original read buffer)
+        )),
+    );
+
     commands.insert_resource(FluidBindGroups {
         advection: advection_bind_group,
+        divergence: divergence_bind_group,
+        jacobi_a: jacobi_a_bind_group,
+        jacobi_b: jacobi_b_bind_group,
+        subtract: subtract_bind_group,
     });
 }
 
@@ -534,7 +650,12 @@ fn prepare_fluid_bind_groups(
 struct FluidComputePipeline {
     advection_layout: BindGroupLayout,
     advection_pipeline: CachedComputePipelineId,
-    // TODO: Add divergence, jacobi, subtract pipelines
+    divergence_layout: BindGroupLayout,
+    divergence_pipeline: CachedComputePipelineId,
+    jacobi_layout: BindGroupLayout,
+    jacobi_pipeline: CachedComputePipelineId,
+    subtract_layout: BindGroupLayout,
+    subtract_pipeline: CachedComputePipelineId,
 }
 
 impl FromWorld for FluidComputePipeline {
@@ -573,11 +694,130 @@ impl FromWorld for FluidComputePipeline {
             ),
         );
 
+        // Divergence bind group layout: read velocity, write divergence
+        let divergence_layout = render_device.create_bind_group_layout(
+            "fluid_divergence_bind_group_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Velocity texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Divergence texture (write)
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: TextureFormat::R32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ),
+            ),
+        );
+
+        // Jacobi bind group layout: read pressure, read divergence, write pressure
+        let jacobi_layout = render_device.create_bind_group_layout(
+            "fluid_jacobi_bind_group_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Pressure texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Divergence texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Pressure texture (write)
+                    BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: TextureFormat::R32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ),
+            ),
+        );
+
+        // Subtract bind group layout: read velocity, read pressure, write velocity
+        let subtract_layout = render_device.create_bind_group_layout(
+            "fluid_subtract_bind_group_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Velocity texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Pressure texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Velocity texture (write)
+                    BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: TextureFormat::Rg32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ),
+            ),
+        );
+
         let shader = world
             .resource::<AssetServer>()
             .load("shaders/fluids.wgsl");
 
         let pipeline_cache = world.resource::<PipelineCache>();
+        
         let advection_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("fluid_advection_pipeline".into()),
             layout: vec![advection_layout.clone()],
@@ -588,9 +828,46 @@ impl FromWorld for FluidComputePipeline {
             zero_initialize_workgroup_memory: false,
         });
 
+        let divergence_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("fluid_divergence_pipeline".into()),
+            layout: vec![divergence_layout.clone()],
+            shader: shader.clone(),
+            shader_defs: vec![],
+            entry_point: "divergence".into(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
+        });
+
+        let jacobi_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("fluid_jacobi_pipeline".into()),
+            layout: vec![jacobi_layout.clone()],
+            shader: shader.clone(),
+            shader_defs: vec![],
+            entry_point: "jacobi".into(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
+        });
+
+        let subtract_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("fluid_subtract_pipeline".into()),
+            layout: vec![subtract_layout.clone()],
+            shader: shader.clone(),
+            shader_defs: vec![],
+            entry_point: "subtract".into(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
+        });
+
         Self {
             advection_layout,
             advection_pipeline,
+            divergence_layout,
+            divergence_pipeline,
+            jacobi_layout,
+            jacobi_pipeline,
+            subtract_layout,
+            subtract_pipeline,
         }
     }
 }
+
