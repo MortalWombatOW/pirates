@@ -1,5 +1,12 @@
 # Work Log
 
+## 2025-12-25: Epic 9.4 - Terrain Elevation Polish
+*   **9.4.1-8**: Implemented procedurally generated hills and mountains.
+    *   Updated `is_land` logic to correctly include elevation types.
+    *   Hills: "High in middle, down on edges" arc shape with noise and hachures.
+    *   Grass: Sparse tufts on lowlands (30% density).
+    *   Visuals: Half-tile alignment nudge and significant positional jitter (+/- 64 units) for organic look.
+
 ## 2025-12-25: Tasks 8.6.4-8.6.7 - Region-Based Fade Triggers
 *   **8.6.4-8.6.5**: Created `RegionResponsive` component and `CurrentRegion` resource in `region.rs`:
     *   Builder methods: `show_on_enter()`, `hide_on_enter()`, `with_duration()`

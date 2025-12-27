@@ -471,6 +471,23 @@
 | [x] 8.6.6 | Implement `update_current_region` system | 8.6.5 | Player position → region lookup (tile type based). |
 | [x] 8.6.7 | Implement `trigger_region_fades` system | 8.6.4, 8.6.6 | On Changed<CurrentRegion>, sets FadeController.target_alpha. |
 
+### Epic 8.7: High Seas Background
+> Procedurally generated parchment background that responds to landmasses.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 8.7.1 | Implement procedural parchment background | 8.1.1 | Background renders as a continuous, organic parchment/vellum texture. |
+| [ ] 8.7.2 | Implement landmass darkening | 8.7.1, 8.5.1 | Areas inside coastlines appear slightly denser/darker in tone than the ocean. |
+
+### Epic 8.8: Combat Water Simulation
+> Realistic and efficient water simulation for the combat view.
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [ ] 8.8.1 | Design water simulation model | 2.1.1 | Model efficiently simulates fluid movement and velocity. |
+| [ ] 8.8.2 | Implement velocity-based visualization | 8.8.1 | Water appearance responds to velocity: white foam for high speed, deep blue for stillness. |
+| [ ] 8.8.3 | Optimize simulation for performance | 8.8.2 | Visual effect adds negligible overhead to frame time (>60FPS). |
+
 ---
 
 ## Phase 9: Infrastructure & Performance
