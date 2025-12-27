@@ -39,22 +39,29 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // Quantize to 4 color bands (as per design spec)
     let band = floor(t * 4.0) / 4.0;
     
-    // Select color based on band
-    var color: vec4<f32>;
+    // Select base color based on band
+    var base_color: vec4<f32>;
     if (band < 0.25) {
-        color = DEEP_BLUE;
+        base_color = DEEP_BLUE;
     } else if (band < 0.5) {
-        color = MID_BLUE;
+        base_color = MID_BLUE;
     } else if (band < 0.75) {
-        color = LIGHT_BLUE;
+        base_color = LIGHT_BLUE;
     } else {
-        color = FOAM_WHITE;
+        base_color = FOAM_WHITE;
     }
     
     // Add subtle wave animation
     let wave = sin(in.uv.x * 20.0 + settings.time * 0.5) * 
                sin(in.uv.y * 20.0 + settings.time * 0.3) * 0.02;
-    color.rgb += vec3<f32>(wave);
     
-    return color;
+    // Apply wave to color (create new vec4 to avoid assignment issues)
+    let final_color = vec4<f32>(
+        base_color.r + wave,
+        base_color.g + wave,
+        base_color.b + wave,
+        base_color.a
+    );
+    
+    return final_color;
 }

@@ -199,15 +199,20 @@ fn spawn_water_surface(
     mut materials: ResMut<Assets<WaterMaterial>>,
     textures: Option<Res<FluidSimulationTextures>>,
 ) {
+    info!("[DEBUG] spawn_water_surface: ENTERING");
+    
     let Some(textures) = textures else {
-        warn!("FluidSimulation: No textures available for water surface");
+        warn!("[DEBUG] spawn_water_surface: No textures available - skipping!");
         return;
     };
+    
+    info!("[DEBUG] spawn_water_surface: Textures found, velocity_a handle: {:?}", textures.velocity_a);
 
     // Create a large rectangle mesh for the water surface
     // Combat arena is roughly 2000x2000 units
     let water_size = 2000.0;
     let mesh_handle = meshes.add(Rectangle::new(water_size, water_size));
+    info!("[DEBUG] spawn_water_surface: Created mesh {}x{}", water_size, water_size);
 
     // Create the water material with the velocity texture
     let material_handle = materials.add(WaterMaterial {
@@ -219,17 +224,18 @@ fn spawn_water_surface(
         },
         velocity_texture: textures.velocity_a.clone(),
     });
+    info!("[DEBUG] spawn_water_surface: Created WaterMaterial");
 
     // Spawn the water surface entity
-    commands.spawn((
+    let entity = commands.spawn((
         Name::new("WaterSurface"),
         Mesh2d(mesh_handle),
         MeshMaterial2d(material_handle),
         Transform::from_xyz(0.0, 0.0, -10.0), // Behind ships
         CombatEntity, // Tag for cleanup
-    ));
+    )).id();
 
-    info!("FluidSimulation: Water surface spawned (2000x2000 units)");
+    info!("[DEBUG] spawn_water_surface: Spawned WaterSurface entity {:?} at z=-10", entity);
 }
 
 // ============================================================================
