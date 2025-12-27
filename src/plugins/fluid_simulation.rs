@@ -19,9 +19,10 @@ use bevy::{
     },
 };
 
-use crate::components::CombatEntity;
+use crate::components::{CombatEntity, Ship};
 use crate::plugins::core::GameState;
 use crate::resources::{WaterMaterial, WaterSettings};
+use avian2d::prelude::LinearVelocity;
 
 /// Grid resolution for the fluid simulation (256x256 per design spec).
 pub const FLUID_GRID_SIZE: u32 = 256;
@@ -45,6 +46,12 @@ impl Plugin for FluidSimulationPlugin {
             setup_fluid_simulation,
             spawn_water_surface.after(setup_fluid_simulation),
         ));
+
+        // Inject ship wakes into fluid simulation during Combat
+        app.add_systems(
+            FixedUpdate,
+            inject_ship_wakes.run_if(in_state(GameState::Combat)),
+        );
 
         // Cleanup when exiting Combat
         app.add_systems(OnExit(GameState::Combat), cleanup_fluid_simulation);
@@ -190,6 +197,108 @@ fn cleanup_fluid_simulation(mut commands: Commands) {
     info!("FluidSimulation: Cleaning up resources");
     commands.remove_resource::<FluidSimulationTextures>();
     commands.remove_resource::<FluidParams>();
+}
+
+// ============================================================================
+// Ship Wake Injection
+// ============================================================================
+
+/// Combat arena size for coordinate mapping
+const COMBAT_ARENA_SIZE: f32 = 2000.0;
+
+/// Wake splat radius in grid cells
+const WAKE_SPLAT_RADIUS: i32 = 8;
+
+/// Force multiplier for wake velocity
+const WAKE_FORCE_MULTIPLIER: f32 = 2.0;
+
+/// Injects ship velocities into the fluid simulation texture.
+/// Uses Gaussian splatting to create smooth wake patterns.
+fn inject_ship_wakes(
+    textures: Option<ResMut<FluidSimulationTextures>>,
+    mut images: ResMut<Assets<Image>>,
+    ships: Query<(&Transform, &LinearVelocity), With<Ship>>,
+) {
+    let Some(textures) = textures else { return };
+    
+    // Get the velocity texture we're writing to
+    let velocity_handle = textures.velocity_a.clone();
+    let Some(image) = images.get_mut(&velocity_handle) else { return };
+    
+    let grid_size = FLUID_GRID_SIZE as i32;
+    let half_arena = COMBAT_ARENA_SIZE / 2.0;
+    let grid_scale = FLUID_GRID_SIZE as f32 / COMBAT_ARENA_SIZE;
+    
+    // Process each ship
+    for (transform, velocity) in ships.iter() {
+        let pos = transform.translation.truncate();
+        let vel = velocity.0;
+        
+        // Skip if ship is barely moving
+        if vel.length() < 1.0 {
+            continue;
+        }
+        
+        // Convert world position to grid coordinates
+        // World: -1000 to 1000, Grid: 0 to 255
+        let grid_x = ((pos.x + half_arena) * grid_scale) as i32;
+        let grid_y = ((pos.y + half_arena) * grid_scale) as i32;
+        
+        // Clamp to grid bounds
+        if grid_x < 0 || grid_x >= grid_size || grid_y < 0 || grid_y >= grid_size {
+            continue;
+        }
+        
+        // Gaussian splat: write velocity to surrounding cells
+        for dy in -WAKE_SPLAT_RADIUS..=WAKE_SPLAT_RADIUS {
+            for dx in -WAKE_SPLAT_RADIUS..=WAKE_SPLAT_RADIUS {
+                let px = grid_x + dx;
+                let py = grid_y + dy;
+                
+                // Skip out-of-bounds pixels
+                if px < 0 || px >= grid_size || py < 0 || py >= grid_size {
+                    continue;
+                }
+                
+                // Gaussian falloff based on distance
+                let dist_sq = (dx * dx + dy * dy) as f32;
+                let sigma = WAKE_SPLAT_RADIUS as f32 / 2.0;
+                let weight = (-dist_sq / (2.0 * sigma * sigma)).exp();
+                
+                // Scale velocity and apply weight
+                let splat_vel = vel * WAKE_FORCE_MULTIPLIER * weight;
+                
+                // Calculate pixel index (RG32Float = 8 bytes per pixel)
+                let pixel_idx = ((py * grid_size + px) * 8) as usize;
+                
+                if pixel_idx + 8 <= image.data.len() {
+                    // Read existing velocity
+                    let existing_x = f32::from_le_bytes([
+                        image.data[pixel_idx],
+                        image.data[pixel_idx + 1],
+                        image.data[pixel_idx + 2],
+                        image.data[pixel_idx + 3],
+                    ]);
+                    let existing_y = f32::from_le_bytes([
+                        image.data[pixel_idx + 4],
+                        image.data[pixel_idx + 5],
+                        image.data[pixel_idx + 6],
+                        image.data[pixel_idx + 7],
+                    ]);
+                    
+                    // Add new velocity (accumulate)
+                    let new_x = existing_x + splat_vel.x;
+                    let new_y = existing_y + splat_vel.y;
+                    
+                    // Write back
+                    let bytes_x = new_x.to_le_bytes();
+                    let bytes_y = new_y.to_le_bytes();
+                    image.data[pixel_idx..pixel_idx + 4].copy_from_slice(&bytes_x);
+                    image.data[pixel_idx + 4..pixel_idx + 8].copy_from_slice(&bytes_y);
+                }
+            }
+        }
+    }
 }
 
 /// Spawns the visible water surface mesh with WaterMaterial.
