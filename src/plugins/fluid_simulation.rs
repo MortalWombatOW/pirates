@@ -19,8 +19,9 @@ use bevy::{
     },
 };
 
-
+use crate::components::CombatEntity;
 use crate::plugins::core::GameState;
+use crate::resources::{WaterMaterial, WaterSettings};
 
 /// Grid resolution for the fluid simulation (256x256 per design spec).
 pub const FLUID_GRID_SIZE: u32 = 256;
@@ -40,7 +41,10 @@ impl Plugin for FluidSimulationPlugin {
         app.add_plugins(ExtractResourcePlugin::<FluidSimulationTextures>::default());
 
         // Initialize fluid textures when entering Combat
-        app.add_systems(OnEnter(GameState::Combat), setup_fluid_simulation);
+        app.add_systems(OnEnter(GameState::Combat), (
+            setup_fluid_simulation,
+            spawn_water_surface.after(setup_fluid_simulation),
+        ));
 
         // Cleanup when exiting Combat
         app.add_systems(OnExit(GameState::Combat), cleanup_fluid_simulation);
@@ -186,6 +190,46 @@ fn cleanup_fluid_simulation(mut commands: Commands) {
     info!("FluidSimulation: Cleaning up resources");
     commands.remove_resource::<FluidSimulationTextures>();
     commands.remove_resource::<FluidParams>();
+}
+
+/// Spawns the visible water surface mesh with WaterMaterial.
+fn spawn_water_surface(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<WaterMaterial>>,
+    textures: Option<Res<FluidSimulationTextures>>,
+) {
+    let Some(textures) = textures else {
+        warn!("FluidSimulation: No textures available for water surface");
+        return;
+    };
+
+    // Create a large rectangle mesh for the water surface
+    // Combat arena is roughly 2000x2000 units
+    let water_size = 2000.0;
+    let mesh_handle = meshes.add(Rectangle::new(water_size, water_size));
+
+    // Create the water material with the velocity texture
+    let material_handle = materials.add(WaterMaterial {
+        settings: WaterSettings {
+            max_speed: 100.0,
+            time: 0.0,
+            _padding1: 0.0,
+            _padding2: 0.0,
+        },
+        velocity_texture: textures.velocity_a.clone(),
+    });
+
+    // Spawn the water surface entity
+    commands.spawn((
+        Name::new("WaterSurface"),
+        Mesh2d(mesh_handle),
+        MeshMaterial2d(material_handle),
+        Transform::from_xyz(0.0, 0.0, -10.0), // Behind ships
+        CombatEntity, // Tag for cleanup
+    ));
+
+    info!("FluidSimulation: Water surface spawned (2000x2000 units)");
 }
 
 // ============================================================================
