@@ -1,124 +1,112 @@
-# Epic 8.8: Combat Water Simulation (Design v2)
+# Epic 8.8: Combat Water Simulation
 
-**Context:** Replaces the static "Ink & Parchment" water background in the Combat Phase with a dynamic, grid-based Eulerian fluid simulation.
+**Status:** Approved for Implementation  
+**Owner:** Engineering  
+**Context:** Implements a custom "Stable Fluids" solver to replace the static background. This v3 design replaces the library-based approach to ensure cross-platform compatibility (specifically fixing Metal/M1 race conditions).
 
 ## 1. Overview
-The goal is to implement a top-down 2D fluid simulation for the "Open Ocean" combat arena. The water must interact physically with ships (wakes, drift) and render using a specific stylized palette (quantized blue-to-white based on speed).
+We will implement a custom, grid-based fluid simulation using Bevy's Render Graph and Compute Shaders.
+* **Goal:** A dynamic ocean that reacts to ships (wakes) and pushes them (currents).
+* **Constraint:** Must run on Metal (macOS) without "read-write" race conditions.
+* **Visuals:** Quantized "Blue-to-White" palette based on water speed.
 
-We will use the **`bevy_eulerian_fluid`** crate, which provides a robust Eulerian solver and native integration with our physics backend, **`avian2d`**.
+## 2. Architecture: Double-Buffered Stable Fluids
+To guarantee stability on all hardware, we use a **Ping-Pong (Double Buffering)** architecture. We never read and write to the same texture in the same dispatch.
 
-## 2. Architecture & Library Selection
+### 2.1 Data Structures (Resources)
+We need a custom resource `FluidSimulation` containing texture pairs.
+* **Grid Resolution:** `256 x 256` (Upscaled to cover the ~1000px arena).
+* **Buffers:**
+    * `Velocity`: `RG32Float` (Current, Next)
+    * `Pressure`: `R32Float` (Current, Next)
+    * `Divergence`: `R32Float` (Single texture, intermediate)
 
-### Selected Library: `bevy_eulerian_fluid`
-* **Why:** It implements a stable grid-based solver (ideal for "ocean currents" and "wakes") and supports **two-way coupling** with `avian2d` rigid bodies.
-* **Features Used:**
-    * **Incompressible Flow:** Water behaves like water, not gas.
-    * **Solid Coupling:** Ships (colliders) displace water; water velocity exerts drag/drift on ships.
-    * **Velocity Texture Access:** The simulation exports the velocity field as a `Image` (texture) which we will bind to our custom shader.
+### 2.2 The Simulation Loop (Compute Pipeline)
+Runs every `FixedUpdate` (or every frame if perf allows).
 
-### Integration Architecture
-1.  **Simulation Domain:** A rectangular grid entity spawned only during `GameState::Combat`.
-2.  **Physics Layer:** The library handles the fluid-body interaction automatically via `avian2d` components (`Collider`, `RigidBody`).
-3.  **Rendering Layer:** We will **not** use the library's default debug rendering. Instead, we will render a quad (`MaterialMesh2dBundle`) covering the arena, using a custom `WaterShaderMaterial` that samples the simulation's velocity texture.
-
----
-
-## 3. Visual Style (The "Quantized" Look)
-**Requirement:** Realistic fluid motion rendered in a stylized manner.
-* **Palette:** Deep Blue (Slow) $\to$ White (Fast).
-* **Quantization:** Adjustable "steps" (bands) of color to fit the pixel-art aesthetic.
-
-### Shader Logic (Draft)
-The fragment shader will sample the **Velocity Field** texture provided by the simulation.
-
-```wgsl
-struct WaterMaterial {
-    color_deep: vec4<f32>,
-    color_fast: vec4<f32>,
-    quantize_steps: f32,
-    max_speed_ref: f32, // Speed at which water turns fully white
-}
-
-@group(1) @binding(0) var velocity_texture: texture_2d<f32>;
-@group(1) @binding(1) var velocity_sampler: sampler;
-@group(1) @binding(2) var<uniform> material: WaterMaterial;
-
-@fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    // 1. Sample velocity vector (RG components usually store XY velocity)
-    let vel = textureSample(velocity_texture, velocity_sampler, in.uv).xy;
-    let speed = length(vel);
-
-    // 2. Normalize speed (0.0 to 1.0)
-    let t = clamp(speed / material.max_speed_ref, 0.0, 1.0);
-
-    // 3. Quantize (Posterization)
-    // Example: steps = 4.0 turns smooth gradient into 4 solid bands
-    let stepped_t = floor(t * material.quantize_steps) / material.quantize_steps;
-
-    // 4. Mix Colors
-    return mix(material.color_deep, material.color_fast, stepped_t);
-}
-
-```
+1.  **Advection Pass:** Moves fluid properties along the velocity field.
+    * *Input:* `Velocity (Read)`, `Velocity (Read)` (yes, it advects itself).
+    * *Output:* `Velocity (Write)`.
+2.  **Integration (Splat) Pass:** Injects external forces (Ships).
+    * *Input:* `Velocity (Read)`, `ShipBuffer (Uniform/Storage)`.
+    * *Output:* `Velocity (Write)`.
+3.  **Divergence Pass:** Calculates where water is "compressing".
+    * *Input:* `Velocity (Read)`.
+    * *Output:* `Divergence (Write)`.
+4.  **Pressure Solve (Jacobi) Pass:** Runs ~20-40 times.
+    * *Input:* `Pressure (Read)`, `Divergence (Read)`.
+    * *Output:* `Pressure (Write)`.
+    * *Note:* Swaps Read/Write handles every iteration.
+5.  **Gradient Subtract Pass:** Enforces incompressibility.
+    * *Input:* `Velocity (Read)`, `Pressure (Read)`.
+    * *Output:* `Velocity (Write)` (Final result for rendering).
 
 ---
 
-## 4. Implementation Plan
+## 3. Game Integration
 
-### Phase 1: Core Setup
+### 3.1 Ship to Water (Wakes)
+Instead of complex collider rasterization, we use **Gaussian Splatting**.
+* **System:** `prepare_fluid_forces`
+* **Logic:**
+    1.  Query all active Ships (`Transform`, `LinearVelocity`, `Collider`).
+    2.  Extract `position`, `velocity`, and rough `radius`.
+    3.  Upload this list to a `StorageBuffer` visible to the **Integration Pass**.
+* **Shader Logic:** For each pixel, check distance to ships. If inside radius, `mix()` fluid velocity towards ship velocity.
 
-1. **Dependencies:** Add `bevy_eulerian_fluid` to `Cargo.toml`.
-2. **Plugin Registration:** Add `FluidPlugin` to `CombatPlugin`.
-3. **Setup System:** Implement `spawn_water_grid` system running `OnEnter(GameState::Combat)`.
-* Grid Size: Start with `128x128` or `256x256` covering the play area. High resolution impacts CPU performance; tune carefully.
-* Physical Size: Match the camera view (e.g., 1000x1000 world units).
-* Density/Viscosity: Tune for "watery" feel (low viscosity).
-
-
-
-### Phase 2: Physics Integration
-
-1. **Ship Colliders:** Ensure Player and AI ships use `Collider::capsule` or `Collider::rectangle`. (Existing `rectangle` on test target is fine, but `capsule` is more hydrodynamic).
-2. **Coupling:** Enable the library's two-way coupling feature.
-* *Verify:* Moving ships should leave a trail in the debug view.
-* *Verify:* Stationary ships should drift if we inject velocity into the grid.
-
-
-
-### Phase 3: Custom Rendering
-
-1. **Material:** Create `WaterMaterial` (struct + `impl Material2d`).
-2. **Pipeline:**
-* In `Update`, query the `FluidTextures` component from the simulation entity.
-* Extract the `velocity_texture` handle.
-* Update the `WaterMaterial` handle on the visible mesh to point to this new texture handle (if it changes) or bind it initially.
-
-
-3. **Tuning:** Adjust `max_speed_ref` and `quantize_steps` to match the game's art style.
-
-### Phase 4: Cleanup Legacy Systems
-
-The following systems in `src/systems/combat.rs` and `movement.rs` are obsolete and must be removed/disabled:
-
-* `current_zone_system`: Fluid simulation now handles drift.
-* `spawn_test_current_zone`: No longer needed.
-* `wake_effects.rs`: The particle-based wake trail is redundant; the white water "foam" from the shader will act as the visual wake.
+### 3.2 Water to Ship (Drift)
+We need to apply the water's velocity back to the `avian2d` rigid bodies.
+* **Option A (Accurate):** Async Readback of the Velocity Texture to CPU. (Can have 1-2 frame latency, which is acceptable for "drift").
+* **Option B (Fast):** If readback is too slow, use a simplified "Wind" logic on CPU that approximates the main current direction, while the GPU handles the visual turbulence.
+* **Recommendation:** Start with Option A. If latency causes jitter, switch to Option B.
 
 ---
 
-## 5. Technical Considerations
+## 4. Rendering (The "Quantized" Look)
+The visualization is decoupled from the physics grid resolution.
 
-### Performance
+**Vertex Shader:** Standard Quad covering the arena.
+**Fragment Shader:**
+* Samples the **Velocity Texture** (Linear filtered).
+* Calculates magnitude (`length(vel)`).
+* Applies quantization logic:
+    ```wgsl
+    let speed = length(velocity);
+    let t = smoothstep(0.0, max_speed, speed);
+    let band = floor(t * 4.0) / 4.0; // 4 color bands
+    let color = mix(BLUE, WHITE, band);
+    ```
 
-* **Grid Resolution:** This is the #1 performance bottleneck.
-* *Constraint:* The simulation runs on CPU (typically) or Compute Shader depending on backend config.
-* *Target:* 60 FPS. If `256x256` is too slow, drop to `128x128` and use linear filtering in the texture sampler to smooth the look.
+---
 
+## 5. Implementation Roadmap
 
-* **Simulate Frequency:** Consider running the fluid step in `FixedUpdate` (physics tick) rather than every frame if FPS drops.
+### Phase 1: The Render Graph Setup
+* **Task:** Create `FluidSimulationPlugin`.
+* **Task:** Setup the `FluidImages` resource (create textures with `STORAGE_BINDING` usage).
+* **Task:** Implement the "Compute Node" boilerplate (the hardest part in Bevy). It needs to dispatch the pipeline stages in order.
 
-### Collision Shapes
+### Phase 2: Compute Shaders (WGSL)
+* **Task:** Write `fluids.wgsl`.
+    * `fn advect(...)`
+    * `fn divergence(...)`
+    * `fn jacobi(...)`
+    * `fn subtract(...)`
+* *Reference:* "GPU Gems: Fast Fluid Dynamics Simulation on the GPU".
 
-* **Capsules:** Preferred for ships. They cut through the grid smoothly.
-* **Boxes:** Acceptable, but will generate stronger turbulence at the corners (which might actually look cool for "boxy" pirate ships).
+### Phase 3: Integration
+* **Task:** Implement `extract_ships` system to populate the GPU buffer.
+* **Task:** Write `integrate.wgsl` to read the buffer and modify velocity.
+* **Task:** Connect the final texture to a `Material2d`.
+
+### Phase 4: Tuning
+* **Tweak:** `viscosity` (decay rate in advection).
+* **Tweak:** `splat_radius` and `splat_force` (how strong the wakes are).
+* **Tweak:** Color palette thresholds.
+
+---
+
+## 6. M1/Metal Compatibility Notes
+* **Atomic Operations:** Avoid them. Use the ping-pong texture approach.
+* **Workgroup Size:** Use `(8, 8, 1)`. Total threads 64 is safe on Apple Silicon (SIMD width is 32, so 64 aligns well).
+* **Texture Format:** Use `R32Float` and `RG32Float`. Avoid `R16Float` if possible as storage support varies; 32-bit is safer for physics precision.

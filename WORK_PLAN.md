@@ -480,16 +480,19 @@
 | [ ] 8.7.2 | Implement landmass darkening | 8.7.1, 8.5.1 | Areas inside coastlines appear slightly denser/darker in tone than the ocean. |
 
 ### Epic 8.8: Combat Water Simulation
-> Realistic and efficient water simulation for the combat view.
+> Custom Stable Fluids solver with Bevy Compute Shaders for Metal/M1 compatibility.
 > Context: docs/combat_water_v2.md.
+
 | Task ID | Description |
 | --- | --- |
-| **8.8.1** | Add `bevy_eulerian_fluid` dependency. |
-| **8.8.2** | Create `WaterMaterial` and WGSL shader. |
-| **8.8.3** | Implement `spawn_water_system` (Grid setup). |
-| **8.8.4** | Bind Simulation Velocity Texture to Material. |
-| **8.8.5** | Remove legacy `CurrentZone` and `Wake` systems. |
-| **8.8.6** | Tune `density`, `viscosity`, and `quantize_steps`. |
+| **8.8.1** | Create `FluidSimulationPlugin` with double-buffered textures (`Velocity`, `Pressure`, `Divergence`). |
+| **8.8.2** | Write `fluids.wgsl` compute shader (Advection, Divergence, Jacobi, Gradient Subtract passes). |
+| **8.8.3** | Implement Render Graph node for compute dispatch pipeline. |
+| **8.8.4** | Create `WaterMaterial` with quantized blue-to-white palette shader. |
+| **8.8.5** | Implement `prepare_fluid_forces` system (ship wakes → GPU buffer). |
+| **8.8.6** | Implement water-to-ship drift (async readback or CPU approximation). |
+| **8.8.7** | Remove legacy `CurrentZone`, `spawn_test_current_zone`, and particle wake systems. |
+| **8.8.8** | Tune `viscosity`, `splat_radius`, `splat_force`, and color thresholds. |
 
 ---
 

@@ -1,0 +1,363 @@
+//! Fluid Simulation Plugin
+//!
+//! Custom Stable Fluids solver using Bevy Compute Shaders.
+//! Uses double-buffering (ping-pong) for Metal/M1 compatibility.
+//!
+//! Reference: GPU Gems "Fast Fluid Dynamics Simulation on the GPU"
+
+use bevy::{
+    image::TextureFormatPixelInfo,
+    prelude::*,
+    render::{
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_asset::RenderAssets,
+        render_graph::{Node, NodeRunError, RenderGraph, RenderGraphContext, RenderLabel},
+        render_resource::*,
+        renderer::{RenderContext, RenderDevice},
+        texture::GpuImage,
+        Render, RenderApp, RenderSet,
+    },
+};
+
+
+use crate::plugins::core::GameState;
+
+/// Grid resolution for the fluid simulation (256x256 per design spec).
+pub const FLUID_GRID_SIZE: u32 = 256;
+
+/// Workgroup size for compute shaders (8x8 is safe for Apple Silicon).
+pub const WORKGROUP_SIZE: u32 = 8;
+
+// ============================================================================
+// Plugin
+// ============================================================================
+
+/// Plugin that manages the Stable Fluids simulation for Combat water.
+pub struct FluidSimulationPlugin;
+
+impl Plugin for FluidSimulationPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(ExtractResourcePlugin::<FluidSimulationTextures>::default());
+
+        // Initialize fluid textures when entering Combat
+        app.add_systems(OnEnter(GameState::Combat), setup_fluid_simulation);
+
+        // Cleanup when exiting Combat
+        app.add_systems(OnExit(GameState::Combat), cleanup_fluid_simulation);
+
+        let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
+
+        // Add compute node to render graph
+        render_app.add_systems(Render, prepare_fluid_bind_groups.in_set(RenderSet::PrepareBindGroups));
+
+        let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
+        render_graph.add_node(FluidSimulationLabel, FluidSimulationNode::default());
+    }
+
+    fn finish(&self, app: &mut App) {
+        let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
+
+        render_app.init_resource::<FluidComputePipeline>();
+    }
+}
+
+// ============================================================================
+// Resources
+// ============================================================================
+
+/// Holds the texture handles for the fluid simulation.
+/// Uses double-buffering (ping-pong) to avoid read-write hazards.
+#[derive(Resource, Clone, ExtractResource)]
+pub struct FluidSimulationTextures {
+    /// Velocity textures (RG32Float) - ping/pong pair
+    pub velocity_a: Handle<Image>,
+    pub velocity_b: Handle<Image>,
+
+    /// Pressure textures (R32Float) - ping/pong pair
+    pub pressure_a: Handle<Image>,
+    pub pressure_b: Handle<Image>,
+
+    /// Divergence texture (R32Float) - single texture
+    pub divergence: Handle<Image>,
+
+    /// Current ping-pong state (which buffer is "read" vs "write")
+    pub ping: bool,
+}
+
+/// Simulation parameters that can be tuned.
+#[derive(Resource, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
+pub struct FluidParams {
+    /// Grid dimensions
+    pub grid_size: u32,
+    /// Time step for simulation
+    pub dt: f32,
+    /// Viscosity (decay rate during advection)
+    pub viscosity: f32,
+    /// Number of Jacobi iterations for pressure solve
+    pub jacobi_iterations: u32,
+}
+
+impl Default for FluidParams {
+    fn default() -> Self {
+        Self {
+            grid_size: FLUID_GRID_SIZE,
+            dt: 1.0 / 60.0,
+            viscosity: 0.99,
+            jacobi_iterations: 20,
+        }
+    }
+}
+
+// ============================================================================
+// Setup/Cleanup Systems
+// ============================================================================
+
+/// Creates the fluid simulation textures on entering Combat.
+fn setup_fluid_simulation(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+    info!("FluidSimulation: Setting up 256x256 fluid grid");
+
+    // Create velocity textures (RG32Float for 2D velocity)
+    let velocity_a = create_fluid_texture(&mut images, TextureFormat::Rg32Float, "velocity_a");
+    let velocity_b = create_fluid_texture(&mut images, TextureFormat::Rg32Float, "velocity_b");
+
+    // Create pressure textures (R32Float for scalar pressure)
+    let pressure_a = create_fluid_texture(&mut images, TextureFormat::R32Float, "pressure_a");
+    let pressure_b = create_fluid_texture(&mut images, TextureFormat::R32Float, "pressure_b");
+
+    // Create divergence texture (R32Float, intermediate)
+    let divergence = create_fluid_texture(&mut images, TextureFormat::R32Float, "divergence");
+
+    commands.insert_resource(FluidSimulationTextures {
+        velocity_a,
+        velocity_b,
+        pressure_a,
+        pressure_b,
+        divergence,
+        ping: true,
+    });
+
+    commands.insert_resource(FluidParams::default());
+
+    info!("FluidSimulation: Textures created successfully");
+}
+
+/// Helper to create a storage texture for compute shaders.
+fn create_fluid_texture(
+    images: &mut Assets<Image>,
+    format: TextureFormat,
+    _label: &str,
+) -> Handle<Image> {
+    let size = Extent3d {
+        width: FLUID_GRID_SIZE,
+        height: FLUID_GRID_SIZE,
+        depth_or_array_layers: 1,
+    };
+
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None, // Labels on Bevy Image assets not needed
+            size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::STORAGE_BINDING
+                | TextureUsages::COPY_DST,
+            view_formats: &[],
+        },
+        ..default()
+    };
+
+    // Initialize with zeros
+    let bytes_per_pixel = format.pixel_size();
+    image.data = vec![0u8; (FLUID_GRID_SIZE * FLUID_GRID_SIZE) as usize * bytes_per_pixel];
+
+    images.add(image)
+}
+
+/// Cleans up fluid simulation resources when leaving Combat.
+fn cleanup_fluid_simulation(mut commands: Commands) {
+    info!("FluidSimulation: Cleaning up resources");
+    commands.remove_resource::<FluidSimulationTextures>();
+    commands.remove_resource::<FluidParams>();
+}
+
+// ============================================================================
+// Render Graph Label
+// ============================================================================
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
+pub struct FluidSimulationLabel;
+
+// ============================================================================
+// Compute Node
+// ============================================================================
+
+#[derive(Default)]
+struct FluidSimulationNode;
+
+impl Node for FluidSimulationNode {
+    fn run(
+        &self,
+        _graph: &mut RenderGraphContext,
+        render_context: &mut RenderContext,
+        world: &World,
+    ) -> Result<(), NodeRunError> {
+        // Get pipeline (skip if not ready)
+        let Some(pipeline) = world.get_resource::<FluidComputePipeline>() else {
+            return Ok(());
+        };
+
+        // Get bind groups (skip if not prepared)
+        let Some(bind_groups) = world.get_resource::<FluidBindGroups>() else {
+            return Ok(());
+        };
+
+        let pipeline_cache = world.resource::<PipelineCache>();
+
+        // Get the advection pipeline
+        let Some(advection_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.advection_pipeline) else {
+            return Ok(()); // Pipeline still compiling
+        };
+
+        // Run advection pass
+        {
+            let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("fluid_advection_pass"),
+                    timestamp_writes: None,
+                });
+
+            pass.set_pipeline(advection_pipeline);
+            pass.set_bind_group(0, &bind_groups.advection, &[]);
+
+            let workgroups = FLUID_GRID_SIZE / WORKGROUP_SIZE;
+            pass.dispatch_workgroups(workgroups, workgroups, 1);
+        }
+
+        // TODO: Add divergence, jacobi, and gradient subtract passes
+
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Bind Groups (prepared each frame)
+// ============================================================================
+
+#[derive(Resource)]
+struct FluidBindGroups {
+    advection: BindGroup,
+    // TODO: Add divergence, jacobi, subtract bind groups
+}
+
+fn prepare_fluid_bind_groups(
+    mut commands: Commands,
+    pipeline: Option<Res<FluidComputePipeline>>,
+    textures: Option<Res<FluidSimulationTextures>>,
+    gpu_images: Res<RenderAssets<GpuImage>>,
+    render_device: Res<RenderDevice>,
+) {
+    let Some(pipeline) = pipeline else { return };
+    let Some(textures) = textures else { return };
+
+    // Get GPU textures
+    let Some(vel_a) = gpu_images.get(&textures.velocity_a) else { return };
+    let Some(vel_b) = gpu_images.get(&textures.velocity_b) else { return };
+
+    // Determine read/write based on ping-pong state
+    let (vel_read, vel_write) = if textures.ping {
+        (&vel_a.texture_view, &vel_b.texture_view)
+    } else {
+        (&vel_b.texture_view, &vel_a.texture_view)
+    };
+
+    let advection_bind_group = render_device.create_bind_group(
+        "fluid_advection_bind_group",
+        &pipeline.advection_layout,
+        &BindGroupEntries::sequential((
+            vel_read,
+            vel_write,
+        )),
+    );
+
+    commands.insert_resource(FluidBindGroups {
+        advection: advection_bind_group,
+    });
+}
+
+// ============================================================================
+// Compute Pipeline Resource
+// ============================================================================
+
+#[derive(Resource)]
+struct FluidComputePipeline {
+    advection_layout: BindGroupLayout,
+    advection_pipeline: CachedComputePipelineId,
+    // TODO: Add divergence, jacobi, subtract pipelines
+}
+
+impl FromWorld for FluidComputePipeline {
+    fn from_world(world: &mut World) -> Self {
+        let render_device = world.resource::<RenderDevice>();
+
+        // Advection bind group layout: read velocity, write velocity
+        let advection_layout = render_device.create_bind_group_layout(
+            "fluid_advection_bind_group_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Velocity texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Velocity texture (write)
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: TextureFormat::Rg32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ),
+            ),
+        );
+
+        let shader = world
+            .resource::<AssetServer>()
+            .load("shaders/fluids.wgsl");
+
+        let pipeline_cache = world.resource::<PipelineCache>();
+        let advection_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("fluid_advection_pipeline".into()),
+            layout: vec![advection_layout.clone()],
+            shader: shader.clone(),
+            shader_defs: vec![],
+            entry_point: "advect".into(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
+        });
+
+        Self {
+            advection_layout,
+            advection_pipeline,
+        }
+    }
+}

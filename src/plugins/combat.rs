@@ -1,6 +1,9 @@
 use bevy::prelude::*;
+use bevy::sprite::Material2dPlugin;
 
 use crate::plugins::core::GameState;
+use crate::plugins::fluid_simulation::FluidSimulationPlugin;
+use crate::resources::WaterMaterial;
 use crate::systems::{
     buffer_ship_input, 
     ship_physics_system, 
@@ -35,6 +38,12 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
+        // Add fluid simulation plugin for dynamic water
+        app.add_plugins((
+            FluidSimulationPlugin,
+            Material2dPlugin::<WaterMaterial>::default(),
+        ));
+
         // Register events
         app.add_event::<crate::events::ShipDestroyedEvent>()
             .add_event::<crate::events::CombatEndedEvent>()
@@ -64,8 +73,7 @@ impl Plugin for CombatPlugin {
                 // AI systems - run after player physics is processed
                 combat_ai_system.after(ship_physics_system),
                 ai_firing_system.after(combat_ai_system),
-                // Current zone must run AFTER ship_physics_system because ship physics
-                // uses set_force() (replaces), and current zone uses apply_force() (adds)
+                // TODO: Remove current_zone_system when fluid sim drift is ready
                 current_zone_system.after(combat_ai_system),
             ).run_if(in_state(GameState::Combat)),
         );
@@ -93,9 +101,11 @@ impl Plugin for CombatPlugin {
         );
 
         // Spawn combat entities on enter
+        // TODO: Remove spawn_test_current_zone when fluid sim is fully integrated
         app.add_systems(
             OnEnter(GameState::Combat),
             (spawn_combat_enemies, spawn_test_current_zone),
         );
     }
 }
+
