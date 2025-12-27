@@ -1431,8 +1431,8 @@ fn spawn_elevation_markers(
         let world_y = y as f32 * TILE_SIZE - (map_data.height as f32 * TILE_SIZE / 2.0);
 
         if tile_type == TileType::Land {
-            // Very SPARSE: Only spawn grass on 10% of land tiles
-            if !rng.gen_bool(0.1) {
+            // Very SPARSE: Only spawn grass on 30% of land tiles
+            if !rng.gen_bool(0.3) {
                 continue;
             }
 
