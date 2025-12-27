@@ -13,7 +13,7 @@ use bevy::{
         render_asset::RenderAssets,
         render_graph::{Node, NodeRunError, RenderGraph, RenderGraphContext, RenderLabel},
         render_resource::*,
-        renderer::{RenderContext, RenderDevice},
+        renderer::{RenderContext, RenderDevice, RenderQueue},
         texture::GpuImage,
         Render, RenderApp, RenderSet,
     },
@@ -40,6 +40,7 @@ pub struct FluidSimulationPlugin;
 impl Plugin for FluidSimulationPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ExtractResourcePlugin::<FluidSimulationTextures>::default());
+        app.add_plugins(ExtractResourcePlugin::<WakeTextureData>::default());
 
         // Initialize fluid textures when entering Combat
         app.add_systems(OnEnter(GameState::Combat), (
@@ -61,7 +62,13 @@ impl Plugin for FluidSimulationPlugin {
         };
 
         // Add compute node to render graph
-        render_app.add_systems(Render, prepare_fluid_bind_groups.in_set(RenderSet::PrepareBindGroups));
+        render_app.add_systems(
+            Render, 
+            (
+                prepare_fluid_bind_groups.in_set(RenderSet::PrepareBindGroups),
+                write_wake_texture.in_set(RenderSet::Prepare),
+            )
+        );
 
         let mut render_graph = render_app.world_mut().resource_mut::<RenderGraph>();
         render_graph.add_node(FluidSimulationLabel, FluidSimulationNode::default());
@@ -124,6 +131,16 @@ impl Default for FluidParams {
     }
 }
 
+/// Stores pre-computed wake texture data for GPU upload.
+/// Updated in main world by inject_ship_wakes, extracted to render world.
+#[derive(Resource, Clone, ExtractResource, Default)]
+pub struct WakeTextureData {
+    /// Complete texture data (256*256*8 bytes for RG32Float)
+    pub data: Vec<u8>,
+    /// Whether the data has been updated and needs GPU upload
+    pub dirty: bool,
+}
+
 // ============================================================================
 // Setup/Cleanup Systems
 // ============================================================================
@@ -153,6 +170,13 @@ fn setup_fluid_simulation(mut commands: Commands, mut images: ResMut<Assets<Imag
     });
 
     commands.insert_resource(FluidParams::default());
+    
+    // Initialize wake texture data buffer (256x256 x 8 bytes for RG32Float)
+    let grid_size = FLUID_GRID_SIZE as usize;
+    commands.insert_resource(WakeTextureData {
+        data: vec![0u8; grid_size * grid_size * 8],
+        dirty: false,
+    });
 
     info!("FluidSimulation: Textures created successfully");
 }
@@ -163,6 +187,8 @@ fn create_fluid_texture(
     format: TextureFormat,
     _label: &str,
 ) -> Handle<Image> {
+    use bevy::render::render_asset::RenderAssetUsages;
+    
     let size = Extent3d {
         width: FLUID_GRID_SIZE,
         height: FLUID_GRID_SIZE,
@@ -182,10 +208,12 @@ fn create_fluid_texture(
                 | TextureUsages::COPY_DST,
             view_formats: &[],
         },
+        // Enable CPU-GPU sync so modifications to image.data get uploaded
+        asset_usage: RenderAssetUsages::all(),
         ..default()
     };
 
-    // Initialize with zeros
+    // Initialize with zeros (wake data is written dynamically via RenderQueue)
     let bytes_per_pixel = format.pixel_size();
     image.data = vec![0u8; (FLUID_GRID_SIZE * FLUID_GRID_SIZE) as usize * bytes_per_pixel];
 
@@ -197,6 +225,7 @@ fn cleanup_fluid_simulation(mut commands: Commands) {
     info!("FluidSimulation: Cleaning up resources");
     commands.remove_resource::<FluidSimulationTextures>();
     commands.remove_resource::<FluidParams>();
+    commands.remove_resource::<WakeTextureData>();
 }
 
 // ============================================================================
@@ -210,26 +239,23 @@ const COMBAT_ARENA_SIZE: f32 = 2000.0;
 const WAKE_SPLAT_RADIUS: i32 = 8;
 
 /// Force multiplier for wake velocity
-const WAKE_FORCE_MULTIPLIER: f32 = 2.0;
+const WAKE_FORCE_MULTIPLIER: f32 = 50.0;
 
-/// Injects ship velocities into the fluid simulation texture.
+/// Injects ship velocities into the WakeTextureData buffer.
 /// Uses Gaussian splatting to create smooth wake patterns.
+/// The data is later uploaded to GPU in the render world.
 fn inject_ship_wakes(
-    textures: Option<ResMut<FluidSimulationTextures>>,
-    mut images: ResMut<Assets<Image>>,
+    mut wake_data: Option<ResMut<WakeTextureData>>,
     ships: Query<(&Transform, &LinearVelocity), With<Ship>>,
 ) {
-    let Some(textures) = textures else { return };
-    
-    // Get the velocity texture we're writing to
-    let velocity_handle = textures.velocity_a.clone();
-    let Some(image) = images.get_mut(&velocity_handle) else { return };
+    let Some(ref mut wake_data) = wake_data else { return };
     
     let grid_size = FLUID_GRID_SIZE as i32;
     let half_arena = COMBAT_ARENA_SIZE / 2.0;
     let grid_scale = FLUID_GRID_SIZE as f32 / COMBAT_ARENA_SIZE;
     
     // Process each ship
+    let mut ship_count = 0;
     for (transform, velocity) in ships.iter() {
         let pos = transform.translation.truncate();
         let vel = velocity.0;
@@ -239,10 +265,18 @@ fn inject_ship_wakes(
             continue;
         }
         
+        ship_count += 1;
+        if ship_count == 1 {
+            // Log first ship's values for debugging
+            info!("[WAKE] Ship at ({:.1}, {:.1}) vel=({:.1}, {:.1}) speed={:.1}", 
+                  pos.x, pos.y, vel.x, vel.y, vel.length());
+        }
+        
         // Convert world position to grid coordinates
         // World: -1000 to 1000, Grid: 0 to 255
+        // Note: Flip Y because texture Y=0 is at top, but world Y grows upward
         let grid_x = ((pos.x + half_arena) * grid_scale) as i32;
-        let grid_y = ((pos.y + half_arena) * grid_scale) as i32;
+        let grid_y = grid_size - 1 - ((pos.y + half_arena) * grid_scale) as i32;
         
         // Clamp to grid bounds
         if grid_x < 0 || grid_x >= grid_size || grid_y < 0 || grid_y >= grid_size {
@@ -271,19 +305,19 @@ fn inject_ship_wakes(
                 // Calculate pixel index (RG32Float = 8 bytes per pixel)
                 let pixel_idx = ((py * grid_size + px) * 8) as usize;
                 
-                if pixel_idx + 8 <= image.data.len() {
+                if pixel_idx + 8 <= wake_data.data.len() {
                     // Read existing velocity
                     let existing_x = f32::from_le_bytes([
-                        image.data[pixel_idx],
-                        image.data[pixel_idx + 1],
-                        image.data[pixel_idx + 2],
-                        image.data[pixel_idx + 3],
+                        wake_data.data[pixel_idx],
+                        wake_data.data[pixel_idx + 1],
+                        wake_data.data[pixel_idx + 2],
+                        wake_data.data[pixel_idx + 3],
                     ]);
                     let existing_y = f32::from_le_bytes([
-                        image.data[pixel_idx + 4],
-                        image.data[pixel_idx + 5],
-                        image.data[pixel_idx + 6],
-                        image.data[pixel_idx + 7],
+                        wake_data.data[pixel_idx + 4],
+                        wake_data.data[pixel_idx + 5],
+                        wake_data.data[pixel_idx + 6],
+                        wake_data.data[pixel_idx + 7],
                     ]);
                     
                     // Add new velocity (accumulate)
@@ -293,12 +327,52 @@ fn inject_ship_wakes(
                     // Write back
                     let bytes_x = new_x.to_le_bytes();
                     let bytes_y = new_y.to_le_bytes();
-                    image.data[pixel_idx..pixel_idx + 4].copy_from_slice(&bytes_x);
-                    image.data[pixel_idx + 4..pixel_idx + 8].copy_from_slice(&bytes_y);
+                    wake_data.data[pixel_idx..pixel_idx + 4].copy_from_slice(&bytes_x);
+                    wake_data.data[pixel_idx + 4..pixel_idx + 8].copy_from_slice(&bytes_y);
                 }
             }
         }
     }
+    
+    // Mark as dirty if we wrote any ship data
+    if ship_count > 0 {
+        wake_data.dirty = true;
+    }
+}
+
+/// Render world system: writes WakeTextureData to GPU texture via RenderQueue.
+fn write_wake_texture(
+    wake_data: Option<Res<WakeTextureData>>,
+    textures: Option<Res<FluidSimulationTextures>>,
+    images: Res<RenderAssets<GpuImage>>,
+    render_queue: Res<RenderQueue>,
+) {
+    let Some(wake_data) = wake_data else { return };
+    let Some(textures) = textures else { return };
+    
+    // Only upload if data has changed
+    if !wake_data.dirty {
+        return;
+    }
+    
+    // Get the GPU texture for velocity_a
+    let Some(gpu_image) = images.get(&textures.velocity_a) else { return };
+    
+    // Write the wake data to the GPU texture
+    render_queue.write_texture(
+        gpu_image.texture.as_image_copy(),
+        &wake_data.data,
+        ImageDataLayout {
+            offset: 0,
+            bytes_per_row: Some(FLUID_GRID_SIZE * 8), // 8 bytes per pixel (RG32Float)
+            rows_per_image: Some(FLUID_GRID_SIZE),
+        },
+        Extent3d {
+            width: FLUID_GRID_SIZE,
+            height: FLUID_GRID_SIZE,
+            depth_or_array_layers: 1,
+        },
+    );
 }
 
 /// Spawns the visible water surface mesh with WaterMaterial.
