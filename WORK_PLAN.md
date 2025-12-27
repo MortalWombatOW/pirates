@@ -481,12 +481,15 @@
 
 ### Epic 8.8: Combat Water Simulation
 > Realistic and efficient water simulation for the combat view.
-
-| ID | Task | Dependencies | Acceptance Criteria |
-|---|---|---|---|
-| [ ] 8.8.1 | Design water simulation model | 2.1.1 | Model efficiently simulates fluid movement and velocity. |
-| [ ] 8.8.2 | Implement velocity-based visualization | 8.8.1 | Water appearance responds to velocity: white foam for high speed, deep blue for stillness. |
-| [ ] 8.8.3 | Optimize simulation for performance | 8.8.2 | Visual effect adds negligible overhead to frame time (>60FPS). |
+> Context: docs/combat_water_v2.md.
+| Task ID | Description |
+| --- | --- |
+| **8.8.1** | Add `bevy_eulerian_fluid` dependency. |
+| **8.8.2** | Create `WaterMaterial` and WGSL shader. |
+| **8.8.3** | Implement `spawn_water_system` (Grid setup). |
+| **8.8.4** | Bind Simulation Velocity Texture to Material. |
+| **8.8.5** | Remove legacy `CurrentZone` and `Wake` systems. |
+| **8.8.6** | Tune `density`, `viscosity`, and `quantize_steps`. |
 
 ---
 
