@@ -17,8 +17,6 @@ use crate::systems::{
     handle_player_death_system,
     loot_collection_system,
     loot_timer_system,
-    current_zone_system,
-    spawn_test_current_zone,
     combat_victory_system,
     handle_combat_victory_system,
     // AI systems
@@ -73,8 +71,6 @@ impl Plugin for CombatPlugin {
                 // AI systems - run after player physics is processed
                 combat_ai_system.after(ship_physics_system),
                 ai_firing_system.after(combat_ai_system),
-                // TODO: Remove current_zone_system when fluid sim drift is ready
-                current_zone_system.after(combat_ai_system),
             ).run_if(in_state(GameState::Combat)),
         );
         
@@ -101,11 +97,9 @@ impl Plugin for CombatPlugin {
         );
 
         // Spawn combat entities on enter
-        // TODO: Remove spawn_test_current_zone when fluid sim is fully integrated
         app.add_systems(
             OnEnter(GameState::Combat),
-            (spawn_combat_enemies, spawn_test_current_zone),
+            spawn_combat_enemies,
         );
     }
 }
-

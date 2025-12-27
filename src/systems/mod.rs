@@ -12,7 +12,7 @@ pub mod repair;
 pub mod faction_ai;
 pub mod order_execution;
 pub mod intel;
-pub mod wake_effects;
+pub mod damage_effects;
 pub mod ink_reveal;
 pub mod camera;
 pub mod hit_flash;
@@ -32,7 +32,6 @@ pub use repair::*;
 pub use faction_ai::*;
 pub use order_execution::*;
 pub use intel::*;
+pub use damage_effects::*;
 pub use ink_reveal::*;
 pub use landmass_movement::*;
-
-
