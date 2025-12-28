@@ -488,11 +488,12 @@
 | **8.8.1** | Create `FluidSimulationPlugin` with double-buffered textures (`Velocity`, `Pressure`, `Divergence`). |
 | **8.8.2** | Write `fluids.wgsl` compute shader (Advection, Divergence, Jacobi, Gradient Subtract passes). |
 | **8.8.3** | Implement Render Graph node for compute dispatch pipeline. |
-| **8.8.4** | Create `WaterMaterial` with quantized blue-to-white palette shader. |
-| **8.8.5** | Implement `prepare_fluid_forces` system (ship wakes → GPU buffer). |
+| [x] **8.8.4** | Create `WaterMaterial` with quantized blue-to-white palette shader. |
+| [x] **8.8.5** | Implement `prepare_fluid_forces` system (ship wakes → GPU buffer) + Integration Pass. |
 | **8.8.6** | Implement water-to-ship drift (async readback or CPU approximation). |
 | **8.8.7** | Remove legacy `CurrentZone`, `spawn_test_current_zone`, and particle wake systems. |
-| **8.8.8** | Tune `viscosity`, `splat_radius`, `splat_force`, and color thresholds. |
+| [x] **8.8.8** | Tune `viscosity`, `splat_radius`, `splat_force`, and color thresholds. |
+
 
 ---
 

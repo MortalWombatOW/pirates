@@ -1,5 +1,18 @@
 # Work Log
 
+## 2025-12-28: Epic 8.8 - Combat Water Simulation (Integration Pass)
+*   **8.8.5**: Implemented Integration Pass to fix wake injection architecture.
+    *   **Problem**: `write_wake_texture` was overwriting `velocity_a` after compute passes, destroying simulation results.
+    *   **Solution**: Added dedicated GPU-based Integration Pass between Advection and Divergence.
+    *   New shader: `assets/shaders/integrate.wgsl` - adds wake velocities to advected velocities.
+    *   Added `wake_velocity` texture to `FluidSimulationTextures` for CPU→GPU wake upload.
+    *   Modified pipeline bind groups to avoid read-write texture conflicts.
+    *   Changed material to read `velocity_b` (final output) instead of `velocity_a`.
+    *   Fixed coordinate flip bug: velocity Y now properly negated to match Y-flipped texture coordinates.
+    *   Tuned `VISCOSITY` (0.85) and `WAKE_FORCE_MULTIPLIER` (0.25) for realistic wake decay.
+*   **8.8.4**: Recreated `water_material.wgsl` shader for quantized blue-to-white palette visualization.
+
+
 ## 2025-12-25: Epic 9.4 - Terrain Elevation Polish
 *   **9.4.1-8**: Implemented procedurally generated hills and mountains.
     *   Updated `is_land` logic to correctly include elevation types.

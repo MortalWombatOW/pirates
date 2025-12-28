@@ -102,6 +102,9 @@ pub struct FluidSimulationTextures {
     /// Divergence texture (R32Float) - single texture
     pub divergence: Handle<Image>,
 
+    /// Wake velocity texture (RG32Float) - receives CPU wake uploads
+    pub wake_velocity: Handle<Image>,
+
     /// Current ping-pong state (which buffer is "read" vs "write")
     pub ping: bool,
 }
@@ -160,12 +163,16 @@ fn setup_fluid_simulation(mut commands: Commands, mut images: ResMut<Assets<Imag
     // Create divergence texture (R32Float, intermediate)
     let divergence = create_fluid_texture(&mut images, TextureFormat::R32Float, "divergence");
 
+    // Create wake velocity texture (receives CPU wake uploads)
+    let wake_velocity = create_fluid_texture(&mut images, TextureFormat::Rg32Float, "wake_velocity");
+
     commands.insert_resource(FluidSimulationTextures {
         velocity_a,
         velocity_b,
         pressure_a,
         pressure_b,
         divergence,
+        wake_velocity,
         ping: true,
     });
 
@@ -239,10 +246,7 @@ const COMBAT_ARENA_SIZE: f32 = 2000.0;
 const WAKE_SPLAT_RADIUS: i32 = 8;
 
 /// Force multiplier for wake velocity
-const WAKE_FORCE_MULTIPLIER: f32 = 0.15;
-
-/// Per-frame decay applied to wake buffer (0.92 = 8% decay per frame)
-const WAKE_DECAY: f32 = 0.92;
+const WAKE_FORCE_MULTIPLIER: f32 = 0.25;
 
 /// Injects ship velocities into the WakeTextureData buffer.
 /// Uses Gaussian splatting to create smooth wake patterns.
@@ -257,37 +261,9 @@ fn inject_ship_wakes(
     let half_arena = COMBAT_ARENA_SIZE / 2.0;
     let grid_scale = FLUID_GRID_SIZE as f32 / COMBAT_ARENA_SIZE;
     
-    // Apply decay to existing velocities to prevent indefinite accumulation
-    // This creates natural "fading" of old wakes while preserving recent ones
-    for i in 0..wake_data.data.len() / 8 {
-        let pixel_idx = i * 8;
-        
-        let existing_x = f32::from_le_bytes([
-            wake_data.data[pixel_idx],
-            wake_data.data[pixel_idx + 1],
-            wake_data.data[pixel_idx + 2],
-            wake_data.data[pixel_idx + 3],
-        ]);
-        let existing_y = f32::from_le_bytes([
-            wake_data.data[pixel_idx + 4],
-            wake_data.data[pixel_idx + 5],
-            wake_data.data[pixel_idx + 6],
-            wake_data.data[pixel_idx + 7],
-        ]);
-        
-        // Apply decay
-        let decayed_x = existing_x * WAKE_DECAY;
-        let decayed_y = existing_y * WAKE_DECAY;
-        
-        // Clear very small values to avoid numeric noise
-        let final_x = if decayed_x.abs() < 0.001 { 0.0 } else { decayed_x };
-        let final_y = if decayed_y.abs() < 0.001 { 0.0 } else { decayed_y };
-        
-        let bytes_x = final_x.to_le_bytes();
-        let bytes_y = final_y.to_le_bytes();
-        wake_data.data[pixel_idx..pixel_idx + 4].copy_from_slice(&bytes_x);
-        wake_data.data[pixel_idx + 4..pixel_idx + 8].copy_from_slice(&bytes_y);
-    }
+    // Clear buffer each frame - the GPU advection pass carries forward momentum,
+    // we only need to inject this frame's wake forces
+    wake_data.data.fill(0);
     
     // Process each ship
     let mut ship_count = 0;
@@ -342,13 +318,16 @@ fn inject_ship_wakes(
                 let weight = (-dist_sq / (2.0 * sigma * sigma)).exp();
                 
                 // Scale velocity and apply weight
-                let splat_vel = vel * WAKE_FORCE_MULTIPLIER * weight;
+                // Negate velocity so wake trails BEHIND the ship (opposite to movement)
+                // Also negate Y to match the Y-flipped texture coordinates
+                let wake_vel = Vec2::new(-vel.x, vel.y);
+                let splat_vel = wake_vel * WAKE_FORCE_MULTIPLIER * weight;
                 
                 // Calculate pixel index (RG32Float = 8 bytes per pixel)
                 let pixel_idx = ((py * grid_size + px) * 8) as usize;
                 
                 if pixel_idx + 8 <= wake_data.data.len() {
-                    // Read existing velocity
+                    // Read existing velocity (from earlier ships in this frame)
                     let existing_x = f32::from_le_bytes([
                         wake_data.data[pixel_idx],
                         wake_data.data[pixel_idx + 1],
@@ -362,7 +341,7 @@ fn inject_ship_wakes(
                         wake_data.data[pixel_idx + 7],
                     ]);
                     
-                    // Add new velocity (accumulate)
+                    // Add this ship's wake to any other ships' wakes this frame
                     let new_x = existing_x + splat_vel.x;
                     let new_y = existing_y + splat_vel.y;
                     
@@ -397,8 +376,8 @@ fn write_wake_texture(
         return;
     }
     
-    // Get the GPU texture for velocity_a
-    let Some(gpu_image) = images.get(&textures.velocity_a) else { return };
+    // Get the GPU texture for wake_velocity (dedicated wake input texture)
+    let Some(gpu_image) = images.get(&textures.wake_velocity) else { return };
     
     // Write the wake data to the GPU texture
     render_queue.write_texture(
@@ -431,7 +410,7 @@ fn spawn_water_surface(
         return;
     };
     
-    info!("[DEBUG] spawn_water_surface: Textures found, velocity_a handle: {:?}", textures.velocity_a);
+    info!("[DEBUG] spawn_water_surface: Textures found, velocity_b handle: {:?}", textures.velocity_b);
 
     // Create a large rectangle mesh for the water surface
     // Combat arena is roughly 2000x2000 units
@@ -440,14 +419,15 @@ fn spawn_water_surface(
     info!("[DEBUG] spawn_water_surface: Created mesh {}x{}", water_size, water_size);
 
     // Create the water material with the velocity texture
+    // Note: Using velocity_b because the pipeline ends with subtract writing to vel_b
     let material_handle = materials.add(WaterMaterial {
         settings: WaterSettings {
-            max_speed: 250.0,
+            max_speed: 100.0,
             time: 0.0,
             _padding1: 0.0,
             _padding2: 0.0,
         },
-        velocity_texture: textures.velocity_a.clone(),
+        velocity_texture: textures.velocity_b.clone(),
     });
     info!("[DEBUG] spawn_water_surface: Created WaterMaterial");
 
@@ -500,6 +480,9 @@ impl Node for FluidSimulationNode {
         let Some(advection_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.advection_pipeline) else {
             return Ok(());
         };
+        let Some(integration_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.integration_pipeline) else {
+            return Ok(());
+        };
         let Some(divergence_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.divergence_pipeline) else {
             return Ok(());
         };
@@ -526,7 +509,21 @@ impl Node for FluidSimulationNode {
             pass.dispatch_workgroups(workgroups, workgroups, 1);
         }
 
-        // Pass 2: Divergence - calculate where fluid is compressing
+        // Pass 2: Integration - add wake forces to advected velocity
+        {
+            let mut pass = render_context
+                .command_encoder()
+                .begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("fluid_integration_pass"),
+                    timestamp_writes: None,
+                });
+
+            pass.set_pipeline(integration_pipeline);
+            pass.set_bind_group(0, &bind_groups.integration, &[]);
+            pass.dispatch_workgroups(workgroups, workgroups, 1);
+        }
+
+        // Pass 3: Divergence - calculate where fluid is compressing
         {
             let mut pass = render_context
                 .command_encoder()
@@ -590,9 +587,10 @@ const JACOBI_ITERATIONS: u32 = 20;
 #[derive(Resource)]
 struct FluidBindGroups {
     advection: BindGroup,
+    integration: BindGroup,    // velocity + wake -> combined
     divergence: BindGroup,
-    jacobi_a: BindGroup,     // pressure_a -> pressure_b
-    jacobi_b: BindGroup,     // pressure_b -> pressure_a
+    jacobi_a: BindGroup,       // pressure_a -> pressure_b
+    jacobi_b: BindGroup,       // pressure_b -> pressure_a
     subtract: BindGroup,
 }
 
@@ -612,6 +610,7 @@ fn prepare_fluid_bind_groups(
     let Some(pres_a) = gpu_images.get(&textures.pressure_a) else { return };
     let Some(pres_b) = gpu_images.get(&textures.pressure_b) else { return };
     let Some(div) = gpu_images.get(&textures.divergence) else { return };
+    let Some(wake) = gpu_images.get(&textures.wake_velocity) else { return };
 
     // Determine read/write based on ping-pong state
     let (vel_read, vel_write) = if textures.ping {
@@ -630,12 +629,24 @@ fn prepare_fluid_bind_groups(
         )),
     );
 
-    // Divergence: read vel_b (post-advection), write divergence
+    // Integration: read vel_b (post-advection), read wake, write vel_a
+    // This avoids read-write conflict by using different read/write textures
+    let integration_bind_group = render_device.create_bind_group(
+        "fluid_integration_bind_group",
+        &pipeline.integration_layout,
+        &BindGroupEntries::sequential((
+            vel_write,          // Read advected velocity (vel_b)
+            &wake.texture_view, // Read wake velocity
+            vel_read,           // Write combined velocity (vel_a)
+        )),
+    );
+
+    // Divergence: read vel_a (post-integration), write divergence
     let divergence_bind_group = render_device.create_bind_group(
         "fluid_divergence_bind_group",
         &pipeline.divergence_layout,
         &BindGroupEntries::sequential((
-            vel_write, // Read from the advected velocity
+            vel_read, // Read from the integrated velocity (vel_a)
             &div.texture_view,
         )),
     );
@@ -663,20 +674,21 @@ fn prepare_fluid_bind_groups(
         )),
     );
 
-    // Subtract: read vel_b, read pressure_a (final), write vel_a (final output)
+    // Subtract: read vel_a (integrated), read pressure_a (final), write vel_b (final output)
     // After even Jacobi iterations, pressure_a is the result
     let subtract_bind_group = render_device.create_bind_group(
         "fluid_subtract_bind_group",
         &pipeline.subtract_layout,
         &BindGroupEntries::sequential((
-            vel_write,              // Read advected velocity
+            vel_read,               // Read integrated velocity (vel_a)
             &pres_a.texture_view,   // Read solved pressure
-            vel_read,               // Write final velocity (back to original read buffer)
+            vel_write,              // Write final velocity (vel_b - material will read this)
         )),
     );
 
     commands.insert_resource(FluidBindGroups {
         advection: advection_bind_group,
+        integration: integration_bind_group,
         divergence: divergence_bind_group,
         jacobi_a: jacobi_a_bind_group,
         jacobi_b: jacobi_b_bind_group,
@@ -692,6 +704,8 @@ fn prepare_fluid_bind_groups(
 struct FluidComputePipeline {
     advection_layout: BindGroupLayout,
     advection_pipeline: CachedComputePipelineId,
+    integration_layout: BindGroupLayout,
+    integration_pipeline: CachedComputePipelineId,
     divergence_layout: BindGroupLayout,
     divergence_pipeline: CachedComputePipelineId,
     jacobi_layout: BindGroupLayout,
@@ -724,6 +738,49 @@ impl FromWorld for FluidComputePipeline {
                     // Velocity texture (write)
                     BindGroupLayoutEntry {
                         binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::StorageTexture {
+                            access: StorageTextureAccess::WriteOnly,
+                            format: TextureFormat::Rg32Float,
+                            view_dimension: TextureViewDimension::D2,
+                        },
+                        count: None,
+                    },
+                ),
+            ),
+        );
+
+        // Integration bind group layout: read velocity, read wake, write velocity
+        let integration_layout = render_device.create_bind_group_layout(
+            "fluid_integration_bind_group_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::COMPUTE,
+                (
+                    // Velocity texture (read, post-advection)
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Wake velocity texture (read)
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: false },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    // Velocity texture (write)
+                    BindGroupLayoutEntry {
+                        binding: 2,
                         visibility: ShaderStages::COMPUTE,
                         ty: BindingType::StorageTexture {
                             access: StorageTextureAccess::WriteOnly,
@@ -870,6 +927,20 @@ impl FromWorld for FluidComputePipeline {
             zero_initialize_workgroup_memory: false,
         });
 
+        let integration_shader = world
+            .resource::<AssetServer>()
+            .load("shaders/integrate.wgsl");
+
+        let integration_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+            label: Some("fluid_integration_pipeline".into()),
+            layout: vec![integration_layout.clone()],
+            shader: integration_shader,
+            shader_defs: vec![],
+            entry_point: "integrate".into(),
+            push_constant_ranges: vec![],
+            zero_initialize_workgroup_memory: false,
+        });
+
         let divergence_pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
             label: Some("fluid_divergence_pipeline".into()),
             layout: vec![divergence_layout.clone()],
@@ -903,6 +974,8 @@ impl FromWorld for FluidComputePipeline {
         Self {
             advection_layout,
             advection_pipeline,
+            integration_layout,
+            integration_pipeline,
             divergence_layout,
             divergence_pipeline,
             jacobi_layout,
