@@ -239,7 +239,7 @@ const COMBAT_ARENA_SIZE: f32 = 2000.0;
 const WAKE_SPLAT_RADIUS: i32 = 8;
 
 /// Force multiplier for wake velocity
-const WAKE_FORCE_MULTIPLIER: f32 = 50.0;
+const WAKE_FORCE_MULTIPLIER: f32 = 0.5;
 
 /// Injects ship velocities into the WakeTextureData buffer.
 /// Uses Gaussian splatting to create smooth wake patterns.
@@ -253,6 +253,9 @@ fn inject_ship_wakes(
     let grid_size = FLUID_GRID_SIZE as i32;
     let half_arena = COMBAT_ARENA_SIZE / 2.0;
     let grid_scale = FLUID_GRID_SIZE as f32 / COMBAT_ARENA_SIZE;
+    
+    // Note: We don't clear the buffer - allows simulation history to persist
+    // Wake force is reduced to prevent saturation from accumulation
     
     // Process each ship
     let mut ship_count = 0;
@@ -296,6 +299,13 @@ fn inject_ship_wakes(
                 
                 // Gaussian falloff based on distance
                 let dist_sq = (dx * dx + dy * dy) as f32;
+                let radius_sq = (WAKE_SPLAT_RADIUS * WAKE_SPLAT_RADIUS) as f32;
+                
+                // Skip pixels outside circular radius
+                if dist_sq > radius_sq {
+                    continue;
+                }
+                
                 let sigma = WAKE_SPLAT_RADIUS as f32 / 2.0;
                 let weight = (-dist_sq / (2.0 * sigma * sigma)).exp();
                 
