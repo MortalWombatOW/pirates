@@ -110,3 +110,71 @@ The visualization is decoupled from the physics grid resolution.
 * **Atomic Operations:** Avoid them. Use the ping-pong texture approach.
 * **Workgroup Size:** Use `(8, 8, 1)`. Total threads 64 is safe on Apple Silicon (SIMD width is 32, so 64 aligns well).
 * **Texture Format:** Use `R32Float` and `RG32Float`. Avoid `R16Float` if possible as storage support varies; 32-bit is safer for physics precision.
+
+---
+
+## 7. Implementation Notes (December 2024)
+
+### 7.1 Current Status
+The core Stable Fluids simulation is **implemented and working**:
+- ✅ Wake injection from ship velocities (Gaussian splatting)
+- ✅ GPU texture upload via `RenderQueue::write_texture`
+- ✅ Advection pass with semi-Lagrangian method
+- ✅ Divergence calculation
+- ✅ Jacobi pressure solve (20 iterations, ping-pong)
+- ✅ Gradient subtraction for incompressibility
+- ✅ Water surface material with velocity-to-color mapping
+
+### 7.2 Key Files
+- `src/plugins/fluid_simulation.rs` - Plugin, compute node, bind groups, wake injection
+- `assets/shaders/fluids.wgsl` - All 4 compute shader passes
+- `assets/shaders/water_material.wgsl` - Fragment shader for visualization
+- `src/resources/water_material.rs` - Material2d definition
+
+### 7.3 Problems Encountered & Solutions
+
+#### Problem 1: CPU-to-GPU Texture Update
+**Issue:** Modifying `Assets<Image>` directly after extraction didn't update the GPU texture due to Bevy's caching.
+**Solution:** Use `RenderQueue::write_texture()` in the render world to directly upload texture data. Created `WakeTextureData` resource with `ExtractResource` derive for CPU→render world transfer.
+
+#### Problem 2: White Saturation
+**Issue:** Water became completely white very quickly.
+**Causes tried:**
+1. `WAKE_FORCE_MULTIPLIER` too high (was 50.0)
+2. Shader `max_speed` too low relative to actual velocities
+3. Wake data accumulating without proper decay
+
+**Solution:** Reduced `WAKE_FORCE_MULTIPLIER` to 0.5, kept `VISCOSITY` at 0.99. Don't clear the wake buffer each frame (preserves simulation history).
+
+#### Problem 3: Y Coordinate Flip
+**Issue:** Wake positions were vertically inverted.
+**Solution:** In `inject_ship_wakes`, flip Y when mapping world to grid: `grid_y = grid_size - 1 - ((pos.y + half_arena) * grid_scale)`
+
+#### Problem 4: Ring Pattern (Empty Center)
+**Issue:** When clearing the wake buffer each frame, only saw wake ring at border, not filled circle.
+**Cause:** Clearing the buffer each frame destroyed simulation history. The advection/pressure solve naturally pushes velocity outward, so only the freshly-injected edge showed.
+**Solution:** Remove the buffer clear to preserve advected velocities from previous frames.
+
+### 7.4 Current Tuning Parameters
+```rust
+const FLUID_GRID_SIZE: u32 = 256;
+const WORKGROUP_SIZE: u32 = 8;
+const WAKE_SPLAT_RADIUS: i32 = 8;
+const WAKE_FORCE_MULTIPLIER: f32 = 0.5;
+const JACOBI_ITERATIONS: u32 = 20;
+```
+```wgsl
+const VISCOSITY: f32 = 0.99;  // Per-frame velocity decay
+const DT: f32 = 0.016667;     // 1/60 for 60Hz
+```
+
+### 7.5 Known Issues / Future Work
+1. **Water-to-Ship drift not implemented** - Need async GPU readback or CPU approximation
+2. **Texture ping-pong state not swapped per frame** - Currently uses fixed buffer assignment
+3. **No boundary conditions** - Fluid at edges may behave oddly
+4. **Consider decoupling injection from simulation** - Currently wake injection happens via CPU texture overwrite, could be a compute shader pass instead for better integration
+
+### 7.6 Performance Notes
+- Running at 60fps on Apple M1
+- 256x256 grid with 20 Jacobi iterations
+- 4 compute passes per frame + wake injection
