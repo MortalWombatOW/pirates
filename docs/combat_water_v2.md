@@ -131,7 +131,7 @@ The core Stable Fluids simulation is **implemented and working**:
 - `assets/shaders/water_material.wgsl` - Fragment shader for visualization
 - `src/resources/water_material.rs` - Material2d definition
 
-### 7.3 Problems Encountered & Solutions
+### 7.3 Problems Encountered
 
 #### Problem 1: CPU-to-GPU Texture Update
 **Issue:** Modifying `Assets<Image>` directly after extraction didn't update the GPU texture due to Bevy's caching.
@@ -144,7 +144,7 @@ The core Stable Fluids simulation is **implemented and working**:
 2. Shader `max_speed` too low relative to actual velocities
 3. Wake data accumulating without proper decay
 
-**Solution:** Reduced `WAKE_FORCE_MULTIPLIER` to 0.5, kept `VISCOSITY` at 0.99. Don't clear the wake buffer each frame (preserves simulation history).
+**Notes:** Reduced `WAKE_FORCE_MULTIPLIER` to 0.5, kept `VISCOSITY` at 0.99. Don't clear the wake buffer each frame (preserves simulation history).
 
 #### Problem 3: Y Coordinate Flip
 **Issue:** Wake positions were vertically inverted.
@@ -160,21 +160,40 @@ The core Stable Fluids simulation is **implemented and working**:
 const FLUID_GRID_SIZE: u32 = 256;
 const WORKGROUP_SIZE: u32 = 8;
 const WAKE_SPLAT_RADIUS: i32 = 8;
-const WAKE_FORCE_MULTIPLIER: f32 = 0.5;
+const WAKE_FORCE_MULTIPLIER: f32 = 0.15;  // Reduced from 0.5 to prevent saturation
+const WAKE_DECAY: f32 = 0.92;             // 8% decay per frame prevents accumulation
 const JACOBI_ITERATIONS: u32 = 20;
 ```
 ```wgsl
-const VISCOSITY: f32 = 0.99;  // Per-frame velocity decay
+const VISCOSITY: f32 = 0.96;  // Reduced from 0.99 for faster decay
 const DT: f32 = 0.016667;     // 1/60 for 60Hz
 ```
+```rust
+// In WaterMaterial settings:
+max_speed: 250.0  // Increased from 100.0 for better color mapping
+```
 
-### 7.5 Known Issues / Future Work
+### 7.5 Visual Enhancements (December 2024 Update)
+
+The water shader has been significantly enhanced for realism:
+
+1. **8-Color Oceanic Palette** - From deep ocean black-blue through teal/aqua to foam white
+2. **Smooth Gradient Transitions** - Non-linear velocity mapping using `pow(t, 1.5)` keeps most water blue
+3. **Multi-Layer Wave Animation**:
+   - Large slow swells
+   - Medium waves with drift
+   - Fine ripples using FBM (Fractal Brownian Motion)
+4. **Flow-Based Color Shift** - Velocity direction influences subtle color variation
+5. **Caustic Shimmer** - Subtle light shimmer effect on calm water
+
+### 7.6 Known Issues / Future Work
 1. **Water-to-Ship drift not implemented** - Need async GPU readback or CPU approximation
 2. **Texture ping-pong state not swapped per frame** - Currently uses fixed buffer assignment
 3. **No boundary conditions** - Fluid at edges may behave oddly
 4. **Consider decoupling injection from simulation** - Currently wake injection happens via CPU texture overwrite, could be a compute shader pass instead for better integration
 
-### 7.6 Performance Notes
+### 7.7 Performance Notes
 - Running at 60fps on Apple M1
 - 256x256 grid with 20 Jacobi iterations
 - 4 compute passes per frame + wake injection
+- FBM in fragment shader adds minimal overhead

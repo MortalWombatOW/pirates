@@ -239,7 +239,10 @@ const COMBAT_ARENA_SIZE: f32 = 2000.0;
 const WAKE_SPLAT_RADIUS: i32 = 8;
 
 /// Force multiplier for wake velocity
-const WAKE_FORCE_MULTIPLIER: f32 = 0.5;
+const WAKE_FORCE_MULTIPLIER: f32 = 0.15;
+
+/// Per-frame decay applied to wake buffer (0.92 = 8% decay per frame)
+const WAKE_DECAY: f32 = 0.92;
 
 /// Injects ship velocities into the WakeTextureData buffer.
 /// Uses Gaussian splatting to create smooth wake patterns.
@@ -254,8 +257,37 @@ fn inject_ship_wakes(
     let half_arena = COMBAT_ARENA_SIZE / 2.0;
     let grid_scale = FLUID_GRID_SIZE as f32 / COMBAT_ARENA_SIZE;
     
-    // Note: We don't clear the buffer - allows simulation history to persist
-    // Wake force is reduced to prevent saturation from accumulation
+    // Apply decay to existing velocities to prevent indefinite accumulation
+    // This creates natural "fading" of old wakes while preserving recent ones
+    for i in 0..wake_data.data.len() / 8 {
+        let pixel_idx = i * 8;
+        
+        let existing_x = f32::from_le_bytes([
+            wake_data.data[pixel_idx],
+            wake_data.data[pixel_idx + 1],
+            wake_data.data[pixel_idx + 2],
+            wake_data.data[pixel_idx + 3],
+        ]);
+        let existing_y = f32::from_le_bytes([
+            wake_data.data[pixel_idx + 4],
+            wake_data.data[pixel_idx + 5],
+            wake_data.data[pixel_idx + 6],
+            wake_data.data[pixel_idx + 7],
+        ]);
+        
+        // Apply decay
+        let decayed_x = existing_x * WAKE_DECAY;
+        let decayed_y = existing_y * WAKE_DECAY;
+        
+        // Clear very small values to avoid numeric noise
+        let final_x = if decayed_x.abs() < 0.001 { 0.0 } else { decayed_x };
+        let final_y = if decayed_y.abs() < 0.001 { 0.0 } else { decayed_y };
+        
+        let bytes_x = final_x.to_le_bytes();
+        let bytes_y = final_y.to_le_bytes();
+        wake_data.data[pixel_idx..pixel_idx + 4].copy_from_slice(&bytes_x);
+        wake_data.data[pixel_idx + 4..pixel_idx + 8].copy_from_slice(&bytes_y);
+    }
     
     // Process each ship
     let mut ship_count = 0;
@@ -410,7 +442,7 @@ fn spawn_water_surface(
     // Create the water material with the velocity texture
     let material_handle = materials.add(WaterMaterial {
         settings: WaterSettings {
-            max_speed: 100.0,
+            max_speed: 250.0,
             time: 0.0,
             _padding1: 0.0,
             _padding2: 0.0,

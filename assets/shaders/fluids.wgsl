@@ -6,7 +6,7 @@
 const WORKGROUP_SIZE: u32 = 8u;
 const GRID_SIZE: f32 = 256.0;
 const DT: f32 = 0.016667; // 1/60 for 60Hz
-const VISCOSITY: f32 = 0.99;
+const VISCOSITY: f32 = 0.96;
 
 // ============================================================================
 // Advection Pass
