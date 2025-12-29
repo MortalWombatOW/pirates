@@ -49,3 +49,12 @@
 | `assets/sprites/` | Ship and UI sprites. |
 | `assets/tilemaps/` | World map tilesets. |
 | `assets/shaders/ink_parchment.wgsl` | Post-process shader (paper texture, edges, ink effects). |
+| `assets/shaders/fluids.wgsl` | Compute shader for Stable Fluids (advection, divergence, Jacobi, gradient subtract). |
+| `assets/shaders/integrate.wgsl` | Compute shader for adding wake velocities to advected velocity field. |
+| `assets/shaders/water_material.wgsl` | Fragment shader for quantized blue-to-white water palette visualization. |
+
+## Plugins (Not in Key Files)
+
+| File | Responsibility | When to Read/Edit |
+| :--- | :--- | :--- |
+| `src/plugins/fluid_simulation.rs` | GPU-based Stable Fluids solver, ship wakes, water surface | Tuning water physics, wake parameters, or fixing compute shader issues. |
