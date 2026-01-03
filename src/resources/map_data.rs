@@ -94,19 +94,21 @@ pub struct MapData {
     pub height: u32,
     /// Flat array of tiles, stored row-major (y * width + x)
     tiles: Vec<Tile>,
+    /// The nearest valid water tile to the center, found during generation.
+    pub spawn_tile: IVec2,
 }
 
 impl MapData {
     /// Creates a new MapData with the given dimensions, filled with deep water (depth 0.0).
     pub fn new(width: u32, height: u32) -> Self {
         let tiles = vec![Tile::default(); (width * height) as usize];
-        Self { width, height, tiles }
+        Self { width, height, tiles, spawn_tile: IVec2::ZERO }
     }
 
     /// Creates a new MapData with the given dimensions and default tile.
     pub fn new_filled(width: u32, height: u32, default_tile: Tile) -> Self {
         let tiles = vec![default_tile; (width * height) as usize];
-        Self { width, height, tiles }
+        Self { width, height, tiles, spawn_tile: IVec2::ZERO }
     }
 
     /// Gets the tile at the given coordinates.

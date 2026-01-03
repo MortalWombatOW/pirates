@@ -433,7 +433,7 @@ fn spawn_tilemap_from_map_data(
 fn spawn_high_seas_player(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    _map_data: Res<MapData>,
+    map_data: Res<MapData>,
     selected_archetype: Res<crate::plugins::main_menu::SelectedArchetype>,
     registry: Res<crate::resources::ArchetypeRegistry>,
     mut faction_registry: ResMut<crate::resources::FactionRegistry>,
@@ -465,9 +465,11 @@ fn spawn_high_seas_player(
         }
     }
 
-    // Spawn at map center
-    let center_x = 0.0;
-    let center_y = 0.0;
+    // Spawn at dynamically found valid water tile
+    use crate::utils::pathfinding::tile_to_world;
+    let spawn_pos = tile_to_world(map_data.spawn_tile, map_data.width, map_data.height);
+    let center_x = spawn_pos.x;
+    let center_y = spawn_pos.y;
 
     // Select sprite based on ship type
     let sprite_path = match ship_type {

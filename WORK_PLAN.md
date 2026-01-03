@@ -163,7 +163,7 @@
 | [x] 3.2.4 | Ensure starting area is navigable | 3.2.2 | Player spawn point is always on water. |
 | [x] 3.2.5 | Place port locations procedurally | 3.2.2 | Ports spawn on coastlines. |
 | [x] 3.2.6 | Remove forced sea at spawn | 3.2.4 | Remove `ensure_spawn_navigable` that forces water at center. |
-| [ ] 3.2.7 | Dynamic spawn location detection | 3.2.6 | Spiral search from center to find navigable open water; store as `SpawnLocation` resource. |
+| [x] 3.2.7 | Dynamic spawn location detection | 3.2.6 | Spiral search from center to find navigable open water; store as `SpawnLocation` resource. |
 
 ### Epic 3.3: Fog of War
 | ID | Task | Dependencies | Acceptance Criteria |

@@ -1351,3 +1351,7 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
 *   **Evolution**: Added "Assumption Verification" rule to `AGENT.md` to prevent similar issues with magic numbers in data filtering.
 
 **[2026-01-02 20:58]** ✅ `8.8.9` (verified): Expanded WaterMaterial palette to 100 bands (configurable) and implemented integration pass cleanup.
+
+**[2026-01-02 21:14]** ✓ `3.2.6` (complete): Removed legacy `ensure_spawn_navigable` function from `procgen.rs` to allow natural terrain generation at the center of the map. Verified with unit tests and visual map generation test.
+
+**[2026-01-03 11:49]** ✓ `3.2.7` (complete): Implemented dynamic spawn location finding using spiral search to ensure player starts on executable water tile. Restored missing port placement in map generation. Verified with new unit tests and manual gameplay check.

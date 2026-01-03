@@ -107,8 +107,12 @@ pub fn generate_world_map(config: MapGenConfig) -> MapData {
     // Fourth pass: Add shallow water transitions
     add_coastal_transitions(&mut map_data);
 
-    // Third pass: Place ports on coastlines
+    // Fifth pass: Place ports on coastlines
     place_ports(&mut map_data, config.min_ports, config.max_ports, config.seed);
+
+    // Sixth pass: Ensure spawn location is valid
+    let spawn_tile = find_valid_spawn(&map_data);
+    map_data.spawn_tile = spawn_tile;
 
     bevy::log::info!(
         "Generated procedural map: {}x{} tiles, seed: {}",
@@ -198,6 +202,64 @@ fn fill_lakes(map_data: &mut MapData) {
 }
 
 
+/// Finds the nearest navigable water tile to the center of the map.
+/// Uses a spiral search pattern.
+fn find_valid_spawn(map_data: &MapData) -> bevy::math::IVec2 {
+    let center_x = (map_data.width / 2) as i32;
+    let center_y = (map_data.height / 2) as i32;
+
+    // Check center first
+    if map_data.is_navigable(center_x as u32, center_y as u32) {
+        return bevy::math::IVec2::new(center_x, center_y);
+    }
+
+    // Spiral search
+    let max_radius = mut_max(map_data.width, map_data.height) as i32;
+    
+    // Spiral logic expanding square approach
+    for r in 1..max_radius {
+        // Top edge
+        for tx in -r..=r {
+            if check_spawn(center_x + tx, center_y - r, map_data) {
+                return bevy::math::IVec2::new(center_x + tx, center_y - r);
+            }
+        }
+        // Bottom edge
+        for tx in -r..=r {
+            if check_spawn(center_x + tx, center_y + r, map_data) {
+                return bevy::math::IVec2::new(center_x + tx, center_y + r);
+            }
+        }
+        // Left edge
+        for ty in (-r + 1)..r {
+            if check_spawn(center_x - r, center_y + ty, map_data) {
+                return bevy::math::IVec2::new(center_x - r, center_y + ty);
+            }
+        }
+        // Right edge
+        for ty in (-r + 1)..r {
+            if check_spawn(center_x + r, center_y + ty, map_data) {
+                return bevy::math::IVec2::new(center_x + r, center_y + ty);
+            }
+        }
+    }
+
+    bevy::log::warn!("No valid spawn location found!");
+    bevy::math::IVec2::new(center_x, center_y)
+}
+
+fn mut_max(a: u32, b: u32) -> u32 {
+    if a > b { a } else { b }
+}
+
+fn check_spawn(x: i32, y: i32, map_data: &MapData) -> bool {
+    if x >= 0 && x < map_data.width as i32 && y >= 0 && y < map_data.height as i32 {
+        map_data.is_navigable(x as u32, y as u32)
+    } else {
+        false
+    }
+}
+
 /// Adds shallow water transitions around coastlines for visual polish.
 fn add_coastal_transitions(map_data: &mut MapData) {
     let width = map_data.width;
@@ -220,13 +282,13 @@ fn add_coastal_transitions(map_data: &mut MapData) {
                             ))
                         });
 
-                if has_land_neighbor {
-                    transitions.push((x, y));
+                    if has_land_neighbor {
+                        transitions.push((x, y));
+                    }
                 }
             }
         }
     }
-}
 
     for (x, y) in transitions {
         if let Some(tile) = map_data.tile(x, y) {
@@ -267,13 +329,13 @@ fn place_ports(map_data: &mut MapData, min_ports: usize, max_ports: usize, seed:
                         ))
                     });
 
-                if has_land && has_water {
-                    candidates.push((x, y));
+                    if has_land && has_water {
+                        candidates.push((x, y));
+                    }
                 }
             }
         }
     }
-}
 
     if candidates.is_empty() {
         bevy::log::warn!("No valid port locations found!");
@@ -347,6 +409,8 @@ mod tests {
         
         assert_eq!(map.width, 64);
         assert_eq!(map.height, 64);
+        // Spawn tile should be navigable
+        assert!(map.is_navigable(map.spawn_tile.x as u32, map.spawn_tile.y as u32));
     }
 
 
@@ -443,5 +507,32 @@ mod tests {
                     "Hills/Mountains at {},{} should not be navigable", x, y);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+    use bevy::prelude::*;
+
+    #[test]
+    fn test_dynamic_spawn_finding() {
+        let config = MapGenConfig {
+            width: 128,
+            height: 128,
+            seed: 12345, // Use a seed known to produce land at center if possible, or just random
+            ..Default::default()
+        };
+        let map = generate_world_map(config);
+        
+        // Spawn tile should be navigable
+        assert!(map.is_navigable(map.spawn_tile.x as u32, map.spawn_tile.y as u32), 
+            "Spawn tile {:?} is not navigable!", map.spawn_tile);
+            
+        // Spawn tile should be reasonably close to center
+        let center = IVec2::new(64, 64);
+        let dist = map.spawn_tile.as_vec2().distance(center.as_vec2());
+        // It shouldn't be too far unless the map is 100% land (unlikely with these settings)
+        assert!(dist < 64.0, "Spawn tile {:?} is too far from center {:?} (dist {})", map.spawn_tile, center, dist);
     }
 }
