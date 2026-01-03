@@ -279,7 +279,7 @@ fn inject_ship_wakes(
         ship_count += 1;
         if ship_count == 1 {
             // Log first ship's values for debugging
-            info!("[WAKE] Ship at ({:.1}, {:.1}) vel=({:.1}, {:.1}) speed={:.1}", 
+            debug!("[WAKE] Ship at ({:.1}, {:.1}) vel=({:.1}, {:.1}) speed={:.1}", 
                   pos.x, pos.y, vel.x, vel.y, vel.length());
         }
         
@@ -424,8 +424,7 @@ fn spawn_water_surface(
         settings: WaterSettings {
             max_speed: 100.0,
             time: 0.0,
-            _padding1: 0.0,
-            _padding2: 0.0,
+            ..default()
         },
         velocity_texture: textures.velocity_b.clone(),
     });

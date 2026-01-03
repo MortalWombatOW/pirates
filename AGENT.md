@@ -28,6 +28,9 @@ Your mission is to build "Pirates," a high-performance 2D roguelike, with archit
 *   **Physics**: `avian2d` 0.2 (ECS-native). FixedUpdate (60Hz).
 *   **Input**: `leafwing-input-manager` 0.16.
 
+### Invisible Knowledge
+*   **Fluid Mapping**: In `fluid_simulation.rs`, World Space is Y-Up, but WGPU Textures are Y-Down. `grid_y` calculation must invert Y: `grid_y = grid_size - 1 - world_y`.
+
 ### ECS Architecture
 *   **Query Optimization**: Always use `Changed<T>` or `Added<T>` where possible.
 *   **Mutation**: Prefer `mut component` over `Commands`.

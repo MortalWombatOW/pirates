@@ -7,19 +7,17 @@
 struct WaterSettings {
     max_speed: f32,
     time: f32,
-    _padding1: f32,
+    quantize_steps: f32,
     _padding2: f32,
+    color_deep: vec4<f32>,
+    color_mid: vec4<f32>,
+    color_light: vec4<f32>,
+    color_foam: vec4<f32>,
 }
 
 @group(2) @binding(0) var<uniform> settings: WaterSettings;
 @group(2) @binding(1) var velocity_texture: texture_2d<f32>;
 @group(2) @binding(2) var velocity_sampler: sampler;
-
-// Quantized color palette (4 bands)
-const COLOR_DEEP: vec3<f32> = vec3<f32>(0.05, 0.15, 0.35);      // Deep blue
-const COLOR_MID: vec3<f32> = vec3<f32>(0.1, 0.3, 0.55);         // Medium blue
-const COLOR_LIGHT: vec3<f32> = vec3<f32>(0.3, 0.5, 0.7);        // Light blue
-const COLOR_FOAM: vec3<f32> = vec3<f32>(0.85, 0.9, 0.95);       // Foam white
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -32,22 +30,33 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // Normalize speed to 0-1 range using max_speed
     let normalized_speed = clamp(speed / settings.max_speed, 0.0, 1.0);
     
-    // Quantize into 4 bands for stylized look
-    var color: vec3<f32>;
-    if (normalized_speed < 0.25) {
-        color = COLOR_DEEP;
-    } else if (normalized_speed < 0.5) {
-        color = COLOR_MID;
-    } else if (normalized_speed < 0.75) {
-        color = COLOR_LIGHT;
-    } else {
-        color = COLOR_FOAM;
-    }
+    // N-band quantization
+    let bands = settings.quantize_steps;
+    // t goes from 0.0 to 1.0 in discrete steps
+    let t = floor(normalized_speed * bands) / (bands - 1.0);
     
+    // Interpolate between the 4 key colors based on t
+    // 0.0 - 0.33: Deep -> Mid
+    // 0.33 - 0.66: Mid -> Light
+    // 0.66 - 1.0: Light -> Foam
+    
+    var color: vec4<f32>;
+    
+    if (t < 0.333) {
+        let local_t = t / 0.333;
+        color = mix(settings.color_deep, settings.color_mid, local_t);
+    } else if (t < 0.666) {
+        let local_t = (t - 0.333) / 0.333;
+        color = mix(settings.color_mid, settings.color_light, local_t);
+    } else {
+        let local_t = (t - 0.666) / 0.334;
+        color = mix(settings.color_light, settings.color_foam, local_t);
+    }
+
     // Add subtle wave animation based on time
     let wave = sin(in.uv.x * 20.0 + settings.time * 2.0) * 0.02;
     let wave2 = sin(in.uv.y * 15.0 + settings.time * 1.5) * 0.02;
-    color = color + vec3<f32>(wave + wave2);
+    let wave_offset = vec4<f32>(wave + wave2, wave + wave2, wave + wave2, 0.0);
     
-    return vec4<f32>(color, 1.0);
+    return color + wave_offset;
 }

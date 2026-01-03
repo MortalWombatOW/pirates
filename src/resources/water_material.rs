@@ -16,9 +16,17 @@ pub struct WaterSettings {
     pub max_speed: f32,
     /// Time for animated effects
     pub time: f32,
-    /// Padding for alignment
-    pub _padding1: f32,
+    /// Number of color quantization steps (bands)
+    pub quantize_steps: f32,
     pub _padding2: f32,
+    /// Deepest water color
+    pub color_deep: Vec4,
+    /// Mid-depth water color
+    pub color_mid: Vec4,
+    /// Shallow water color
+    pub color_light: Vec4,
+    /// Foam color
+    pub color_foam: Vec4,
 }
 
 impl Default for WaterSettings {
@@ -26,8 +34,12 @@ impl Default for WaterSettings {
         Self {
             max_speed: 100.0, // Tune based on simulation output
             time: 0.0,
-            _padding1: 0.0,
+            quantize_steps: 100.0,
             _padding2: 0.0,
+            color_deep: Vec4::new(0.05, 0.15, 0.35, 1.0),
+            color_mid: Vec4::new(0.1, 0.3, 0.55, 1.0),
+            color_light: Vec4::new(0.3, 0.5, 0.7, 1.0),
+            color_foam: Vec4::new(0.85, 0.9, 0.95, 1.0),
         }
     }
 }

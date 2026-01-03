@@ -1349,3 +1349,5 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
 *   **Sync**: Updated `INDEX.md` to include `src/systems/landmass_movement.rs`.
 *   **Retrospective**: The coastline avoidance bug was caused by an unverified assumption about polygon sizes ("magic number" 500).
 *   **Evolution**: Added "Assumption Verification" rule to `AGENT.md` to prevent similar issues with magic numbers in data filtering.
+
+**[2026-01-02 20:58]** ✅ `8.8.9` (verified): Expanded WaterMaterial palette to 100 bands (configurable) and implemented integration pass cleanup.
