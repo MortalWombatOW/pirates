@@ -103,13 +103,11 @@ pub fn generate_world_map(config: MapGenConfig) -> MapData {
     // Second pass: Remove lakes (enforce single contiguous ocean)
     fill_lakes(&mut map_data);
 
-    // Third pass: Ensure spawn area (center) is navigable
-    ensure_spawn_navigable(&mut map_data);
 
     // Fourth pass: Add shallow water transitions
     add_coastal_transitions(&mut map_data);
 
-    // Fourth pass: Place ports on coastlines
+    // Third pass: Place ports on coastlines
     place_ports(&mut map_data, config.min_ports, config.max_ports, config.seed);
 
     bevy::log::info!(
@@ -199,29 +197,6 @@ fn fill_lakes(map_data: &mut MapData) {
     }
 }
 
-/// Ensures the center spawn area (16x16 tiles) is navigable water.
-fn ensure_spawn_navigable(map_data: &mut MapData) {
-    let center_x = map_data.width / 2;
-    let center_y = map_data.height / 2;
-    let spawn_radius = 8;
-
-    for y in (center_y.saturating_sub(spawn_radius))..=(center_y + spawn_radius).min(map_data.height - 1) {
-        for x in (center_x.saturating_sub(spawn_radius))..=(center_x + spawn_radius).min(map_data.width - 1) {
-            let dx = (x as i32 - center_x as i32).abs();
-            let dy = (y as i32 - center_y as i32).abs();
-            
-            // Circular spawn area
-            if dx * dx + dy * dy <= (spawn_radius as i32 * spawn_radius as i32) {
-                if let Some(tile) = map_data.tile(x, y) {
-                    if !tile.tile_type.is_navigable() {
-                        // Force deep water spread, giving it significant depth
-                        map_data.set_tile(x, y, Tile::new(TileType::DeepWater, 1.0));
-                    }
-                }
-            }
-        }
-    }
-}
 
 /// Adds shallow water transitions around coastlines for visual polish.
 fn add_coastal_transitions(map_data: &mut MapData) {
@@ -374,20 +349,6 @@ mod tests {
         assert_eq!(map.height, 64);
     }
 
-    #[test]
-    fn test_spawn_area_is_navigable() {
-        let config = MapGenConfig {
-            width: 64,
-            height: 64,
-            ..Default::default()
-        };
-        let map = generate_world_map(config);
-        
-        // Center should be navigable
-        let center_x = 32;
-        let center_y = 32;
-        assert!(map.is_navigable(center_x, center_y));
-    }
 
     #[test]
     fn test_same_seed_produces_same_map() {
