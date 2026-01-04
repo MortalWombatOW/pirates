@@ -14,7 +14,6 @@ impl Plugin for WaterPlugin {
             OceanGridAdaptationPlugin,
             FluidDynamicsPlugin,
             OceanPhysicsCouplingPlugin,
-            OceanPhysicsCouplingPlugin,
             OceanRenderPlugin,
             crate::features::water::debug::WaterDebugPlugin,
         ));
