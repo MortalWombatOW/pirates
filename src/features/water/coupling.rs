@@ -138,7 +138,8 @@ fn apply_water_boudary_forces(
         }
         
         if found {
-            let drag_coeff = 1.0; 
+            // Increased from 1.0 to 5.0 for stronger wave influence
+            let drag_coeff = 5.0; 
             let rel_vel = sample_flow - velocity.0;
             let drag_force = rel_vel * drag_coeff;
             

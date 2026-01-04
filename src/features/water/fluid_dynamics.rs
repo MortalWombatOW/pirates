@@ -29,8 +29,8 @@ impl Default for FluidConfig {
     fn default() -> Self {
         Self {
             gravity: 9.81,
-            damping: 1.0, 
-            base_depth: 10.0,
+            damping: 0.5, // Reduced from 1.0 for longer wave propagation
+            base_depth: 5.0,
         }
     }
 }
