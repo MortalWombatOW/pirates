@@ -38,11 +38,20 @@ fn apply_ship_displacement(
         
         let speed = speed_sq.sqrt();
         let forward = ship_vel / speed;
-        let right = Vec2::new(-forward.y, forward.x); // Right vector relative to movement
+        // let right = Vec2::new(-forward.y, forward.x); // Unused in segment logic if we use dist_vec
         
-        let hull_radius = 20.0; // Influence radius
-        let interaction_strength = 0.5; // Tunable strength factor
+        // Ship Dimensions (Approximation)
+        let hull_length = 40.0;
+        let half_length = hull_length / 2.0;
+        let hull_width_influence = 12.0; // How far distinct hull displacement reaches
         
+        let stern_pos = ship_pos - forward * half_length;
+        let bow_pos = ship_pos + forward * half_length;
+        let segment_vec = bow_pos - stern_pos;
+        let segment_len_sq = segment_vec.length_squared();
+        
+        let interaction_strength = 0.5;
+
         for (&(depth, code), cell) in ocean.nodes.iter_mut() {
              let (gx, gy) = morton_decode(code);
              let cell_size = domain_size / (1u32 << depth) as f32;
@@ -55,36 +64,40 @@ fn apply_ship_displacement(
              let world_y = (normalized_y * domain_size) - half_size + (cell_size / 2.0);
              let cell_center = Vec2::new(world_x, world_y);
              
-             let rel_pos = cell_center - ship_pos;
-             let dist_sq = rel_pos.length_squared();
+             // Project cell onto hull segment
+             let cell_to_stern = cell_center - stern_pos;
+             // t: 0.0 = Stern, 1.0 = Bow
+             let t = if segment_len_sq > 0.001 {
+                 (cell_to_stern.dot(segment_vec) / segment_len_sq).clamp(0.0, 1.0)
+             } else {
+                 0.5
+             };
              
-             if dist_sq < hull_radius * hull_radius {
+             let closest_point = stern_pos + segment_vec * t;
+             let dist_vec = cell_center - closest_point;
+             let dist_sq = dist_vec.length_squared();
+             
+             if dist_sq < hull_width_influence * hull_width_influence {
                  let dist = dist_sq.sqrt();
-                 let linear_falloff = 1.0 - (dist / hull_radius);
-                 let falloff = linear_falloff * linear_falloff; // Quadratic falloff for smoother blending
+                 let linear_falloff = 1.0 - (dist / hull_width_influence);
+                 let falloff = linear_falloff * linear_falloff;
                  
-                 let proj_fwd = rel_pos.dot(forward);
-                 let proj_right = rel_pos.dot(right);
+                 // Direction away from hull centerline
+                 let lateral_dir = dist_vec.normalize_or_zero();
                  
-                 let force = if proj_fwd > 0.0 {
-                     // Bow Zone (Front)
-                     // Push laterally OUTWARDS
-                     let sign = proj_right.signum();
-                     let push_dir = right * sign; 
-                     // Mix of lateral push (80%) and forward push (20%)
-                     (push_dir * 0.8 + forward * 0.2) * speed * interaction_strength
+                 let force = if t > 0.85 {
+                     // Bow: Strong Outward Push + Forward Component
+                     (lateral_dir * 1.0 + forward * 0.5) * speed * interaction_strength
+                 } else if t < 0.15 {
+                     // Stern: Suction (Inward Pull) + Forward Drag
+                     (-lateral_dir * 0.5 + forward * 0.2) * speed * interaction_strength * 0.8
                  } else {
-                     // Stern Zone (Rear)
-                     // Pull laterally INWARDS (Wake fill)
-                     let sign = proj_right.signum();
-                     let pull_dir = -right * sign;
-                     // Mix of inward pull (60%) and forward drag (40%)
-                     (pull_dir * 0.6 + forward * 0.4) * speed * interaction_strength * 0.8 // Slightly weaker at stern
+                     // Midships: Pure displacement (Outward)
+                     lateral_dir * speed * interaction_strength * 0.4
                  };
                  
-                 // Apply to cell velocity
-                 // Note: We add a fraction of the force each frame
-                 let dt_scale = 0.1; // Artificial coupling constant
+                 // Apply
+                 let dt_scale = 0.1;
                  cell.flow_right += force.x * falloff * dt_scale;
                  cell.flow_down += force.y * falloff * dt_scale;
              }
