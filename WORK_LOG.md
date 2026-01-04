@@ -1380,3 +1380,9 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
 - Verified with unit tests and visual inspection.
 - Fixed `ink_parchment.wgsl` water detection.
 - Re-enabled `GraphicsPlugin`.
+
+**[2026-01-03 20:31]** ✓ `Water Debug Panel` (complete): Implemented Water Debug Panel.
+- Added `WaterDebugPlugin` in `src/features/water/debug.rs`.
+- Added UI using `bevy_egui` to toggle visualization.
+- Implemented velocity visualization using `Gizmos`.
+- Updated `WaterMaterial` and `water_v3.wgsl` to support height/foam debug views.

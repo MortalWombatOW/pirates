@@ -25,6 +25,8 @@ pub struct WaterMaterial {
     pub color: LinearRgba,
     #[uniform(0)]
     pub time: f32,
+    #[uniform(0)]
+    pub flags: u32,
 }
 
 impl Material2d for WaterMaterial {
@@ -52,6 +54,7 @@ fn spawn_water_mesh(
     let material = materials.add(WaterMaterial {
         color: LinearRgba::from(Color::srgba(0.0, 0.4, 0.8, 1.0)),
         time: 0.0,
+        flags: 0,
     });
     
     commands.spawn((
@@ -178,6 +181,7 @@ mod tests {
         let material = materials.add(WaterMaterial {
              color: LinearRgba::WHITE,
              time: 0.0,
+             flags: 0,
         });
 
         // Spawn mesh entity manually

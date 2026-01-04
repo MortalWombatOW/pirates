@@ -2,7 +2,8 @@
 
 struct WaterMaterial {
     color: vec4<f32>,
-    time: f32, // Check padding/alignment
+    time: f32,
+    flags: u32,
 }
 
 @group(2) @binding(0) var<uniform> material: WaterMaterial;
@@ -38,6 +39,22 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let foam_factor = smoothstep(foam_threshold, foam_threshold + 0.1, height_norm);
     
     final_color = mix(final_color, foam_color, foam_factor);
+    
+    // Debug Visualizations
+    // Height Map (Flag 1)
+    if ((material.flags & 1u) != 0u) {
+        // Visualize height: 0.0 (Deep/Black) -> 1.0 (High/White)
+        return vec4<f32>(vec3<f32>(height_norm), 1.0);
+    }
+    
+    // Foam Map (Flag 2)
+    // Recalculate foam factor to visualize raw foam mask
+    let debug_foam_threshold = 0.65 - (sin(material.time * 2.0) * 0.05);
+    let debug_foam = smoothstep(debug_foam_threshold, debug_foam_threshold + 0.1, height_norm);
+    
+    if ((material.flags & 2u) != 0u) {
+        return vec4<f32>(vec3<f32>(debug_foam), 1.0);
+    }
     
     // Grid/Cell Debug (optional, using UVs)
     // let grid = max(step(0.98, in.uv.x), step(0.98, in.uv.y));
