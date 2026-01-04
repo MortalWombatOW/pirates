@@ -49,7 +49,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     
     // Foam Map (Flag 2)
     // Recalculate foam factor to visualize raw foam mask
-    let debug_foam_threshold = 0.65 - (sin(material.time * 2.0) * 0.05);
+    let debug_foam_threshold = 0.55 - (sin(material.time * 2.0) * 0.05);
     let debug_foam = smoothstep(debug_foam_threshold, debug_foam_threshold + 0.1, height_norm);
     
     if ((material.flags & 2u) != 0u) {

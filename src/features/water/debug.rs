@@ -12,17 +12,30 @@ impl Plugin for WaterDebugPlugin {
         app.init_resource::<WaterDebugConfig>()
            .add_systems(Update, (
                water_debug_ui,
-               draw_velocity_vectors,
+               draw_velocity_vectors.run_if(|c: Res<WaterDebugConfig>| c.show_velocity),
                update_material_debug_flags,
+               update_post_processing_visibility,
            ).run_if(in_state(GameState::Combat)));
     }
 }
 
-#[derive(Resource, Default, Debug)]
+#[derive(Resource, Debug)]
 pub struct WaterDebugConfig {
     pub show_height: bool,
     pub show_velocity: bool,
     pub show_foam: bool,
+    pub show_post_process: bool,
+}
+
+impl Default for WaterDebugConfig {
+    fn default() -> Self {
+        Self {
+            show_height: false,
+            show_velocity: false,
+            show_foam: false,
+            show_post_process: true,
+        }
+    }
 }
 
 fn water_debug_ui(
@@ -32,7 +45,9 @@ fn water_debug_ui(
     egui::Window::new("Water Debug").show(contexts.ctx_mut(), |ui| {
         ui.checkbox(&mut config.show_height, "Show Height Map");
         ui.checkbox(&mut config.show_velocity, "Show Velocity Vectors");
-        ui.checkbox(&mut config.show_foam, "Show Foam Map");
+        ui.checkbox(&mut config.show_foam, "Show Foam");
+        ui.separator();
+        ui.checkbox(&mut config.show_post_process, "Enable Ink & Parchment");
     });
 }
 
@@ -71,6 +86,32 @@ fn draw_velocity_vectors(
         let color = if velocity.length() > 1.0 { Color::srgb(1.0, 0.0, 0.0) } else { Color::srgb(0.0, 0.0, 1.0) };
         
         gizmos.arrow_2d(center, end, color);
+    }
+}
+
+fn update_post_processing_visibility(
+    config: Res<WaterDebugConfig>,
+    mut commands: Commands,
+    // Also query cameras that DON'T have it but should, to catch re-enabling.
+    // Actually, simpler: Query all Camera2d.
+    camera_query: Query<(Entity, Option<&crate::plugins::graphics::AestheticSettings>), With<Camera2d>>,
+) {
+    if config.is_changed() {
+        for (entity, has_settings) in camera_query.iter() {
+            if config.show_post_process {
+                // Enable: Add component if missing
+                if has_settings.is_none() {
+                    commands.entity(entity).insert(crate::plugins::graphics::AestheticSettings::default());
+                    info!("Debug: Re-enabled Post-Processing");
+                }
+            } else {
+                // Disable: Remove component if present
+                if has_settings.is_some() {
+                    commands.entity(entity).remove::<crate::plugins::graphics::AestheticSettings>();
+                    info!("Debug: Disabled Post-Processing");
+                }
+            }
+        }
     }
 }
 
