@@ -10,7 +10,29 @@ pub struct FluidDynamicsPlugin;
 impl Plugin for FluidDynamicsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<FluidConfig>()
-           .add_systems(FixedUpdate, (fluid_solver_system,).run_if(in_state(GameState::Combat)));
+           .init_resource::<WaveGeneratorConfig>()
+           .add_systems(FixedUpdate, (wave_generator_system.before(fluid_solver_system), fluid_solver_system).chain().run_if(in_state(GameState::Combat)));
+    }
+}
+
+/// Configuration for the ambient wave generator.
+#[derive(Resource, Debug)]
+pub struct WaveGeneratorConfig {
+    /// Amplitude of generated waves (meters).
+    pub amplitude: f32,
+    /// Frequency of oscillation (Hz).
+    pub frequency: f32,
+    /// Wave number (spatial frequency along X-axis).
+    pub wave_number: f32,
+}
+
+impl Default for WaveGeneratorConfig {
+    fn default() -> Self {
+        Self {
+            amplitude: 2.0, 
+            frequency: 1.0, 
+            wave_number: 0.05,
+        }
     }
 }
 
@@ -258,5 +280,48 @@ mod tests {
         // Height should increase.
         
         assert!(cell_right.height > 0.0, "Right height should increase");
+    }
+}
+/// Generates ambient waves at the Northern boundary.
+fn wave_generator_system(
+    mut ocean: ResMut<OceanQuadtree>,
+    config: Res<WaveGeneratorConfig>,
+    time: Res<Time>,
+) {
+    let t = time.elapsed_secs();
+    let domain_size = ocean.domain_size;
+    let domain_half_size = domain_size / 2.0;
+    
+    // Iterate through all leaf nodes
+    for (&(depth, code), cell) in ocean.nodes.iter_mut() {
+        let (gx, gy) = morton_decode(code);
+        let cell_size = domain_size / (1u32 << depth) as f32;
+        
+        let grid_dim = 1u32 << depth;
+        let normalized_y = gy as f32 / grid_dim as f32;
+        let world_y = (normalized_y * domain_size) - domain_half_size + (cell_size / 2.0);
+        
+        // Check if cell is at the Northern boundary (Top)
+        // We define "boundary" as within 5% of the top edge or a fixed distance
+        let boundary_threshold = domain_half_size - 10.0; 
+        
+        // Note: Cartesian Y is Up. Screen Y is Down?
+        // In Bevy 2D: Y is Up. 
+        // So Top is +Y (approx domain_half_size).
+        
+        if world_y > boundary_threshold {
+             let normalized_x = gx as f32 / grid_dim as f32;
+             let world_x = (normalized_x * domain_size) - domain_half_size + (cell_size / 2.0);
+        
+             // Oscillate height
+             // h = A * sin(wt + kx)
+             let phase = world_x * config.wave_number;
+             let val = config.amplitude * (t * config.frequency + phase).sin();
+             
+             // Override height at boundary to drive the simulation
+             cell.height = val;
+             // Also inject downward momentum?
+             cell.flow_down = -1.0 * config.amplitude; // Initial push south
+        }
     }
 }
