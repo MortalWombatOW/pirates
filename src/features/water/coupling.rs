@@ -43,14 +43,14 @@ fn apply_ship_displacement(
         // Ship Dimensions (Approximation)
         let hull_length = 40.0;
         let half_length = hull_length / 2.0;
-        let hull_width_influence = 12.0; // How far distinct hull displacement reaches
+        let hull_width_influence = 24.0; // Doubled from 12.0
         
         let stern_pos = ship_pos - forward * half_length;
         let bow_pos = ship_pos + forward * half_length;
         let segment_vec = bow_pos - stern_pos;
         let segment_len_sq = segment_vec.length_squared();
         
-        let interaction_strength = 0.5;
+        let interaction_strength = 1.0; // Doubled from 0.5
 
         for (&(depth, code), cell) in ocean.nodes.iter_mut() {
              let (gx, gy) = morton_decode(code);
