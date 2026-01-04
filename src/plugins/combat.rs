@@ -1,9 +1,5 @@
 use bevy::prelude::*;
-use bevy::sprite::Material2dPlugin;
-
 use crate::plugins::core::GameState;
-use crate::plugins::fluid_simulation::FluidSimulationPlugin;
-use crate::resources::WaterMaterial;
 use crate::systems::{
     buffer_ship_input, 
     ship_physics_system, 
@@ -31,16 +27,15 @@ use crate::systems::camera::{camera_shake_system, trigger_camera_shake_on_fire};
 use crate::systems::hit_flash::{trigger_hit_flash_system, update_hit_flash_system};
 use crate::resources::CannonState;
 
+use crate::plugins::water::WaterPlugin;
+
 /// Plugin that manages all combat-related systems.
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        // Add fluid simulation plugin for dynamic water
-        app.add_plugins((
-            FluidSimulationPlugin,
-            Material2dPlugin::<WaterMaterial>::default(),
-        ));
+        // Add Water V3 Plugin
+        app.add_plugins(WaterPlugin);
 
         // Register events
         app.add_event::<crate::events::ShipDestroyedEvent>()

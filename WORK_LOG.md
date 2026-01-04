@@ -1355,3 +1355,28 @@ Implements a 32-point compass rose using `bevy_prototype_lyon` vector graphics, 
 **[2026-01-02 21:14]** ✓ `3.2.6` (complete): Removed legacy `ensure_spawn_navigable` function from `procgen.rs` to allow natural terrain generation at the center of the map. Verified with unit tests and visual map generation test.
 
 **[2026-01-03 11:49]** ✓ `3.2.7` (complete): Implemented dynamic spawn location finding using spiral search to ensure player starts on executable water tile. Restored missing port placement in map generation. Verified with new unit tests and manual gameplay check.
+
+**[2026-01-03 12:50]** 🔨 `8.9` (implementing): implemented water v3 core components: morton codes, quadtree, vpm solver, grid adaptation, physics coupling, and rendering with instancing.
+
+**[2026-01-03 12:50]** ✅ `8.9` (verified): verified all water v3 components via cargo test features::water and cargo check. nine tests passing covering core algorithms. legacy systems removed.
+
+**[2026-01-03 12:59]** ✅ `8.9.10` (verified): Fixed invisible water rendering issue. The cause was using Mesh3d with a Camera2d (which does not render Mesh3d). Switched implementation to use Mesh2d and ColorMaterial, which is compatible with the 2D camera. Verified with unit test that generates vertices.
+
+**[2026-01-03 13:09]** ✅ `8.9.11` (verified): Implemented stylized 2D water shader using `Material2d`. This enables visual encoding of height and flow data compatible with the game's orthographic 2D camera. Verified shader input/output with unit tests.
+
+**[2026-01-03 13:37]** ✅ `Tuning Parameters` (verified): Tuned simulation parameters: reduced ship speed/acceleration by 50% and doubled water simulation resolution (max_depth 8 -> 9). Verified with unit tests.
+
+**[2026-01-03 20:16]** ✅ `Refactor Water Logic` (verified): Refactored water simulation parameters into `FluidConfig` and `GridAdaptationConfig` resources. This enables easy tuning of physics and optimization parameters without recompilation. Verified with `cargo test`.
+
+**[2026-01-03 20:18]** ✅ `Tuning Parameters` (verified): Increased water simulation resolution by 4x (baseline) by setting `max_depth` to 10 in `OceanQuadtree`. Verified with `cargo test`.
+
+**[2026-01-03 20:23]** ✅ `Dynamic Resolution Scaling` (verified): Implemented dynamic resolution scaling in `grid_adaptation.rs`. The system adjusts `OceanQuadtree.max_depth` between 6 and 16 based on FPS (target 60). Verified with unit tests.
+
+**[2026-01-03 20:27]** ✓ `Combat Water V3` (complete): Completed Epic 8.9: Combat Water V3.
+- Implemented `OceanQuadtree` with amortized Morton codes.
+- Implemented AMR with `dynamic_resolution_system` (Depth 6-16).
+- Implemented VPM fluid solver on staggered grid.
+- Implemented stylized water rendering (WGSL) with foam and rim lighting.
+- Verified with unit tests and visual inspection.
+- Fixed `ink_parchment.wgsl` water detection.
+- Re-enabled `GraphicsPlugin`.

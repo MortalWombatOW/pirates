@@ -246,8 +246,8 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     // Detects blue-ish water colors and applies watercolor bleeding at edges
     {
         // Water detection: check if current pixel is blue-ish (water tiles)
-        let blue_ratio = final_rgb.b / max(final_rgb.r + final_rgb.g + 0.001, 0.1);
-        let is_water = step(0.4, blue_ratio) * step(0.2, final_rgb.b);
+        let blue_ratio = color.b / max(color.r + color.g + 0.001, 0.1);
+        let is_water = step(0.4, blue_ratio) * step(0.2, color.b);
         
         // Sample neighbors to detect color transitions (potential coastlines)
         let wash_texel = texel * 2.0; // Larger sampling radius for softer bleed

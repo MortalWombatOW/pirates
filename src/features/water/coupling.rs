@@ -1,0 +1,99 @@
+use bevy::prelude::*;
+use avian2d::prelude::*;
+use crate::components::ship::Ship;
+use crate::features::water::quadtree::OceanQuadtree;
+use crate::features::water::morton::{morton_decode, morton_encode};
+use crate::plugins::core::GameState;
+
+#[derive(Default)]
+pub struct OceanPhysicsCouplingPlugin;
+
+impl Plugin for OceanPhysicsCouplingPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(FixedUpdate, (apply_ship_displacement, apply_water_boudary_forces).run_if(in_state(GameState::Combat)));
+    }
+}
+
+/// Ships displace water: Inject velocity into the grid based on ship movement.
+/// This creates the "Bow Wave" and "Wake".
+fn apply_ship_displacement(
+    mut ocean: ResMut<OceanQuadtree>,
+    ships: Query<(&GlobalTransform, &LinearVelocity, &Collider), With<Ship>>,
+    time: Res<Time<Fixed>>,
+) {
+    let dt = time.delta_secs();
+    if dt == 0.0 { return; }
+
+    let domain_size = ocean.domain_size;
+
+    for (transform, velocity, _collider) in ships.iter() {
+        let ship_pos = transform.translation().truncate();
+        let ship_vel = velocity.0;
+        
+        let radius = 20.0;
+        
+        for (&(depth, code), cell) in ocean.nodes.iter_mut() {
+             let (gx, gy) = morton_decode(code);
+             // Inlined cell_size calculation to avoid borrowing ocean
+             let cell_size = domain_size / (1u32 << depth) as f32;
+             
+             let grid_dim = 1u32 << depth;
+             let normalized_x = gx as f32 / grid_dim as f32;
+             let normalized_y = gy as f32 / grid_dim as f32;
+             let half_size = domain_size / 2.0;
+             let world_x = (normalized_x * domain_size) - half_size + (cell_size / 2.0);
+             let world_y = (normalized_y * domain_size) - half_size + (cell_size / 2.0);
+             let cell_center = Vec2::new(world_x, world_y);
+             
+             let dist_sq = cell_center.distance_squared(ship_pos);
+             if dist_sq < radius * radius {
+                 let injection_factor = 0.1;
+                 
+                 cell.flow_right += ship_vel.x * injection_factor;
+                 cell.flow_down += ship_vel.y * injection_factor;
+             }
+        }
+    }
+}
+
+/// Water applies forces to ships (Drag / Drift).
+fn apply_water_boudary_forces(
+    ocean: Res<OceanQuadtree>,
+    mut ships: Query<(&GlobalTransform, &LinearVelocity, &mut ExternalForce), With<Ship>>,
+) {
+    for (transform, velocity, mut force) in ships.iter_mut() {
+        let ship_pos = transform.translation().truncate();
+        
+        let half_size = ocean.domain_size / 2.0;
+        let norm_x = (ship_pos.x + half_size) / ocean.domain_size;
+        let norm_y = (ship_pos.y + half_size) / ocean.domain_size;
+        
+        if norm_x < 0.0 || norm_x > 1.0 || norm_y < 0.0 || norm_y > 1.0 {
+            continue;
+        }
+        
+        let mut sample_flow = Vec2::ZERO;
+        let mut found = false;
+        
+        for d in (0..=ocean.max_depth).rev() {
+            let grid_dim = 1u32 << d;
+            let gx = (norm_x * grid_dim as f32) as u16;
+            let gy = (norm_y * grid_dim as f32) as u16;
+            let code = morton_encode(gx, gy);
+            
+            if let Some(cell) = ocean.nodes.get(&(d, code)) {
+                sample_flow = Vec2::new(cell.flow_right, cell.flow_down);
+                found = true;
+                break;
+            }
+        }
+        
+        if found {
+            let drag_coeff = 1.0; 
+            let rel_vel = sample_flow - velocity.0;
+            let drag_force = rel_vel * drag_coeff;
+            
+            force.apply_force(drag_force);
+        }
+    }
+}

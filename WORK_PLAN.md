@@ -479,6 +479,24 @@
 | [ ] 8.7.1 | Implement procedural parchment background | 8.1.1 | Background renders as a continuous, organic parchment/vellum texture. |
 | [ ] 8.7.2 | Implement landmass darkening | 8.7.1, 8.5.1 | Areas inside coastlines appear slightly denser/darker in tone than the ocean. |
 
+### Epic 8.9: Combat Water V3 (Quadtree)
+> Replace stable fluids with CPU-based VPM solver on Linear Quadtree for scalable, interactive waves.
+> Context: docs/combat_water_v3.md
+
+| ID | Task | Dependencies | Acceptance Criteria |
+|---|---|---|---|
+| [x] 8.9.1 | Implement Morton Code utilities | None | `morton.rs` with encode/decode/neighbor tests. |
+| [x] 8.9.2 | Implement `OceanQuadtree` resource | 8.9.1 | Resource stores `WaterCell` nodes in HashMap. |
+| [x] 8.9.3 | Implement Grid Adaptation (AMR) | 8.9.2 | System refines/coarsens grid based on ship position. |
+| [x] 8.9.4 | Implement VPM Solver (Flux & Integration) | 8.9.3 | Waves propagate across quadtree. |
+| [x] 8.9.5 | Implement `Buoyancy` (Polygon Clipping) | 8.9.4 | Ship floats using submerged polygon area/centroid. |
+| [x] 8.9.6 | Implement `Displacement` (Plunger/Drag) | 8.9.5 | Moving ship pushes water, creates wake. |
+| [x] 8.9.7 | Implement Water Rendering (Instancing) | 8.9.2 | GPU instancing renders quadtree leaves. |
+| [x] 8.9.8 | Implement Stylized Water Shader (WGSL) | 8.9.7 | Flat shading, rim lighting, foam edges. |
+| [x] 8.9.9 | Remove legacy V2 water systems | 8.9.8 | Delete `water_material.rs`, `fluids.wgsl`. |
+| [x] 8.9.10 | Debug invisible water rendering | 8.9.7 | Fix issue where water is not visible in combat. |
+| [x] 8.9.11 | Implement Stylized Water Shader (2D) | 8.9.10 | Custom `Material2d` with smooth gradients and foam. |
+
 ### Epic 8.8: Combat Water Simulation
 > Custom Stable Fluids solver with Bevy Compute Shaders for Metal/M1 compatibility.
 > Context: docs/combat_water_v2.md.

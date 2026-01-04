@@ -33,10 +33,10 @@ pub struct ShipPhysicsConfig {
 impl Default for ShipPhysicsConfig {
     fn default() -> Self {
         Self {
-            max_thrust: 150000.0,     // Halved from 300,000 N
-            max_reverse_thrust: 50000.0, // Halved from 100,000 N
-            turn_torque: 175000.0,    // Halved from 350,000 Nm
-            max_angular_speed: 1.75,  // Halved from 3.5
+            max_thrust: 75000.0,     // Reduced by 50% from 150,000
+            max_reverse_thrust: 25000.0, // Reduced by 50% from 50,000
+            turn_torque: 87500.0,    // Reduced by 50% from 175,000
+            max_angular_speed: 0.875,  // Reduced by 50% from 1.75
             longitudinal_drag: 0.6,
             lateral_drag: 3.0,
         }

@@ -56,7 +56,7 @@ fn main() {
         .add_plugins(ScaleBarPlugin)
         .add_plugins(CartouchePlugin)
         .add_plugins(FadeControllerPlugin)
-        // .add_plugins(GraphicsPlugin) // Disabled to test raw rendering
+        .add_plugins(pirates::plugins::graphics::GraphicsPlugin)
         // Particle effect systems (8.5) - Damage splatter remains, wake effects removed (now fluid sim)
         .add_systems(Startup, setup_splatter_effects)
         .add_systems(
